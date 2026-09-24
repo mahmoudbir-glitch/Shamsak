@@ -7,8 +7,8 @@ export const metadata: Metadata = {
   title: 'شمسك الخاص — Shamsak Private',
   description: 'لوحة التحكم الخاصة لنظام الطاقة الشمسية',
   robots: {
-    index: true,
-    follow: true,
+    index: false,
+    follow: false,
   },
   openGraph: {
     title: 'شمسك الخاص — Shamsak Private',
