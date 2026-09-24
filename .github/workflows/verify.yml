@@ -27,7 +27,14 @@ jobs:
 
       - name: Commit generated lockfile
         run: |
-          if git diff --quiet -- package-lock.json; then
+          if [ -f package-lock.json ]; then
+            git add package-lock.json
+          else
+            echo "package-lock.json was not generated."
+            exit 1
+          fi
+
+          if git diff --cached --quiet -- package-lock.json; then
             echo "package-lock.json is already in sync."
             exit 0
           fi
