@@ -1,56 +1,29 @@
-import React from 'react';
+'use client';
+import {useEffect,useState} from 'react';
+import {BatteryCharging,Sun,Home,Network,RefreshCw,WifiOff} from 'lucide-react';
+import {StatusCard} from '@/components/status-card';
+import {Section} from '@/components/section';
+import {EnergyFlow} from '@/components/energy-flow';
+import {demoSnapshot,EnergySnapshot,batteryState} from '@/lib/energy';
 
-const metrics = [
-  { label: 'الإنتاج اللحظي (الشمس)', value: '6.8', unit: 'kW', color: 'text-amber-400' },
-  { label: 'الاستهلاك اللحظي (المنزل)', value: '3.2', unit: 'kW', color: 'text-sky-400' },
-  { label: 'شحن البطارية', value: '94%', unit: 'جاري الشحن', color: 'text-emerald-400' },
-  { label: 'السحب من الشبكة', value: '0.5', unit: 'kW', color: 'text-orange-400' },
-];
-
-export default function DashboardPage() {
-  return (
-    <div className="space-y-5 sm:space-y-6">
-      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-        <h2 className="text-xl font-bold sm:text-2xl">لوحة التحكم الخاصة بالطاقة</h2>
-        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/20 px-3 py-1 text-xs text-emerald-400">
-          النظام يعمل بشكل طبيعي
-        </span>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 sm:gap-4">
-        {metrics.map((metric) => (
-          <div key={metric.label} className="min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
-            <span className="text-sm text-slate-400">{metric.label}</span>
-            <p className={`mt-2 break-words text-2xl font-extrabold sm:text-3xl ${metric.color}`}>
-              {metric.value}{' '}
-              <span className="text-sm font-normal text-slate-300">{metric.unit}</span>
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <section className="rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-6" aria-labelledby="energy-flow-title">
-        <h3 id="energy-flow-title" className="mb-4 text-lg font-semibold">تدفق الطاقة المباشر</h3>
-        <div className="flex flex-col items-center justify-around gap-5 rounded-lg border border-slate-800/80 bg-slate-950/50 p-5 sm:p-8 md:flex-row md:gap-6">
-          <div className="text-center">
-            <div aria-hidden="true" className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/20 text-2xl text-amber-400 sm:h-16 sm:w-16">☀️</div>
-            <p className="font-bold">الألواح الشمسية</p>
-            <p className="text-xs text-slate-400">6.8 kW</p>
-          </div>
-          <div aria-hidden="true" className="rotate-90 text-xl font-bold text-amber-400 md:rotate-0">➡️</div>
-          <div className="text-center">
-            <div aria-hidden="true" className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/20 text-2xl text-emerald-400 sm:h-16 sm:w-16">🔋</div>
-            <p className="font-bold">البطاريات</p>
-            <p className="text-xs text-slate-400">8.9 kW شحن</p>
-          </div>
-          <div aria-hidden="true" className="rotate-90 text-xl font-bold text-sky-400 md:rotate-0">➡️</div>
-          <div className="text-center">
-            <div aria-hidden="true" className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full border border-sky-500/30 bg-sky-500/20 text-2xl text-sky-400 sm:h-16 sm:w-16">🏠</div>
-            <p className="font-bold">استهلاك المنزل</p>
-            <p className="text-xs text-slate-400">3.2 kW</p>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
+export default function DashboardPage(){
+ const [data,setData]=useState<EnergySnapshot>(demoSnapshot);
+ const [updated,setUpdated]=useState(demoSnapshot.timestamp);
+ const [refreshing,setRefreshing]=useState(false);
+ useEffect(()=>{const id=setInterval(()=>setUpdated(new Date().toISOString()),30000);return()=>clearInterval(id)},[]);
+ function refresh(){setRefreshing(true);setTimeout(()=>{setUpdated(new Date().toISOString());setRefreshing(false)},400)}
+ const age=Math.max(0,Math.round((Date.now()-new Date(updated).getTime())/60000));
+ const bs=batteryState(data.batteryPowerW);
+ return <div className="space-y-4 sm:space-y-5">
+  <div className="flex items-start justify-between gap-3"><div><h1 className="text-2xl font-extrabold">لوحة الطاقة</h1><p className="mt-1 text-sm text-slate-500">مراقبة الحالة الحالية للنظام المنزلي.</p></div><button onClick={refresh} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold shadow-sm" disabled={refreshing}><RefreshCw size={16} className={refreshing?'animate-spin':''}/> تحديث</button></div>
+  <div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">Demo — بيانات تجريبية</span><span className="text-xs text-slate-500">آخر تحديث منذ {age} دقيقة</span></div>
+  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+   <StatusCard label="إنتاج الشمس" value={(data.solarPowerW/1000).toFixed(2)} unit="kW" icon={<Sun size={18}/>} tone="amber"/>
+   <StatusCard label="استهلاك المنزل" value={(data.homePowerW/1000).toFixed(2)} unit="kW" icon={<Home size={18}/>} tone="blue"/>
+   <StatusCard label="البطارية" value={data.batterySoc} unit={bs==='charging'?'% — تشحن':bs==='discharging'?'% — تفرغ':'% — ثابتة'} icon={<BatteryCharging size={18}/>} tone="green"/>
+   <StatusCard label="الشبكة" value={data.gridConnected?'متصلة':'مفصولة'} icon={data.gridConnected?<Network size={18}/>:<WifiOff size={18}/>} tone={data.gridConnected?'violet':'red'}/>
+  </div>
+  <Section title="تدفق الطاقة" subtitle="الاتجاهات تتبع حالة البيانات الحالية"><EnergyFlow data={data}/><div className="mt-4 grid gap-3 sm:grid-cols-3"><div className="rounded-xl bg-slate-50 p-3 text-sm"><span className="text-slate-500">البطارية</span><strong className="mt-1 block">{data.batteryVoltage} V · {Math.abs(data.batteryCurrent??0)} A</strong></div><div className="rounded-xl bg-slate-50 p-3 text-sm"><span className="text-slate-500">قدرة الشحن/التفريغ</span><strong className="mt-1 block">{Math.abs(data.batteryPowerW/1000).toFixed(2)} kW</strong></div><div className="rounded-xl bg-slate-50 p-3 text-sm"><span className="text-slate-500">الشبكة</span><strong className="mt-1 block">{Math.abs(data.gridPowerW/1000).toFixed(2)} kW</strong></div></div></Section>
+  <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900"><strong>مصدر البيانات:</strong> لا يوجد جهاز طاقة متصل بالمشروع حاليًا. هذه القراءة التجريبية موسومة بوضوح، ولن تُعتبر قراءة حقيقية حتى تتم إضافة Adapter لمصدر الجهاز.</div>
+ </div>
 }
