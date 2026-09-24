@@ -1,0 +1,91 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  OWNER
+  FAMILY_MEMBER
+  TECHNICIAN
+  LOCAL_ADMIN
+}
+
+enum SystemStatus {
+  NORMAL
+  ATTENTION_NEEDED
+  FAULT
+}
+
+model User {
+  id            String       @id @default(uuid())
+  name          String
+  email         String       @unique
+  passwordHash  String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  memberships   Membership[]
+  auditLogs     AuditLog[]
+}
+
+model Household {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime     @default(now())
+  memberships Membership[]
+  sites       Site[]
+}
+
+model Membership {
+  id          String    @id @default(uuid())
+  userId      String
+  householdId String
+  role        Role      @default(FAMILY_MEMBER)
+  expiresAt   DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+}
+
+model Site {
+  id           String        @id @default(uuid())
+  householdId  String
+  name         String
+  region       String
+  installation DateTime
+  household    Household     @relation(fields: [householdId], references: [id])
+  systems      SolarSystem[]
+}
+
+model SolarSystem {
+  id           String        @id @default(uuid())
+  siteId       String
+  name         String
+  capacityKw   Float
+  status       SystemStatus  @default(NORMAL)
+  site         Site          @relation(fields: [siteId], references: [id])
+  readings     EnergyReading[]
+}
+
+model EnergyReading {
+  id            String      @id @default(uuid())
+  systemId      String      
+  solarKw       Float
+  consumptionKw Float
+  batteryPct    Float
+  gridKw        Float
+  timestamp     DateTime    @default(now())
+  system        SolarSystem @relation(fields: [systemId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  details   String?
+  timestamp DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
