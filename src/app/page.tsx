@@ -1,23 +1,21 @@
 "use client";
 
 import React, { useState } from 'react';
-// 1. استيراد دالة الحساب الذكية التي أنشأناها في المجلد utils
- import { calculateBatteryAutonomy } from '../utils/solarPredictions';
-} from '../utils/solarPredictions';
- from '@/utils/solarPredictions';
+// استخدام المسار المباشر الصحيح لتفادي مشاكل البناء
+import { calculateBatteryAutonomy } from '../utils/solarPredictions';
 
 export default function SolarDashboard() {
-  // 2. إعداد قيم الطاقة اللحظية (مطابقة لقراءات الصور)
+  // إعداد قيم الطاقة اللحظية (مطابقة لقراءات الصور)
   const [solarProduction, setSolarProduction] = useState<number>(5827); // إنتاج الشمس بالواط
   const [homeConsumption, setHomeConsumption] = useState<number>(1299); // استهلاك المنزل بالواط
   const [batteryLevel, setBatteryLevel] = useState<number>(94);         // نسبة شحن البطارية %
   const [gridStatus, setGridStatus] = useState<string>("مقطوعة");       // حالة شبكة الكهرباء
 
-  // 3. إعداد بيانات الطقس التجريبية المتوقعة
+  // إعداد بيانات الطقس التجريبية المتوقعة
   const weatherCondition: 'sunny' | 'cloudy' | 'rainy' = 'sunny';
   const expectedSunHours = 5.5;
 
-  // 4. استدعاء الدالة الذكية وتمرير البيانات لها للحصول على التوقعات الحية
+  // استدعاء الدالة الذكية وتمرير البيانات لها للحصول على التوقعات الحية
   const prediction = calculateBatteryAutonomy(
     {
       capacityWh: 4800,        // سعة المنظومة الافتراضية بالواط ساعي
@@ -90,7 +88,7 @@ export default function SolarDashboard() {
         </div>
       </div>
 
-      {/* القسم 2: صندوق التنبؤ الذكي بصمود البطارية (الليلة الجارية) */}
+      {/* القسم 2: صندوق التنبؤ الذكي بصمود البطارية */}
       <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4 shadow-sm">
         <div className="flex justify-between items-center mb-2">
           <h3 className="font-bold text-amber-900 text-sm flex items-center gap-1">🌙 ليلة غد وما تبقى من اليوم</h3>
@@ -137,7 +135,7 @@ export default function SolarDashboard() {
           <span className="text-lg">☀️</span>الطاقة
         </div>
         <div className="flex flex-col items-center gap-0.5 opacity-60">
-          <span className="text-lg">💰</span>الالمال
+          <span className="text-lg">💰</span>المال
         </div>
       </div>
 
