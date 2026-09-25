@@ -86,13 +86,13 @@ function EnergyNode({
         </div>
       </div>
 
-      <p className="mt-2 text-[10px] font-black tracking-[0.08em] text-slate-500 sm:text-xs">
+      <p className="mt-2 text-[10px] font-black tracking-[0.08em] text-slate-700 sm:text-xs">
         {title}
       </p>
       <p className={`mt-1 text-xl font-black tracking-tight sm:text-3xl ${t.text}`}>
         {value}
       </p>
-      <p className="mt-0.5 max-w-[150px] text-[10px] font-semibold text-slate-400 sm:text-xs">
+      <p className="mt-0.5 max-w-[150px] text-[10px] font-semibold text-slate-600 sm:text-xs">
         {subtitle}
       </p>
     </div>
@@ -341,7 +341,7 @@ export function SolarHero({ data }: SolarHeroProps) {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,.5)]" />
-              <span className="text-xs font-bold text-slate-600">حالة النظام الآن</span>
+              <span className="text-xs font-bold text-slate-800">حالة النظام الآن</span>
             </div>
             <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-black text-slate-700 shadow-sm">
               {statusText}
