@@ -132,7 +132,7 @@ function BatteryNode({
           />
         </div>
       </div>
-      <p className="mt-2 text-[10px] font-black tracking-[0.08em] text-slate-500 sm:text-xs">BATTERY STATUS</p>
+      <p className="mt-2 text-[10px] font-black tracking-[0.08em] text-slate-500 sm:text-xs">حالة البطارية</p>
       <p className={`mt-1 text-lg font-black sm:text-2xl ${discharging ? "text-sky-600" : "text-emerald-600"}`}>
         {kw(power)} kW
       </p>
@@ -340,13 +340,13 @@ export function SolarHero({ data }: SolarHeroProps) {
             />
 
             <div className="absolute left-1/2 top-[3%] z-20 -translate-x-1/2">
-              <EnergyNode variant="solar" title="SOLAR" value={`${kw(data.solarPowerW)} kW`} subtitle={solarActive ? "إنتاج حالي" : "لا إنتاج حاليًا"} icon={<Sun size={34} aria-hidden="true" />} />
+              <EnergyNode variant="solar" title="الشمس" value={`${kw(data.solarPowerW)} kW`} subtitle={solarActive ? "إنتاج حالي" : "لا إنتاج حاليًا"} icon={<Sun size={34} aria-hidden="true" />} />
             </div>
 
             <div className="absolute left-[1%] top-[45%] z-20">
               <EnergyNode
                 variant="grid"
-                title="GRID STATUS"
+                title="الشبكة"
                 value={!data.gridConnected ? "مفصولة" : `${kw(data.gridPowerW)} kW`}
                 subtitle={!data.gridConnected ? "لا يوجد اتصال" : gridImport ? "سحب من الشبكة" : gridExport ? "تصدير إلى الشبكة" : "متوازنة"}
                 icon={<Network size={32} aria-hidden="true" />}
@@ -354,7 +354,7 @@ export function SolarHero({ data }: SolarHeroProps) {
             </div>
 
             <div className="absolute right-[1%] top-[45%] z-20">
-              <EnergyNode variant="home" title="HOME CONSUMPTION" value={`${kw(data.homePowerW)} kW`} subtitle={homeActive ? "استهلاك حالي" : "لا استهلاك حاليًا"} icon={<Home size={32} aria-hidden="true" />} />
+              <EnergyNode variant="home" title="المنزل" value={`${kw(data.homePowerW)} kW`} subtitle={homeActive ? "استهلاك حالي" : "لا استهلاك حاليًا"} icon={<Home size={32} aria-hidden="true" />} />
             </div>
 
             <div className="absolute bottom-[2%] left-1/2 z-20 -translate-x-1/2">
@@ -370,12 +370,12 @@ export function SolarHero({ data }: SolarHeroProps) {
 
           <div className="grid grid-cols-3 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="border-l border-slate-100">
-              <Stat label="TODAY'S PRODUCTION" value={data.todayProductionKWh != null ? `${data.todayProductionKWh.toFixed(1)} kWh` : "—"} toneClass="text-emerald-600" />
+              <Stat label="إنتاج اليوم" value={data.todayProductionKWh != null ? `${data.todayProductionKWh.toFixed(1)} kWh` : "—"} toneClass="text-emerald-600" />
             </div>
             <div className="border-l border-slate-100">
-              <Stat label="HOME USAGE" value={data.todayHomeUsageKWh != null ? `${data.todayHomeUsageKWh.toFixed(1)} kWh` : "—"} toneClass="text-sky-600" />
+              <Stat label="استهلاك المنزل" value={data.todayHomeUsageKWh != null ? `${data.todayHomeUsageKWh.toFixed(1)} kWh` : "—"} toneClass="text-sky-600" />
             </div>
-            <Stat label="GRID SAVINGS" value={data.todayGridSavings != null ? `${data.todayGridSavings.toFixed(1)} kWh` : "—"} toneClass="text-amber-600" />
+            <Stat label="التوفير من الشبكة" value={data.todayGridSavings != null ? `${data.todayGridSavings.toFixed(1)} kWh` : "—"} toneClass="text-amber-600" />
           </div>
 
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -421,7 +421,7 @@ export function SolarHero({ data }: SolarHeroProps) {
           <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-[10px] font-bold text-slate-400">
             <span className="inline-flex items-center gap-1.5"><ArrowDownToLine size={13} className="text-emerald-500" aria-hidden="true" />الشحن</span>
             <span className="inline-flex items-center gap-1.5"><ArrowUpFromLine size={13} className="text-sky-500" aria-hidden="true" />التفريغ</span>
-            <span>الخطوط المتحركة = تدفق نشط</span>
+            <span>الخطوط المتحركة = تدفق الطاقة النشط</span>
           </div>
         </div>
       </div>
