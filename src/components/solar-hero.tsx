@@ -184,8 +184,8 @@ export function SolarHero({ data }: SolarHeroProps) {
         </span>
       </div>
 
-      <div className="relative overflow-hidden bg-slate-50/60 px-3 py-6 sm:px-6 sm:py-8">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(37,99,235,.07),transparent_38%),radial-gradient(circle_at_50%_0%,rgba(245,158,11,.08),transparent_28%)]" />
+      <div className="relative overflow-hidden bg-white px-3 py-6 sm:px-6 sm:py-8">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(37,99,235,.045),transparent_38%),radial-gradient(circle_at_50%_0%,rgba(245,158,11,.055),transparent_28%)]" />
         <div className="relative mx-auto max-w-[900px]">
           <div className="mb-3 flex justify-end">
             <span
