@@ -4,7 +4,7 @@ import { BatteryCharging, Sun, Home, Network, RefreshCw, WifiOff, Gauge, Zap } f
 import { StatusCard } from "@/components/status-card";
 import { Section } from "@/components/section";
 import { EnergyFlow } from "@/components/energy-flow";
-import { getEnergyAdapter } from "@/lib/data-adapter";
+import { getEnergySnapshot } from "@/lib/data-adapter";
 import { batteryState, batteryStateLabel, EnergySnapshot } from "@/lib/energy";
 import { SolarHero } from "@/components/solar-hero";
 
@@ -15,7 +15,7 @@ export default function DashboardPage() {
 
   const load = async () => {
     setRefreshing(true);
-    try { setData(await getEnergyAdapter().getSnapshot()); setError(false); }
+    try { setData(await getEnergySnapshot()); setError(false); }
     catch { setError(true); }
     finally { setRefreshing(false); }
   };
