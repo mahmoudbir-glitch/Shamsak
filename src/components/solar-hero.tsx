@@ -1,6 +1,6 @@
 import Image from 'next/image';
 
-export default function SolarHero() {
+export function SolarHero() {
   return (
     <div className="w-full">
       <div className="px-3 pb-3 sm:px-6">
@@ -16,3 +16,5 @@ export default function SolarHero() {
     </div>
   );
 }
+
+export default SolarHero;
