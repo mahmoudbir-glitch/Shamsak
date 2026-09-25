@@ -1,7 +1,7 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { BatteryCharging, Grid3X3, PiggyBank, Sun, WalletCards } from "lucide-react";
-import { demoSnapshot, energyBalance } from "@/lib/energy";
+import { demoSnapshot } from "@/lib/energy";
 import { StatusCard } from "@/components/status-card";
 
 type Period = "day"|"week"|"month";
@@ -11,7 +11,7 @@ export default function MoneyPage(){
  const [period,setPeriod]=useState<Period>("month");
  const [currency,setCurrency]=useState("USD");
  const [tariff,setTariff]=useState(0.2);
- const balance=useMemo(()=>energyBalance(demoSnapshot),[]);
+
  const hasDaily=demoSnapshot.todayProductionKWh!=null || demoSnapshot.todayHomeUsageKWh!=null || demoSnapshot.todayGridSavings!=null;
  const solar=demoSnapshot.todayProductionKWh; const usage=demoSnapshot.todayHomeUsageKWh; const savings=demoSnapshot.todayGridSavings;
  const grid=usage!=null&&solar!=null?Math.max(0,usage-solar):undefined;
