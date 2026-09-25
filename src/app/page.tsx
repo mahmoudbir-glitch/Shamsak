@@ -15,11 +15,20 @@ interface WeatherData {
 }
 
 function calculateBatteryAutonomy(battery: BatteryData, weather: WeatherData) {
-  const availableEnergyWh = battery.capacityWh * (battery.currentSoc / 100);
+  // نسبة الأمان الاحتياطية الموصى بها لحماية خلايا البطارية من التلف
+  const SAFETY_RESERVE_PCT = 10;
+  
+  // حساب الطاقة الفعلية القابلة للاستخدام قبل ملامسة نسبة الأمان
+  const usableSoc = Math.max(0, battery.currentSoc - SAFETY_RESERVE_PCT);
+  const availableEnergyWh = battery.capacityWh * (usableSoc / 100);
+  
+  // تفادي القسمة على صفر إذا كان الاستهلاك منخفضاً جداً
   const currentConsumption = battery.consumptionW > 0 ? battery.consumptionW : 150; 
   const hoursRemaining = availableEnergyWh / currentConsumption;
 
   const isNight = new Date().getHours() >= 18 || new Date().getHours() < 6;
+  
+  // البطارية تعتبر كافية حتى الصباح إذا كانت ساعات الصمود المتبقية تغطي الليل (افتراضاً 10 ساعات)
   const willLastUntilMorning = hoursRemaining >= 10;
 
   let weatherFactor = 1.0;
@@ -29,10 +38,18 @@ function calculateBatteryAutonomy(battery: BatteryData, weather: WeatherData) {
   const expectedProductionWh = weather.expectedSunHours * weatherFactor * 5000;
   const surplusWh = Math.max(0, expectedProductionWh - (currentConsumption * 8));
 
+  // حساب النسبة التقديرية المتوقعة عند الشروق مع ضمان عدم نزولها عن حد الأمان
+  const totalNightConsumptionWh = currentConsumption * 10;
+  const currentTotalEnergyWh = battery.capacityWh * (battery.currentSoc / 100);
+  const estimatedSocAtSunrise = Math.max(
+    SAFETY_RESERVE_PCT, 
+    Math.round(((currentTotalEnergyWh - totalNightConsumptionWh) / battery.capacityWh) * 100)
+  );
+
   return {
     hoursRemaining: Math.round(hoursRemaining * 10) / 10,
     willLastUntilMorning: isNight ? willLastUntilMorning : true,
-    estimatedSocAtSunrise: isNight ? Math.max(0, Math.round((availableEnergyWh - (currentConsumption * 10)) / battery.capacityWh * 100)) : battery.currentSoc,
+    estimatedSocAtSunrise: isNight ? estimatedSocAtSunrise : battery.currentSoc,
     expectedSurplusWh: Math.round(surplusWh),
     confidenceScore: weather.condition === 'sunny' ? 95 : 75
   };
@@ -134,7 +151,7 @@ export default function SolarDashboard() {
             <span className="text-base">✓</span>
             <div>
               <p>تكفي حتى الصباح • صباحاً نحو {prediction.estimatedSocAtSunrise}%</p>
-              <p className="text-xs font-normal text-slate-500 mt-0.5">متبقي في مخزون البطارية حوالي {prediction.hoursRemaining} ساعة</p>
+              <p className="text-xs font-normal text-slate-500 mt-0.5">متبقي في مخزون البطارية حوالي {prediction.hoursRemaining} ساعة قبل حد الأمان</p>
             </div>
           </div>
         </div>
