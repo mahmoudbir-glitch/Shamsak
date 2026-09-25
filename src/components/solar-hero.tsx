@@ -99,7 +99,7 @@ function Node({
 }
 
 function BatteryNode({
-  soc = 0, // حماية تفادي القيم غير المعرفة Null-safety fallback
+  soc = 0,
   state,
   power,
 }: {
@@ -203,10 +203,9 @@ export function SolarHero({ data }: SolarHeroProps) {
             </span>
           </div>
 
-          {/* تم تعديل هيكل الـ Grid لضمان التجاوب ومنع التداخل في الهواتف المحمولة */}
           <div className="mx-auto box-border grid w-full max-w-[820px] grid-cols-[minmax(0,1fr)_16px_minmax(104px,158px)_16px_minmax(0,1fr)] grid-rows-[auto_38px_auto_38px_auto] items-center justify-items-center gap-1 overflow-visible sm:grid-cols-[minmax(158px,1fr)_78px_minmax(110px,1fr)_78px_minmax(158px,1fr)] sm:grid-rows-[auto_78px_auto_78px_auto] sm:gap-3">
             
-            {/* 1. عقدة الطاقة الشمسية (أعلى المنتصف) */}
+            {/* 1. عقدة الطاقة الشمسية */}
             <div className="col-start-3 row-start-1">
               <Node
                 tone="solar"
@@ -217,12 +216,11 @@ export function SolarHero({ data }: SolarHeroProps) {
               />
             </div>
 
-            {/* خط التدفق الحركي من الشمس لأسفل */}
             <div className="col-start-3 row-start-2 row-span-1 flex h-full w-full items-center justify-center">
               <FlowLine direction="down" active={solarActive} color="#d97706" />
             </div>
 
-            {/* 2. عقدة شبكة الكهرباء العامة (يسار المنتصف) */}
+            {/* 2. عقدة شبكة الكهرباء */}
             <div className="col-start-1 row-start-3 w-full flex justify-end">
               <Node
                 tone="grid"
@@ -233,7 +231,6 @@ export function SolarHero({ data }: SolarHeroProps) {
               />
             </div>
 
-            {/* خط التدفق الأفقي بين الشبكة والعقدة المركزية */}
             <div className="col-start-2 row-start-3 flex h-full w-full items-center justify-center">
               <FlowLine 
                 direction={gridExport ? "left" : "right"} 
@@ -242,13 +239,24 @@ export function SolarHero({ data }: SolarHeroProps) {
               />
             </div>
 
-            {/* 3. العقدة المركزية / الموزع (المنتصف الهيكلي) */}
+            {/* 3. العقدة المركزية */}
             <div className="col-start-3 row-start-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white shadow-xl ring-4 ring-slate-100 z-30 animate-pulse">
                 <Zap size={20} className="text-amber-400" />
               </div>
             </div>
 
-            {/* خط التدفق الأفقي بين العقدة المركزية والمنزل */}
             <div className="col-start-4 row-start-3 flex h-full w-full items-center justify-center">
               <FlowLine 
+                direction="right" 
+                active={data.housePowerW > 50} 
+                color="#0ea5e9" 
+              />
+            </div>
+
+            {/* 4. عقدة المنزل */}
+            <div className="col-start-5 row-start-3 w-full flex justify-start">
+              <Node
+                tone="home"
+                title="HOME"
+                value={`${kw(data.housePowerW)} kW`}
