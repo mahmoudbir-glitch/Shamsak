@@ -14,7 +14,7 @@ export function SolarHero() {
       </div>
       <div className="px-3 pb-3 sm:px-5 sm:pb-5">
         <Image
-          src="/images/shamsak-energy-dashboard.jpg"
+          src="/src="/images/1001084041.jpg"
           alt="واجهة شمسك لتدفق الطاقة بين الألواح الشمسية والشبكة والمنزل والبطارية"
           width={1600}
           height={900}
