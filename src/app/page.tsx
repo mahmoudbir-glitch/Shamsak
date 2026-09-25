@@ -35,7 +35,7 @@ export default function DashboardPage() {
 
   return <div className="space-y-4 sm:space-y-5">
     <div className="flex items-start justify-between gap-3">
-      <div><p className="text-xs font-bold text-blue-600">شمسك الخاص</p><h1 className="mt-1 text-2xl font-extrabold">حالة الطاقة الآن</h1><p className="mt-1 text-sm text-slate-500">تدفق الطاقة بين الشمس والمنزل والبطارية والشبكة.</p></div>
+      <div><p className="text-xs font-bold text-blue-600">شمسك</p><h1 className="mt-1 text-2xl font-extrabold">حالة الطاقة الآن</h1><p className="mt-1 text-sm text-slate-500">تدفق الطاقة بين الشمس والمنزل والبطارية والشبكة.</p></div>
       <button onClick={load} disabled={refreshing} aria-label="تحديث البيانات" className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold shadow-sm"><RefreshCw size={16} className={refreshing ? "animate-spin" : ""}/> تحديث</button>
     </div>
     {error && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">تعذر تحميل البيانات. ستبقى آخر قراءة صالحة إن وجدت.</div>}
