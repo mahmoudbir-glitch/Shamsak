@@ -10,5 +10,15 @@ body { margin: 0; background: #f3f4f6; color: #172033; }
 button,a,input,select { -webkit-tap-highlight-color: transparent; }
 button:disabled { cursor: not-allowed; opacity: .6; }
 .safe-bottom { padding-bottom: calc(6.5rem + env(safe-area-inset-bottom)); }
+@keyframes dash {
+  to { stroke-dashoffset: -28; }
+}
 @media (min-width: 768px) { .safe-bottom { padding-bottom: 2rem; } }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
