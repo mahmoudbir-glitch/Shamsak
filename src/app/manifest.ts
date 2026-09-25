@@ -7,6 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "مراقبة الطاقة الشمسية المنزلية",
     start_url: "/",
     display: "standalone",
+    dir: "rtl",
     lang: "ar",
     background_color: "#f3f4f6",
     theme_color: "#2563eb",
