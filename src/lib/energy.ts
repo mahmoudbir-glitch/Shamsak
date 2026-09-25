@@ -11,6 +11,9 @@ export type EnergySnapshot = {
   batteryTemperature?: number;
   gridConnected: boolean;
   source: "live" | "demo";
+  todayProductionKWh?: number;
+  todayHomeUsageKWh?: number;
+  todayGridSavings?: number;
 };
 
 export const demoSnapshot: EnergySnapshot = {
@@ -47,15 +50,7 @@ export function energyBalance(s: EnergySnapshot) {
   const batteryCharge = Math.max(s.batteryPowerW, 0) / 1000;
   const batteryDischarge = Math.max(-s.batteryPowerW, 0) / 1000;
   const load = s.homePowerW / 1000;
-  return {
-    solar,
-    gridImport,
-    gridExport,
-    batteryCharge,
-    batteryDischarge,
-    load,
-    residual: solar + gridImport + batteryDischarge - load - batteryCharge - gridExport,
-  };
+  return { solar, gridImport, gridExport, batteryCharge, batteryDischarge, load, residual: solar + gridImport + batteryDischarge - load - batteryCharge - gridExport };
 }
 
 export function kwhFromPower(powerW: number, hours: number) {
