@@ -1,10 +1,8 @@
 "use client";
 
 import React from "react";
-import { usePathname } from "next/navigation";
 import { Sun } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
-import { LogoutButton } from "@/components/logout-button";
 
 const nav = [
   ["/", "الرئيسية"],
@@ -15,13 +13,6 @@ const nav = [
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const isLogin = pathname === "/login" || pathname.startsWith("/login/");
-
-  if (isLogin) {
-    return <div className="min-h-screen">{children}</div>;
-  }
-
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur">
@@ -37,11 +28,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </a>
             ))}
             <a href="/settings" className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">الإعدادات</a>
-            <LogoutButton />
           </nav>
           <div className="flex items-center gap-2 md:hidden">
             <a href="/settings" className="rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100">الإعدادات</a>
-            <LogoutButton />
           </div>
         </div>
       </header>
