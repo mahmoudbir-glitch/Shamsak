@@ -1,6 +1,10 @@
 import Image from 'next/image';
 
-export function SolarHero() {
+interface SolarHeroProps {
+  data?: any;
+}
+
+export function SolarHero({ data }: SolarHeroProps) {
   return (
     <div className="w-full">
       <div className="px-3 pb-3 sm:px-6">
