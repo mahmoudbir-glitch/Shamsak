@@ -1,51 +1,37 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Sunrise, Sunset, CloudSun, RefreshCw, AlertTriangle, Sun, BatteryCharging, Zap } from "lucide-react";
+import { AlertTriangle, BatteryCharging, CheckCircle2, CloudSun, RefreshCw, Sun, Sunrise, Sunset, WashingMachine, Zap } from "lucide-react";
 import { Section } from "@/components/section";
 import { buildHourlyForecast, batteryNightAssessment } from "@/lib/forecast";
 import { demoSnapshot } from "@/lib/energy";
 
-type Weather = {
- source?: string;
- daily: { time:string[]; weather_code:number[]; temperature_2m_max:number[]; temperature_2m_min:number[]; sunrise:string[]; sunset:string[]; precipitation_probability_max:number[]; sunshine_duration:number[]; daylight_duration:number[] };
- hourly: { time:string[]; shortwave_radiation:number[]; cloud_cover:number[]; temperature_2m:number[] };
- current?: { temperature_2m:number; cloud_cover:number; weather_code:number };
-};
-const names:Record<number,string>={0:"صحو",1:"غائم جزئيًا",2:"غيوم متفرقة",3:"غائم",45:"ضباب",48:"ضباب",51:"رذاذ",53:"رذاذ",61:"مطر",63:"مطر",65:"مطر غزير",71:"ثلج",73:"ثلج",75:"ثلج غزير",80:"زخات",81:"زخات",82:"زخات قوية",95:"عواصف"};
+type Weather = { source?: string; daily: { time:string[]; weather_code:number[]; temperature_2m_max:number[]; temperature_2m_min:number[]; sunrise:string[]; sunset:string[]; precipitation_probability_max:number[] }; hourly: { time:string[]; shortwave_radiation:number[]; cloud_cover:number[]; temperature_2m:number[] } };
+const names: Record<number,string> = {0:"صحو",1:"غائم جزئيًا",2:"غيوم متفرقة",3:"غائم",45:"ضباب",48:"ضباب",51:"رذاذ",53:"رذاذ",61:"مطر",63:"مطر",65:"مطر غزير",71:"ثلج",73:"ثلج",75:"ثلج غزير",80:"زخات",81:"زخات",82:"زخات قوية",95:"عواصف"};
+const timeLabel=(v:string)=>new Date(v).toLocaleTimeString("ar-LB",{hour:"2-digit",minute:"2-digit"});
 
 export default function EnergyPage(){
- const [weather,setWeather]=useState<Weather|null>(null);
- const [error,setError]=useState(false);
- const [loading,setLoading]=useState(true);
- const [selected,setSelected]=useState(0);
- const [panelKw,setPanelKw]=useState(6);
-
- const load=async()=>{
-   setLoading(true);
-   try {
-     const r=await fetch("/api/weather",{cache:"no-store"});
-     if(!r.ok) throw new Error();
-     setWeather(await r.json()); setError(false);
-   } catch { setError(true); }
-   finally { setLoading(false); }
- };
- useEffect(()=>{load(); const id=setInterval(load,1800000); return()=>clearInterval(id)},[]);
- const days=weather?.daily;
- const hourly=weather?.hourly;
+ const [weather,setWeather]=useState<Weather|null>(null); const [error,setError]=useState(false); const [loading,setLoading]=useState(true); const [selected,setSelected]=useState(0); const [panelKw,setPanelKw]=useState(6);
+ const load=async()=>{setLoading(true);try{const r=await fetch("/api/weather",{cache:"no-store"});if(!r.ok)throw new Error();setWeather(await r.json());setError(false)}catch{setError(true)}finally{setLoading(false)}};
+ useEffect(()=>{void load();const id=window.setInterval(()=>void load(),1800000);return()=>window.clearInterval(id)},[]);
+ const days=weather?.daily; const hourly=weather?.hourly;
  const forecast=useMemo(()=>hourly?buildHourlyForecast(hourly.time,hourly.shortwave_radiation,panelKw,demoSnapshot.batterySoc,10):[],[hourly,panelKw]);
- const dayHours=forecast.filter((x)=>new Date(x.time).toISOString().slice(0,10)===days?.time[selected]);
- const solarTotal=dayHours.reduce((s,x)=>s+x.solarKwh,0);
- const surplusTotal=dayHours.reduce((s,x)=>s+x.surplusKwh,0);
- const nightAssessment=batteryNightAssessment(demoSnapshot.batterySoc,10,8);
- return <div className="space-y-4">
-  <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold text-amber-600">الطاقة</p><h1 className="mt-1 text-2xl font-extrabold">التوقعات والطاقة الشمسية</h1><p className="mt-1 text-sm text-slate-500">تقدير مبني على الطقس وبيانات النظام، وليس إنتاجًا فعليًا.</p></div><button onClick={load} disabled={loading} className="rounded-xl border border-slate-200 bg-white p-2.5" aria-label="تحديث الطقس"><RefreshCw size={18} className={loading?"animate-spin":""}/></button></div>
-  <div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">المصدر: {weather?.source ?? "Open-Meteo"}</span><label className="flex items-center gap-2 text-xs text-slate-500">قدرة الألواح <input aria-label="قدرة الألواح بالكيلوواط" type="number" min="0.1" max="100" step="0.1" value={panelKw} onChange={e=>setPanelKw(Number(e.target.value)||6)} className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1"/></label></div>
-  {loading&&<div className="rounded-2xl bg-white p-5 text-sm text-slate-500">جارٍ تحميل بيانات Open-Meteo…</div>}
-  {error&&<div role="alert" className="flex gap-2 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-700"><AlertTriangle size={18}/>لا تتوفر بيانات الطقس حاليًا.</div>}
-  {days&&<><div className="flex gap-2 overflow-x-auto pb-1">{days.time.map((day,i)=><button type="button" key={day} onClick={()=>setSelected(i)} className={`min-w-40 rounded-2xl border p-4 text-right ${selected===i?"border-blue-300 bg-blue-50":"border-slate-200 bg-white"}`}><div className="text-xs text-slate-500">{i===0?"اليوم":i===1?"غدًا":i===2?"بعد غد":day}</div><div className="mt-2 flex items-center gap-2"><CloudSun size={20}/><strong>{names[days.weather_code[i]]??"حالة جوية"}</strong></div><div className="mt-2 text-sm">{Math.round(days.temperature_2m_max[i])}° / {Math.round(days.temperature_2m_min[i])}°</div><div className="mt-2 text-xs text-slate-500">مطر {days.precipitation_probability_max[i]}%</div></button>)}</div>
-  <Section title="ملخص اليوم"><div className="grid gap-3 sm:grid-cols-4"><div className="rounded-xl bg-amber-50 p-3"><Sun size={18}/><span className="mt-2 block text-xs text-slate-500">إنتاج شمسي متوقع</span><strong>{solarTotal.toFixed(1)} kWh</strong></div><div className="rounded-xl bg-emerald-50 p-3"><BatteryCharging size={18}/><span className="mt-2 block text-xs text-slate-500">طاقة للبطارية</span><strong>{dayHours.reduce((s,x)=>s+x.batteryChargeKwh,0).toFixed(1)} kWh</strong></div><div className="rounded-xl bg-blue-50 p-3"><Zap size={18}/><span className="mt-2 block text-xs text-slate-500">فائض متوقع</span><strong>{surplusTotal.toFixed(1)} kWh</strong></div><div className="rounded-xl bg-slate-50 p-3"><span className="text-xs text-slate-500">الشروق / الغروب</span><strong className="block">{new Date(days.sunrise[selected]).toLocaleTimeString("ar-LB",{hour:"2-digit",minute:"2-digit"})} / {new Date(days.sunset[selected]).toLocaleTimeString("ar-LB",{hour:"2-digit",minute:"2-digit"})}</strong></div></div></Section>
-  <Section title="ما تبقى من اليوم حتى الغروب"><div className="grid gap-3 sm:grid-cols-3"><div className="rounded-xl bg-slate-50 p-3"><Sunset size={17}/><span className="mt-2 block text-xs text-slate-500">الغروب</span><strong>{new Date(days.sunset[selected]).toLocaleTimeString("ar-LB",{hour:"2-digit",minute:"2-digit"})}</strong></div><div className="rounded-xl bg-emerald-50 p-3 text-emerald-800"><span className="text-xs">كفاية البطارية حتى الصباح</span><strong className="mt-2 block">{nightAssessment.enough?"متوقعة":"غير كافية وفق الافتراض الحالي"}</strong></div><div className="rounded-xl bg-blue-50 p-3 text-blue-900"><span className="text-xs">احتمال الصمود التقديري</span><strong className="mt-2 block">{nightAssessment.probability}%</strong></div></div></Section>
-  <Section title="تفصيل الساعات"><div className="overflow-x-auto"><table className="w-full min-w-[620px] text-sm"><thead><tr className="border-b text-right text-xs text-slate-500"><th className="p-2">الوقت</th><th className="p-2">الشمس</th><th className="p-2">الاستهلاك</th><th className="p-2">البطارية</th><th className="p-2">الفائض</th></tr></thead><tbody>{dayHours.slice(0,24).map(x=><tr key={x.time} className="border-b last:border-0"><td className="p-2">{new Date(x.time).toLocaleTimeString("ar-LB",{hour:"2-digit"})}</td><td className="p-2">{x.solarKwh.toFixed(2)} kWh</td><td className="p-2">{x.expectedLoadKwh.toFixed(2)}</td><td className="p-2">{x.batteryChargeKwh.toFixed(2)}</td><td className="p-2 font-bold text-emerald-700">{x.surplusKwh.toFixed(2)}</td></tr>)}</tbody></table></div></Section>
+ const dayHours=forecast.filter(x=>new Date(x.time).toISOString().slice(0,10)===days?.time[selected]);
+ const solarTotal=dayHours.reduce((s,x)=>s+x.solarKwh,0); const batteryTotal=dayHours.reduce((s,x)=>s+x.batteryChargeKwh,0); const surplusTotal=dayHours.reduce((s,x)=>s+x.surplusKwh,0);
+ const base=Math.max(solarTotal,0.001); const batteryPct=Math.min(100,Math.round(batteryTotal/base*100)); const surplusPct=Math.min(100-batteryPct,Math.round(surplusTotal/base*100)); const homePct=Math.max(0,100-batteryPct-surplusPct);
+ const night=batteryNightAssessment(demoSnapshot.batterySoc,10,8);
+ return <div className="space-y-5">
+  <header><p className="text-xs font-bold text-amber-600">الطاقة</p><h1 className="mt-1 text-2xl font-extrabold">الطاقة والتوقعات</h1><p className="mt-1 text-sm text-slate-500">توقعات الطقس والإنتاج لمساعدتك على التخطيط للاستهلاك.</p></header>
+  <div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">المصدر: {weather?.source ?? "Open-Meteo"}</span><label className="flex items-center gap-2 text-xs font-semibold text-slate-500">قدرة الألواح<input aria-label="قدرة الألواح بالكيلوواط" type="number" min="0.1" max="100" step="0.1" value={panelKw} onChange={e=>setPanelKw(Number(e.target.value)||6)} className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5"/>kW</label><button type="button" onClick={()=>void load()} disabled={loading} className="ms-auto rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm" aria-label="تحديث التوقعات"><RefreshCw size={18} className={loading?"animate-spin":""}/></button></div>
+  {loading&&<div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">جارٍ تحميل بيانات الطقس…</div>}
+  {error&&<div role="alert" className="flex items-center gap-2 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm font-semibold text-red-700"><AlertTriangle size={18}/>لا تتوفر بيانات الطقس حاليًا.</div>}
+  {days&&<><div className="flex gap-2 overflow-x-auto pb-1" aria-label="اختيار يوم التوقع">{days.time.slice(0,7).map((day,i)=><button type="button" key={day} onClick={()=>setSelected(i)} className={"min-w-[150px] shrink-0 rounded-2xl border p-4 text-right transition "+(selected===i?"border-blue-500 bg-blue-50 shadow-sm":"border-slate-200 bg-white hover:border-blue-200")}><div className="text-xs font-bold text-slate-500">{i===0?"اليوم":i===1?"غدًا":i===2?"بعد غد":new Date(day).toLocaleDateString("ar-LB",{weekday:"long"})}</div><div className="mt-2 flex items-center gap-2"><CloudSun size={20} className="text-amber-500"/><strong>{names[days.weather_code[i]]??"حالة جوية"}</strong></div><div className="mt-2 text-sm font-bold">{Math.round(days.temperature_2m_max[i])}° / {Math.round(days.temperature_2m_min[i])}°</div><div className="mt-1 text-xs text-slate-500">مطر {days.precipitation_probability_max[i]}%</div></button>)}</div>
+  <Section title="غدًا نهارًا" subtitle="توزيع الطاقة المتوقعة وفق الطقس وبيانات Demo الحالية"><div className="grid gap-3 sm:grid-cols-3"><Metric icon={<Sun className="text-amber-600" size={20}/>} label="إنتاج متوقع" value={solarTotal.toFixed(1)+" kWh"} tone="bg-amber-50"/><Metric icon={<BatteryCharging className="text-emerald-600" size={20}/>} label="إلى البطارية" value={batteryTotal.toFixed(1)+" kWh"} tone="bg-emerald-50"/><Metric icon={<Zap className="text-orange-600" size={20}/>} label="فائض متوقع" value={surplusTotal.toFixed(1)+" kWh"} tone="bg-orange-50"/></div><div className="mt-5 flex h-4 overflow-hidden rounded-full bg-slate-100"><div className="bg-emerald-500" style={{width:batteryPct+"%"}}/><div className="bg-blue-500" style={{width:homePct+"%"}}/><div className="bg-orange-400" style={{width:surplusPct+"%"}}/></div><div className="mt-3 grid gap-2 text-xs font-semibold text-slate-500 sm:grid-cols-3"><span>البطارية {batteryPct}%</span><span>المنزل {homePct}%</span><span>الفائض {surplusPct}%</span></div><div className="mt-5 grid gap-3 sm:grid-cols-3"><Info icon={<Sunrise size={17}/>} label="الشروق" value={timeLabel(days.sunrise[selected])}/><Info icon={<BatteryCharging size={17}/>} label="امتلاء البطارية" value="غير متاح"/><Info icon={<Sunset size={17}/>} label="الغروب" value={timeLabel(days.sunset[selected])}/></div></Section>
+  <Section title="الليلة الجارية"><div className="rounded-2xl border border-orange-200 bg-orange-50 p-5"><div className="flex items-start gap-3"><div className="rounded-full bg-white p-2 text-emerald-600">{night.enough?<CheckCircle2 size={20}/>:<AlertTriangle size={20}/>}</div><div><h2 className="font-black">{night.enough?"تكفي حتى الصباح":"قد لا تكفي حتى الصباح"}</h2><p className="mt-1 text-sm text-slate-600">احتمال الصمود التقديري <strong>{night.probability}%</strong> وفق الافتراضات الحالية.</p></div></div></div></Section>
+  <Section title="نصيحة شمسك"><div className="flex items-start gap-3 rounded-2xl bg-orange-50 p-5 text-orange-950"><WashingMachine size={22} className="mt-0.5 shrink-0 text-orange-600"/><div><h2 className="font-black">شغّل الأجهزة في فترة الفائض</h2><p className="mt-1 text-sm text-orange-900/80">{surplusTotal>0?"الفائض المتوقع نحو "+surplusTotal.toFixed(1)+" kWh، ويمكن استغلاله للغسالة أو المضخة.":"لا يوجد فائض متوقع كافٍ في البيانات الحالية."}</p></div></div></Section>
+  <Section title="تفصيل الساعات"><div className="overflow-x-auto rounded-2xl border border-slate-100"><table className="w-full min-w-[650px] text-sm"><thead className="bg-slate-50 text-right text-xs text-slate-500"><tr><th className="p-3">الوقت</th><th className="p-3">الشمس</th><th className="p-3">الاستهلاك</th><th className="p-3">البطارية</th><th className="p-3">الفائض</th></tr></thead><tbody>{dayHours.slice(0,24).map(x=><tr key={x.time} className="border-t border-slate-100"><td className="p-3 font-semibold">{timeLabel(x.time)}</td><td className="p-3">{x.solarKwh.toFixed(2)} kWh</td><td className="p-3">{x.expectedLoadKwh.toFixed(2)} kWh</td><td className="p-3">{x.batteryChargeKwh.toFixed(2)} kWh</td><td className="p-3 font-bold text-emerald-700">{x.surplusKwh.toFixed(2)} kWh</td></tr>)}</tbody></table></div></Section>
   </>}
  </div>;
 }
+
+function Metric({icon,label,value,tone}:{icon:React.ReactNode;label:string;value:string;tone:string}){return <div className={"rounded-2xl p-4 "+tone}>{icon}<span className="mt-3 block text-xs font-semibold text-slate-500">{label}</span><strong className="mt-1 block text-2xl font-black">{value}</strong></div>}
+function Info({icon,label,value}:{icon:React.ReactNode;label:string;value:string}){return <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3"><span className="text-slate-500">{icon}</span><div><p className="text-xs text-slate-500">{label}</p><strong className="text-sm text-slate-900">{value}</strong></div></div>}
