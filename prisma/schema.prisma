@@ -65,14 +65,14 @@ model SolarSystem {
   siteId       String
   name         String
   capacityKw   Float
-  status       SystemStatus  @default(NORMAL)
+  status       SystemStatus @default(NORMAL)
   site         Site          @relation(fields: [siteId], references: [id])
   readings     EnergyReading[]
 }
 
 model EnergyReading {
   id            String      @id @default(uuid())
-  systemId      String      
+  systemId      String
   solarKw       Float
   consumptionKw Float
   batteryPct    Float
@@ -81,11 +81,58 @@ model EnergyReading {
   system        SolarSystem @relation(fields: [systemId], references: [id])
 }
 
+model TelemetryLog {
+  id                 String   @id @default(uuid())
+  timestamp          DateTime @unique
+  pvPowerW           Float
+  loadPowerW         Float
+  batterySoc         Float
+  batteryPowerW      Float
+  batteryVoltage     Float?
+  batteryCurrent     Float?
+  batteryTemperature Float?
+  gridConnected      Boolean
+  gridPowerW         Float?
+  source             String   @default("inverter")
+  createdAt          DateTime @default(now())
+
+  @@index([timestamp])
+}
+
+model DailySummary {
+  id                  String   @id @default(uuid())
+  day                 DateTime @unique
+  solarKWh            Float    @default(0)
+  homeKWh             Float    @default(0)
+  batteryChargeKWh    Float    @default(0)
+  batteryDischargeKWh Float    @default(0)
+  gridImportKWh       Float    @default(0)
+  gridExportKWh       Float    @default(0)
+  savings             Float    @default(0)
+  currency            String   @default("USD")
+  updatedAt           DateTime @updatedAt
+}
+
+model EnergySettings {
+  id                String   @id @default("default")
+  panelPowerW       Float    @default(6000)
+  batteryCapacityWh Float    @default(10000)
+  gridTariff        Float    @default(0)
+  exportTariff      Float    @default(0)
+  currency          String   @default("USD")
+  latitude          Float    @default(33.8938)
+  longitude         Float    @default(35.5018)
+  timezone          String   @default("Asia/Beirut")
+  panelTilt         Float?
+  panelAzimuth      Float?
+  updatedAt         DateTime @updatedAt
+}
+
 model AuditLog {
   id        String   @id @default(uuid())
   userId    String
   action    String
   details   String?
   timestamp DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
