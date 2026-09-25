@@ -3,31 +3,34 @@
 import React, { useState } from 'react';
 
 export default function HomeConsumptionPage() {
-  // قيم الاستهلاك اللحظية المتوافقة مع قراءات الصفحة الرئيسية
-  const [homeConsumption, setHomeConsumption] = useState<number>(1299); 
-  const [appliances, setAppliances] = useState([
-    { name: "الأحمال الأساسية والإنارة", power: 350, icon: "💡", status: "نشط" },
-    { name: "الأجهزة الكهربائية الثقيلة", power: 949, icon: "🔌", status: "نشط" },
-  ]);
+  // توحيد قراءة السحب اللحظي لتطابق تماماً قيمة 1.30 kW المعروضة في الدائرة الرئيسية
+  const [homeConsumption] = useState<number>(1300); 
+  
+  // قائمة تفصيلية تفاعلية بالأحمال المنزلية النشطة الآن
+  const appliances = [
+    { name: "الإنارة والأحمال الأساسية الثابتة", power: 350, icon: "💡", status: "نشط" },
+    { name: "الأجهزة الكهربائية (براد وتبريد خفيف)", power: 950, icon: "🔌", status: "نشط" },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 pb-24 text-right" dir="rtl">
       
-      {/* الهيدر العلوي لتبويب المنزل */}
+      {/* الهيدر العلوي الأبيض النظيف لتبويب المنزل */}
       <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm mb-4 border border-slate-100">
         <h1 className="text-xl font-bold text-blue-600 flex items-center gap-1.5">
           🏠 استهلاك أحمال المنزل
         </h1>
-        <div className="text-xs text-slate-400">قراءة حية</div>
+        <div className="text-xs text-slate-400">قراءة حية موحدة</div>
       </div>
 
-      {/* بطاقة السحب الإجمالي للمنزل */}
+      {/* بطاقة السحب الإجمالي للمنزل بالواط (1300 واط تعادل 1.30 kW) */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-4 text-center">
         <span className="text-xs font-bold text-slate-400 block mb-1">إجمالي سحب المنزل الآن</span>
-        <span className="text-4xl font-black text-blue-600 block mt-2">{homeConsumption.toLocaleString()} واط</span>
+        <span className="text-4xl font-black text-blue-600 block mt-2">{(homeConsumption).toLocaleString()} واط</span>
+        <span className="text-[10px] text-slate-400 font-bold block mt-1">kW 1.30</span>
       </div>
 
-      {/* تفصيل سحب الأجهزة داخل المنزل */}
+      {/* تفصيل توزيع الأحمال المنزلية الحالية */}
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-4">
         <h3 className="font-bold text-sm text-slate-700 mb-3">📋 تفصيل توزيع الأحمال</h3>
         <div className="space-y-3">
@@ -46,9 +49,18 @@ export default function HomeConsumptionPage() {
         </div>
       </div>
 
-      {/* بطاقة التوجيه الذكية للأحمال */}
+      {/* بطاقة التوجيه والتحليل الذكية للأحمال المستوحاة من المنظومة الحقيقية */}
       <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-950 leading-relaxed shadow-sm">
-        💡 **حالة الأحمال المنزلية:** معدل استهلاك منزلك الحالي متزن تماماً ويقع ضمن النطاق الآمن والأمثل لقدرة الإنفرتر التشغيلية. التوليد الشمسي يغطي كافة الاحتياجات بكفاءة وبدون سحب من البطارية.
+        💡 **حالة الأحمال المنزلية:** معدل استهلاك منزلك الحالي متزن ومثالي جداً. التوليد الشمسي الحالي (5.83 kW) يغطي كافة احتياجات الأجهزة المنزلية بكفاءة عالية جداً، ويتم توجيه فائض ضخم مستقر لشحن البطاريات دون الحاجة للسحب منها.
+      </div>
+
+      {/* شريط القائمة السفلي الموحد الفاتح للتنقل السريع */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around py-3 text-[10px] text-slate-400 z-50 rounded-t-2xl shadow-md">
+        <div className="opacity-60 flex flex-col items-center">📊 الرئيسية</div>
+        <div className="text-blue-600 font-bold flex flex-col items-center">🏠 المنزل</div>
+        <div className="opacity-60 flex flex-col items-center">🔋 البطارية</div>
+        <div className="opacity-60 flex flex-col items-center">☀️ الطاقة</div>
+        <div className="opacity-60 flex flex-col items-center">💰 المال</div>
       </div>
 
     </div>
