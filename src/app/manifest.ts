@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "شمسك الخاص",
+    name: "شمسك",
     short_name: "شمسك",
-    description: "مراقبة الطاقة الشمسية المنزلية",
+    description: "إدارة ومراقبة الطاقة الشمسية في منزلك",
     start_url: "/",
     display: "standalone",
     dir: "rtl",
