@@ -6,6 +6,7 @@ import { Section } from "@/components/section";
 import { EnergyFlow } from "@/components/energy-flow";
 import { getEnergyAdapter } from "@/lib/data-adapter";
 import { batteryState, batteryStateLabel, EnergySnapshot } from "@/lib/energy";
+import { SolarHero } from "@/components/solar-hero";
 
 export default function DashboardPage() {
   const [data, setData] = useState<EnergySnapshot | null>(null);
@@ -34,6 +35,7 @@ export default function DashboardPage() {
   const age = data ? Math.max(0, Math.round((Date.now() - new Date(data.timestamp).getTime()) / 60000)) : 0;
 
   return <div className="space-y-4 sm:space-y-5">
+    <SolarHero />
     <div className="flex items-start justify-between gap-3">
       <div><p className="text-xs font-bold text-blue-600">شمسك</p><h1 className="mt-1 text-2xl font-extrabold">حالة الطاقة الآن</h1><p className="mt-1 text-sm text-slate-500">تدفق الطاقة بين الشمس والمنزل والبطارية والشبكة.</p></div>
       <button onClick={load} disabled={refreshing} aria-label="تحديث البيانات" className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold shadow-sm"><RefreshCw size={16} className={refreshing ? "animate-spin" : ""}/> تحديث</button>
