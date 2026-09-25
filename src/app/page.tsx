@@ -2,7 +2,9 @@
 
 import React, { useState } from 'react';
 // 1. استيراد دالة الحساب الذكية التي أنشأناها في المجلد utils
-import { calculateBatteryAutonomy } from '@/utils/solarPredictions';
+ import { calculateBatteryAutonomy } from '../utils/solarPredictions';
+} from '../utils/solarPredictions';
+ from '@/utils/solarPredictions';
 
 export default function SolarDashboard() {
   // 2. إعداد قيم الطاقة اللحظية (مطابقة لقراءات الصور)
