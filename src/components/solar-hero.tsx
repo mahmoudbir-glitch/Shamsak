@@ -1,15 +1,4 @@
-import {
-  BatteryCharging,
-  BatteryFull,
-  Home,
-  Network,
-  Sun,
-  Zap,
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
-} from "lucide-react";
+import { Home, Network, Sun, Zap } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
 import { batteryState, batteryStateLabel, gridLabel } from "@/lib/energy";
 
@@ -41,6 +30,8 @@ function FlowLine({
     direction === "down" ? "50,0 50,100" :
     direction === "left" ? "100,50 0,50" : "0,50 100,50";
 
+  const filterId = `glow-${color.replace("#", "")}`;
+
   return (
     <svg
       aria-hidden="true"
@@ -49,7 +40,7 @@ function FlowLine({
       preserveAspectRatio="none"
     >
       <defs>
-        <filter id={`glow-${color.replace("#", "")}`}>
+        <filter id={filterId}>
           <feGaussianBlur stdDeviation="2.5" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
@@ -67,12 +58,19 @@ function FlowLine({
         strokeDasharray="8 8"
         strokeLinecap="round"
         opacity={active ? 1 : 0.18}
-        filter={active ? `url(#glow-${color.replace("#", "")})` : undefined}
+        filter={active ? `url(#${filterId})` : undefined}
         style={active ? { animation: "dash 1.4s linear infinite" } : undefined}
       />
     </svg>
   );
 }
+
+const nodeTones = {
+  solar: "border-amber-400/40 bg-slate-900/90 text-amber-300 shadow-[0_0_28px_rgba(245,158,11,.14)]",
+  home: "border-cyan-400/40 bg-slate-900/90 text-cyan-300 shadow-[0_0_28px_rgba(34,211,238,.14)]",
+  battery: "border-emerald-400/40 bg-slate-900/90 text-emerald-300 shadow-[0_0_28px_rgba(16,185,129,.14)]",
+  grid: "border-violet-400/40 bg-slate-900/90 text-violet-300 shadow-[0_0_28px_rgba(139,92,246,.14)]",
+} as const;
 
 function Node({
   title,
@@ -85,18 +83,13 @@ function Node({
   value: string;
   subtitle: string;
   icon: React.ReactNode;
-  tone: "solar" | "home" | "battery" | "grid";
+  tone: keyof typeof nodeTones;
 }) {
-  const tones = {
-    solar: "border-amber-400/40 bg-slate-900/90 text-amber-300 shadow-[0_0_28px_rgba(245,158,11,.14)]",
-    home: "border-cyan-400/40 bg-slate-900/90 text-cyan-300 shadow-[0_0_28px_rgba(34,211,238,.14)]",
-    battery: "border-emerald-400/40 bg-slate-900/90 text-emerald-300 shadow-[0_0_28px_rgba(16,185,129,.14)]",
-    grid: "border-violet-400/40 bg-slate-900/90 text-violet-300 shadow-[0_0_28px_rgba(139,92,246,.14)]",
-  };
-
   return (
-    <div className={`relative z-20 w-[132px] rounded-2xl border p-3 text-center backdrop-blur sm:w-[165px] sm:p-4 ${tones[tone]}`}>
-      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">{icon}</div>
+    <div
+      className={`relative z-20 flex h-[154px] w-[132px] flex-col items-center justify-center rounded-2xl border p-3 text-center backdrop-blur transition-transform duration-300 hover:-translate-y-0.5 sm:h-[170px] sm:w-[165px] sm:p-4 ${nodeTones[tone]}`}
+    >
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/5">{icon}</div>
       <p className="mt-2 text-[10px] font-bold tracking-[0.12em] text-white/55">{title}</p>
       <p className="mt-1 text-lg font-black text-white sm:text-xl">{value}</p>
       <p className="mt-1 text-[10px] font-bold text-white/60">{subtitle}</p>
@@ -104,22 +97,37 @@ function Node({
   );
 }
 
-function BatteryRing({ soc }: { soc: number }) {
+function BatteryNode({ soc, state, power }: { soc: number; state: ReturnType<typeof batteryState>; power: number }) {
   const safe = Math.min(100, Math.max(0, soc));
   const radius = 28;
   const circumference = 2 * Math.PI * radius;
+
   return (
-    <div className="relative h-[76px] w-[76px] shrink-0">
-      <svg className="-rotate-90" viewBox="0 0 76 76" aria-hidden="true">
-        <circle cx="38" cy="38" r={radius} fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="7" />
-        <circle
-          cx="38" cy="38" r={radius} fill="none" stroke="#34d399" strokeWidth="7"
-          strokeLinecap="round" strokeDasharray={circumference}
-          strokeDashoffset={circumference * (1 - safe / 100)}
-          className="transition-all duration-700"
-        />
-      </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-lg font-black text-white">{safe}%</span>
+    <div
+      className={`relative z-20 flex h-[154px] w-[132px] flex-col items-center justify-center rounded-2xl border border-emerald-400/40 bg-slate-900/90 p-3 text-center text-emerald-300 shadow-[0_0_28px_rgba(16,185,129,.14)] backdrop-blur transition-transform duration-300 hover:-translate-y-0.5 sm:h-[170px] sm:w-[165px] sm:p-4`}
+    >
+      <div className="relative h-[76px] w-[76px] shrink-0" aria-label={`نسبة البطارية ${safe}%`}>
+        <svg className="-rotate-90" viewBox="0 0 76 76" aria-hidden="true">
+          <circle cx="38" cy="38" r={radius} fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="7" />
+          <circle
+            cx="38"
+            cy="38"
+            r={radius}
+            fill="none"
+            stroke="#34d399"
+            strokeWidth="7"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={circumference * (1 - safe / 100)}
+            className="transition-all duration-700"
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-lg font-black text-white">{safe}%</span>
+      </div>
+      <p className="mt-2 text-[10px] font-bold tracking-[0.12em] text-white/55">BATTERY STATUS</p>
+      <p className="mt-1 text-[10px] font-bold text-white/70">
+        {batteryStateLabel(state)} · {kw(power)} kW
+      </p>
     </div>
   );
 }
@@ -171,11 +179,11 @@ export function SolarHero({ data }: SolarHeroProps) {
             </span>
           </div>
 
-          <div className="relative mx-auto grid min-h-[470px] max-w-[620px] grid-cols-[1fr_74px_1fr] grid-rows-[1fr_74px_1fr] items-center justify-items-center sm:min-h-[540px] sm:grid-cols-[1fr_110px_1fr] sm:grid-rows-[1fr_110px_1fr]">
-            <FlowLine direction="down" active={solarActive} color="#f59e0b" className="left-[50%] top-[24%] h-[26%] w-px" />
-            <FlowLine direction="right" active={gridImport || gridExport} color="#8b5cf6" className="left-[24%] top-[50%] h-px w-[26%]" />
-            <FlowLine direction="left" active={data.homePowerW > 50} color="#22d3ee" className="left-[50%] top-[50%] h-px w-[26%]" />
-            <FlowLine direction="down" active={charging || discharging} color="#34d399" className="left-[50%] top-[50%] h-[26%] w-px" />
+          <div className="relative mx-auto grid min-h-[470px] max-w-[620px] grid-cols-[1fr_74px_1fr] grid-rows-[1fr_74px_1fr] items-center justify-items-center gap-2 sm:min-h-[540px] sm:grid-cols-[1fr_110px_1fr] sm:grid-rows-[1fr_110px_1fr] sm:gap-3">
+            <FlowLine direction="down" active={solarActive} color="#f59e0b" className="left-1/2 top-[24%] h-[26%] w-px" />
+            <FlowLine direction="right" active={gridImport || gridExport} color="#8b5cf6" className="left-[24%] top-1/2 h-px w-[26%]" />
+            <FlowLine direction="left" active={data.homePowerW > 50} color="#22d3ee" className="left-1/2 top-1/2 h-px w-[26%]" />
+            <FlowLine direction="down" active={charging || discharging} color="#34d399" className="left-1/2 top-1/2 h-[26%] w-px" />
 
             <div className="col-start-2 row-start-1">
               <Node
@@ -189,16 +197,6 @@ export function SolarHero({ data }: SolarHeroProps) {
 
             <div className="col-start-1 row-start-2 justify-self-end">
               <Node
-                tone="grid"
-                title="GRID STATUS"
-                value={data.gridConnected ? "متصلة" : "مقطوعة"}
-                subtitle={!data.gridConnected ? "لا يوجد اتصال" : gridLabel(data.gridPowerW, true)}
-                icon={<Network size={25} />}
-              />
-            </div>
-
-            <div className="col-start-3 row-start-2 justify-self-start">
-              <Node
                 tone="home"
                 title="HOME CONSUMPTION"
                 value={`${kw(data.homePowerW)} kW`}
@@ -207,14 +205,18 @@ export function SolarHero({ data }: SolarHeroProps) {
               />
             </div>
 
-            <div className="col-start-2 row-start-3">
+            <div className="col-start-3 row-start-2 justify-self-start">
               <Node
-                tone="battery"
-                title="BATTERY STATUS"
-                value={`${data.batterySoc}%`}
-                subtitle={`${batteryStateLabel(state)} • ${kw(data.batteryPowerW)} kW`}
-                icon={<BatteryRing soc={data.batterySoc} />}
+                tone="grid"
+                title="GRID STATUS"
+                value={data.gridConnected ? "متصلة" : "مقطوعة"}
+                subtitle={!data.gridConnected ? "لا يوجد اتصال" : gridLabel(data.gridPowerW, true)}
+                icon={<Network size={25} />}
               />
+            </div>
+
+            <div className="col-start-2 row-start-3">
+              <BatteryNode soc={data.batterySoc} state={state} power={data.batteryPowerW} />
             </div>
 
             <div className="absolute left-1/2 top-1/2 z-20 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-slate-900 shadow-[0_0_35px_rgba(59,130,246,.25)] sm:h-20 sm:w-20">
