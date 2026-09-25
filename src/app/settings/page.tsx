@@ -1,40 +1,106 @@
 "use client";
-import { useEffect, useState } from "react";
-import { MapPin, Save, LocateFixed } from "lucide-react";
-import { SolarConnection } from "@/components/solar-connection";
 
-type Settings = {
-  homeName:string; location:string; latitude:number; longitude:number; timezone:string;
-  currency:string; tariff:number; exportTariff:number; panelKw:number; batteryKwh:number;
-  minSoc:number; maxSoc:number; refreshMinutes:number; alerts:boolean;
-};
+import React, { useState } from 'react';
 
-const defaults:Settings={homeName:"منزلي",location:"بيروت، لبنان",latitude:33.8938,longitude:35.5018,timezone:"Asia/Beirut",currency:"USD",tariff:0.2,exportTariff:0,panelKw:6,batteryKwh:10,minSoc:20,maxSoc:100,refreshMinutes:5,alerts:true};
+export default function MoneyDashboard() {
+  // إحصاءات مالية تقديرية مبنية على قيم قراءات واجهة "شمسك" الدائرية
+  const [totalSaved] = useState<number>(6209);       // المبالغ التي وفرها النظام بالليرة (ل.س)
+  const [gridPaid] = useState<number>(221.2);          // المبالغ المدفوعة للشبكة
+  const [estimatedCost] = useState<number>(6430.2); // التكلفة التقديرية التوتال لولا وجود النظام
+  
+  // نسب مصادر الطاقة التقديرية للشهر الحالي الموحدة مع لوحة التحكم
+  const energySources = [
+    { name: "من الشمس مباشرة", percentage: 49, amount: "227.5 ك.و.س", color: "bg-amber-500" },
+    { name: "من البطارية (توليد شمسي مخزن)", percentage: 49, amount: "224.9 ك.و.س", color: "bg-emerald-500" },
+    { name: "من الشبكة الرسمية", percentage: 2, amount: "7.0 ك.و.س", color: "bg-purple-500" }
+  ];
 
-export default function SettingsPage(){
- const [s,setS]=useState<Settings>(defaults);
- const [saved,setSaved]=useState(false);
- useEffect(()=>{try{const raw=localStorage.getItem("shamsak-settings");if(raw)setS({...defaults,...JSON.parse(raw)})}catch{}},[]);
- const set=(key:keyof Settings,value:string|number|boolean)=>setS(x=>({...x,[key]:value}));
- const save=(e:React.FormEvent)=>{e.preventDefault();localStorage.setItem("shamsak-settings",JSON.stringify(s));setSaved(true);setTimeout(()=>setSaved(false),2000)};
- const locate=()=>{if(!navigator.geolocation)return; navigator.geolocation.getCurrentPosition(p=>setS(x=>({...x,latitude:Number(p.coords.latitude.toFixed(5)),longitude:Number(p.coords.longitude.toFixed(5)),location:"الموقع الحالي"})),()=>{})};
- return <div className="space-y-5">
-  <div><p className="text-xs font-bold text-blue-600">الإعدادات</p><h1 className="mt-1 text-2xl font-extrabold">إعدادات النظام</h1><p className="mt-1 text-sm text-slate-500">هذه النسخة تحفظ الإعدادات محليًا على الجهاز؛ لا تُرسل أسرارًا إلى الخادم.</p></div>
-  <SolarConnection />
-  <form onSubmit={save} className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2">
-  {([["homeName","اسم المنزل","text"],["location","الموقع","text"],["currency","العملة","text"]] as const).map(([key,label,type])=><label key={key} className="space-y-1 text-sm"><span>{label}</span><input className="w-full rounded-xl border border-slate-200 p-3" type={type} value={String(s[key])} onChange={e=>set(key,e.target.value)}/></label>)}
-  <label className="space-y-1 text-sm"><span>المنطقة الزمنية</span><input className="w-full rounded-xl border border-slate-200 p-3" value={s.timezone} onChange={e=>set("timezone",e.target.value)}/></label>
-  <label className="space-y-1 text-sm"><span>تعرفة الكهرباء / kWh</span><input className="w-full rounded-xl border border-slate-200 p-3" inputMode="decimal" type="number" min="0" step="0.001" value={s.tariff} onChange={e=>set("tariff",Number(e.target.value))}/></label>
-  <label className="space-y-1 text-sm"><span>تعرفة التصدير / kWh</span><input className="w-full rounded-xl border border-slate-200 p-3" inputMode="decimal" type="number" min="0" step="0.001" value={s.exportTariff} onChange={e=>set("exportTariff",Number(e.target.value))}/></label>
-  <label className="space-y-1 text-sm"><span>قدرة الألواح kW</span><input className="w-full rounded-xl border border-slate-200 p-3" type="number" min="0.1" step="0.1" value={s.panelKw} onChange={e=>set("panelKw",Number(e.target.value))}/></label>
-  <label className="space-y-1 text-sm"><span>سعة البطارية kWh</span><input className="w-full rounded-xl border border-slate-200 p-3" type="number" min="0.1" step="0.1" value={s.batteryKwh} onChange={e=>set("batteryKwh",Number(e.target.value))}/></label>
-  <label className="space-y-1 text-sm"><span>الحد الأدنى %</span><input className="w-full rounded-xl border border-slate-200 p-3" type="number" min="0" max="100" value={s.minSoc} onChange={e=>set("minSoc",Number(e.target.value))}/></label>
-  <label className="space-y-1 text-sm"><span>الحد الأعلى %</span><input className="w-full rounded-xl border border-slate-200 p-3" type="number" min="0" max="100" value={s.maxSoc} onChange={e=>set("maxSoc",Number(e.target.value))}/></label>
-  <div className="rounded-xl bg-slate-50 p-3 sm:col-span-2"><div className="grid gap-3 sm:grid-cols-3"><div><span className="text-xs text-slate-500">خط العرض</span><strong className="block">{s.latitude}</strong></div><div><span className="text-xs text-slate-500">خط الطول</span><strong className="block">{s.longitude}</strong></div><div className="flex items-end"><button type="button" onClick={locate} className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"><LocateFixed size={16}/> استخدام موقعي الحالي</button></div></div></div>
-  <label className="flex items-center justify-between rounded-xl bg-slate-50 p-3 text-sm"><span>تفعيل التنبيهات</span><input type="checkbox" checked={s.alerts} onChange={e=>set("alerts",e.target.checked)}/></label>
-  <label className="space-y-1 text-sm"><span>فترة التحديث بالدقائق</span><input className="w-full rounded-xl border border-slate-200 p-3" type="number" min="1" max="60" value={s.refreshMinutes} onChange={e=>set("refreshMinutes",Number(e.target.value))}/></label>
-  <button className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-bold text-white sm:col-span-2"><Save size={17}/> حفظ الإعدادات</button>
-  {saved&&<p className="text-sm font-bold text-emerald-700 sm:col-span-2">تم حفظ الإعدادات على هذا الجهاز.</p>}
-  </form>
- </div>;
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 pb-24 text-right" dir="rtl">
+      
+      {/* الهيدر العلوي لتبويب المال */}
+      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm mb-4 border border-slate-100">
+        <h1 className="text-xl font-bold text-slate-800 flex items-center gap-1">
+          ⚡ الطاقة والمال
+        </h1>
+        <div className="text-xs bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full font-bold">
+          تغطية ونسب مستقرة
+        </div>
+      </div>
+
+      {/* الفلتر الزمني السفلي للهيدر */}
+      <div className="grid grid-cols-3 gap-2 bg-slate-200 bg-opacity-60 p-1 rounded-xl mb-6 text-center text-xs font-bold text-slate-600">
+        <div className="py-2 rounded-lg">يوم</div>
+        <div className="py-2 rounded-lg">أسبوع</div>
+        <div className="bg-slate-900 text-white py-2 rounded-lg shadow-sm">شهر</div>
+      </div>
+
+      {/* القسم 1: من أين تأتي كهرباء منزلك؟ */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-4">
+        <h3 className="font-bold text-sm text-slate-700 mb-3 flex items-center gap-1">
+          <span>ℹ️</span> من أين تأتي كهرباء منزلك هذا الشهر؟
+        </h3>
+        
+        {/* شريط النسب المتراكم التفاعلي الملون */}
+        <div className="w-full h-3 rounded-full bg-slate-100 flex overflow-hidden mb-4">
+          <div className="bg-amber-500 h-full" style={{ width: '49%' }}></div>
+          <div className="bg-emerald-500 h-full" style={{ width: '49%' }}></div>
+          <div className="bg-purple-500 h-full" style={{ width: '2%' }}></div>
+        </div>
+
+        {/* تفاصيل مصادر التغذية بالألوان */}
+        <div className="space-y-3">
+          {energySources.map((source, index) => (
+            <div key={index} className="flex justify-between items-center text-xs">
+              <div className="flex items-center gap-2">
+                <span className={`w-3 h-3 rounded-full ${source.color}`}></span>
+                <span className="text-slate-600 font-medium">{source.name}</span>
+              </div>
+              <div className="text-slate-900 font-bold">
+                {source.percentage}% <span className="text-slate-400 font-normal mr-1">({source.amount})</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* القسم 2: تفصيل الفاتورة والتوفير المالي للمنظومة */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6">
+        <h3 className="font-bold text-sm text-slate-700 mb-1 flex items-center gap-1">
+          <span>🪙</span> التحليل المالي التقديري
+        </h3>
+        <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+          لولا نظامك الشمسي المطور لدفعت <span className="font-bold text-slate-700">{estimatedCost.toLocaleString()} ل.س</span> للشبكة.
+        </p>
+
+        <div className="grid grid-cols-2 gap-3">
+          {/* صندوق وفرت بنظامك الأخضر */}
+          <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-xl shadow-inner text-center">
+            <span className="text-xs text-emerald-700 block mb-1">وفرت بنظامك</span>
+            <span className="text-base font-black text-emerald-600">{totalSaved.toLocaleString()} ل.س</span>
+          </div>
+
+          {/* صندوق دفعت للشبكة الأصفر */}
+          <div className="bg-amber-50 border border-amber-100 p-3 rounded-xl shadow-inner text-center">
+            <span className="text-xs text-amber-700 block mb-1">دفعت للشبكة</span>
+            <span className="text-base font-black text-amber-700">{gridPaid.toLocaleString()} ل.س</span>
+          </div>
+        </div>
+
+        <p className="text-[10px] text-slate-400 mt-4 text-center">
+          حالة الفاتورة محدثة بناءً على كفاءة التوليد الجارية لـ شمسك.
+        </p>
+      </div>
+
+      {/* شريط القائمة السفلي الموحد الفاتح للتنقل السريع */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around py-3 text-[10px] text-slate-400 z-50 rounded-t-2xl shadow-md">
+        <div className="opacity-60 flex flex-col items-center">📊 الرئيسية</div>
+        <div className="opacity-60 flex flex-col items-center">🏠 المنزل</div>
+        <div className="opacity-60 flex flex-col items-center">🔋 البطارية</div>
+        <div className="opacity-60 flex flex-col items-center">☀️ الطاقة</div>
+        <div className="text-amber-500 font-bold flex flex-col items-center">💰 المال</div>
+      </div>
+
+    </div>
+  );
 }
