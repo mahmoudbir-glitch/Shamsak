@@ -1,57 +1,144 @@
 "use client";
-import { useEffect, useState } from "react";
-import { BatteryCharging, Sun, Home, Network, RefreshCw, WifiOff, Gauge, Zap } from "lucide-react";
-import { StatusCard } from "@/components/status-card";
-import { Section } from "@/components/section";
-import { EnergyFlow } from "@/components/energy-flow";
-import { getEnergySnapshot } from "@/lib/data-adapter";
-import { batteryState, batteryStateLabel, EnergySnapshot } from "@/lib/energy";
-import { SolarHero } from "@/components/solar-hero";
 
-export default function DashboardPage() {
-  const [data, setData] = useState<EnergySnapshot | null>(null);
-  const [refreshing, setRefreshing] = useState(true);
-  const [error, setError] = useState(false);
+import React, { useState } from 'react';
+// 1. استيراد دالة الحساب الذكية التي أنشأناها في المجلد utils
+import { calculateBatteryAutonomy } from '@/utils/solarPredictions';
 
-  const load = async () => {
-    setRefreshing(true);
-    try { setData(await getEnergySnapshot()); setError(false); }
-    catch { setError(true); }
-    finally { setRefreshing(false); }
-  };
+export default function SolarDashboard() {
+  // 2. إعداد قيم الطاقة اللحظية (مطابقة لقراءات الصور)
+  const [solarProduction, setSolarProduction] = useState<number>(5827); // إنتاج الشمس بالواط
+  const [homeConsumption, setHomeConsumption] = useState<number>(1299); // استهلاك المنزل بالواط
+  const [batteryLevel, setBatteryLevel] = useState<number>(94);         // نسبة شحن البطارية %
+  const [gridStatus, setGridStatus] = useState<string>("مقطوعة");       // حالة شبكة الكهرباء
 
-  useEffect(() => {
-    load();
-    const id = setInterval(load, 30000);
-    return () => clearInterval(id);
-  }, []);
+  // 3. إعداد بيانات الطقس التجريبية المتوقعة
+  const weatherCondition: 'sunny' | 'cloudy' | 'rainy' = 'sunny';
+  const expectedSunHours = 5.5;
 
-  const bs = data ? batteryState(data.batteryPowerW) : "idle";
-  const age = data ? Math.max(0, Math.round((Date.now() - new Date(data.timestamp).getTime()) / 60000)) : 0;
+  // 4. استدعاء الدالة الذكية وتمرير البيانات لها للحصول على التوقعات الحية
+  const prediction = calculateBatteryAutonomy(
+    {
+      capacityWh: 4800,        // سعة المنظومة الافتراضية بالواط ساعي
+      currentSoc: batteryLevel,
+      consumptionW: homeConsumption
+    },
+    {
+      condition: weatherCondition,
+      expectedSunHours: expectedSunHours
+    }
+  );
 
-  return <div className="space-y-4 sm:space-y-5">
-    <SolarHero data={data} />
-    <div className="flex items-start justify-between gap-3">
-      <div><p className="text-xs font-bold text-blue-600">شمسك</p><h1 className="mt-1 text-2xl font-extrabold">حالة الطاقة الآن</h1><p className="mt-1 text-sm text-slate-500">تدفق الطاقة بين الشمس والمنزل والبطارية والشبكة.</p></div>
-      <button onClick={load} disabled={refreshing} aria-label="تحديث البيانات" className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold shadow-sm"><RefreshCw size={16} className={refreshing ? "animate-spin" : ""}/> تحديث</button>
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 pb-24 text-right" dir="rtl">
+      
+      {/* الهيدر العلوي */}
+      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm mb-4 border border-slate-100">
+        <h1 className="text-xl font-bold text-amber-500 flex items-center gap-1">
+          شمسك <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-normal">الرئيسية</span>
+        </h1>
+        <div className="text-xs text-slate-400">حالة الطاقة الآن</div>
+      </div>
+
+      {/* القسم 1: مخطط التدفق اللحظي المتفاعل */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6 relative">
+        <div className="grid grid-cols-3 gap-2 items-center text-center relative z-10">
+          
+          {/* العنصر العلوي: الشمس */}
+          <div className="col-span-3 flex justify-center mb-2">
+            <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl w-32 shadow-sm">
+              <span className="text-amber-500 text-lg block">☀️</span>
+              <span className="text-xs text-slate-500 block">الشمس</span>
+              <span className="text-base font-black text-amber-600">{solarProduction.toLocaleString()} واط</span>
+            </div>
+          </div>
+
+          {/* العنصر الأيسر: الشبكة */}
+          <div className="flex justify-start">
+            <div className="bg-purple-50 border border-purple-200 p-3 rounded-xl w-28 shadow-sm">
+              <span className="text-purple-500 text-lg block">🛜</span>
+              <span className="text-xs text-slate-500 block">الشبكة</span>
+              <span className="text-sm font-bold text-purple-600">{gridStatus}</span>
+            </div>
+          </div>
+
+          {/* نقطة التقاطع والربط الوهمية في المنتصف */}
+          <div className="flex justify-center">
+            <div className="w-4 h-4 rounded-full bg-slate-200 border-2 border-white animate-pulse"></div>
+          </div>
+
+          {/* العنصر الأيمن: المنزل */}
+          <div className="flex justify-end">
+            <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl w-28 shadow-sm">
+              <span className="text-blue-500 text-lg block">🏠</span>
+              <span className="text-xs text-slate-500 block">المنزل</span>
+              <span className="text-sm font-black text-blue-600">{homeConsumption.toLocaleString()} واط</span>
+            </div>
+          </div>
+
+          {/* العنصر السفلي: البطارية */}
+          <div className="col-span-3 flex justify-center mt-2">
+            <div className="bg-emerald-50 border border-emerald-300 p-3 rounded-xl w-40 shadow-sm">
+              <span className="text-emerald-500 text-lg block">🔋</span>
+              <span className="text-xs text-slate-500 block">البطارية</span>
+              <span className="text-xl font-black text-emerald-600">{batteryLevel}%</span>
+              <span className="text-xs text-slate-400 block mt-0.5">تشحن بـ 4,300 واط</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* القسم 2: صندوق التنبؤ الذكي بصمود البطارية (الليلة الجارية) */}
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4 shadow-sm">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="font-bold text-amber-900 text-sm flex items-center gap-1">🌙 ليلة غد وما تبقى من اليوم</h3>
+          <span className="text-xs text-slate-400">حتى الشروق 06:15</span>
+        </div>
+        <div className="bg-white border border-amber-100 rounded-xl p-3 shadow-inner mb-2">
+          <div className="flex items-start gap-2 text-emerald-700 font-bold text-sm">
+            <span className="text-base">✓</span>
+            <div>
+              <p>تكفي حتى الصباح • صباحاً نحو {prediction.estimatedSocAtSunrise}%</p>
+              <p className="text-xs font-normal text-slate-500 mt-0.5">متبقي في مخزون البطارية حوالي {prediction.hoursRemaining} ساعة</p>
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-amber-700 text-left">احتمال الصمود وفق التوقع نحو {prediction.confidenceScore}%</p>
+      </div>
+
+      {/* القسم 3: صندوق استغلال فائض الطاقة الشمسي */}
+      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6 shadow-sm">
+        <div className="flex items-center gap-1 text-blue-900 font-bold text-sm mb-2">
+          <span>⚡</span>
+          <h3>توجيه استغلال فائض الطاقة</h3>
+        </div>
+        <p className="text-xs text-blue-800 mb-3 leading-relaxed">
+          يتوقع وجود فائض طاقة إنتاجية نظيفة بنحو <span className="font-bold text-amber-600 text-sm">{prediction.expectedSurplusWh} واط ساعي</span>.
+        </p>
+        <div className="bg-white bg-opacity-70 rounded-xl p-3 border border-blue-100 text-xs text-blue-950 leading-loose">
+          💡 **توصية ذكية من شمسك:** ننصح بجدولة وتوصيل الأحمال الثقيلة مثل **(الغسالة، السخان، أو مضخة المياه)** ما بين الساعة <span className="font-bold text-blue-700">12:30 و 17:00</span> للاستفادة المجانية القصوى.
+        </div>
+      </div>
+
+      {/* شريط القائمة السفلي للتنقل السريع */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around py-3 text-[10px] text-slate-400 shadow-lg z-50 rounded-t-2xl">
+        <div className="text-amber-500 font-bold flex flex-col items-center gap-0.5">
+          <span className="text-lg">📊</span>الرئيسية
+        </div>
+        <div className="flex flex-col items-center gap-0.5 opacity-60">
+          <span className="text-lg">🏠</span>المنزل
+        </div>
+        <div className="flex flex-col items-center gap-0.5 opacity-60">
+          <span className="text-lg">🔋</span>البطارية
+        </div>
+        <div className="flex flex-col items-center gap-0.5 opacity-60">
+          <span className="text-lg">☀️</span>الطاقة
+        </div>
+        <div className="flex flex-col items-center gap-0.5 opacity-60">
+          <span className="text-lg">💰</span>الالمال
+        </div>
+      </div>
+
     </div>
-    {error && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">تعذر تحميل البيانات. ستبقى آخر قراءة صالحة إن وجدت.</div>}
-    {!data && !error && <div className="rounded-2xl bg-white p-6 text-sm text-slate-500 shadow-sm">جارٍ تحميل قراءة الطاقة…</div>}
-    {data && <>
-      <div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">{data.source === "demo" ? "Demo — بيانات تجريبية" : "Live — بيانات حية"}</span><span className="text-xs text-slate-500">آخر تحديث منذ {age} دقيقة</span></div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatusCard label="إنتاج الشمس" value={(data.solarPowerW / 1000).toFixed(2)} unit="kW" icon={<Sun size={18}/>} tone="amber"/>
-        <StatusCard label="استهلاك المنزل" value={(data.homePowerW / 1000).toFixed(2)} unit="kW" icon={<Home size={18}/>} tone="blue"/>
-        <StatusCard label="البطارية" value={data.batterySoc} unit={`% — ${batteryStateLabel(bs)}`} icon={<BatteryCharging size={18}/>} tone="green"/>
-        <StatusCard label="الشبكة" value={data.gridConnected ? "متصلة" : "مفصولة"} icon={data.gridConnected ? <Network size={18}/> : <WifiOff size={18}/>} tone={data.gridConnected ? "violet" : "red"}/>
-      </div>
-      <Section title="تدفق الطاقة" subtitle="الاتجاهات تتغير حسب القراءة الحالية"><EnergyFlow data={data}/></Section>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <StatusCard label="جهد البطارية" value={data.batteryVoltage?.toFixed(1) ?? "—"} unit="V" icon={<Gauge size={18}/>} tone="blue"/>
-        <StatusCard label="قدرة البطارية" value={(Math.abs(data.batteryPowerW) / 1000).toFixed(2)} unit={`kW — ${batteryStateLabel(bs)}`} icon={<Zap size={18}/>} tone="green"/>
-        <StatusCard label="الشبكة" value={(Math.abs(data.gridPowerW) / 1000).toFixed(2)} unit={data.gridPowerW < -50 ? "kW — تصدير" : "kW — سحب/توازن"} icon={<Network size={18}/>} tone="violet"/>
-      </div>
-      <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900"><strong>مصدر البيانات:</strong> {data.source === "demo" ? "لا يوجد جهاز طاقة متصل حاليًا؛ هذه قراءة Demo موسومة بوضوح." : "مصدر طاقة حي متصل."}</div>
-    </>}
-  </div>;
+  );
 }
