@@ -1,8 +1,4 @@
 import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
   BatteryCharging,
   Home,
   Network,
@@ -17,6 +13,8 @@ interface SolarHeroProps {
   data: EnergySnapshot | null;
 }
 
+type FlowTone = "solar" | "grid" | "home" | "battery";
+
 function kw(value: number) {
   return (Math.abs(value) / 1000).toFixed(2);
 }
@@ -25,99 +23,71 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-function FlowLine({
-  direction,
-  active,
-  color,
-}: {
-  direction: "up" | "down" | "left" | "right";
-  active: boolean;
-  color: string;
-}) {
-  const points =
-    direction === "up"
-      ? "50,100 50,0"
-      : direction === "down"
-        ? "50,0 50,100"
-        : direction === "left"
-          ? "100,50 0,50"
-          : "0,50 100,50";
+const tone = {
+  solar: {
+    text: "text-amber-300",
+    border: "border-amber-400/60",
+    glow: "shadow-[0_0_30px_rgba(251,191,36,.18)]",
+    icon: "bg-amber-400/10 text-amber-300",
+  },
+  grid: {
+    text: "text-orange-300",
+    border: "border-orange-400/60",
+    glow: "shadow-[0_0_30px_rgba(251,146,60,.16)]",
+    icon: "bg-orange-400/10 text-orange-300",
+  },
+  home: {
+    text: "text-sky-300",
+    border: "border-sky-400/60",
+    glow: "shadow-[0_0_30px_rgba(56,189,248,.16)]",
+    icon: "bg-sky-400/10 text-sky-300",
+  },
+  battery: {
+    text: "text-emerald-300",
+    border: "border-emerald-400/60",
+    glow: "shadow-[0_0_30px_rgba(52,211,153,.18)]",
+    icon: "bg-emerald-400/10 text-emerald-300",
+  },
+} satisfies Record<FlowTone, Record<string, string>>;
 
-  const [from, to] = points.split(" ");
-  const [x1, y1] = from.split(",");
-  const [x2, y2] = to.split(",");
-
-  return (
-    <svg
-      aria-hidden="true"
-      className="pointer-events-none h-full w-full overflow-visible"
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
-    >
-      <line
-        x1={x1}
-        y1={y1}
-        x2={x2}
-        y2={y2}
-        stroke={color}
-        strokeWidth="2.5"
-        strokeDasharray="8 8"
-        strokeLinecap="round"
-        opacity={active ? 0.8 : 0.14}
-        style={active ? { animation: "dash 1.4s linear infinite" } : undefined}
-      />
-      {active && (
-        <circle r="3.2" fill={color}>
-          <animateMotion
-            dur="1.8s"
-            repeatCount="indefinite"
-            path={`M ${x1} ${y1} L ${x2} ${y2}`}
-          />
-        </circle>
-      )}
-    </svg>
-  );
-}
-
-const nodeTones = {
-  solar: "border-amber-200 bg-white text-amber-700 shadow-[0_10px_30px_rgba(245,158,11,.12)]",
-  home: "border-sky-200 bg-white text-sky-700 shadow-[0_10px_30px_rgba(14,165,233,.10)]",
-  battery:
-    "border-emerald-200 bg-white text-emerald-700 shadow-[0_10px_30px_rgba(16,185,129,.11)]",
-  grid: "border-violet-200 bg-white text-violet-700 shadow-[0_10px_30px_rgba(139,92,246,.10)]",
-} as const;
-
-function Node({
+function EnergyNode({
   title,
   value,
   subtitle,
   icon,
-  tone,
+  variant,
 }: {
   title: string;
   value: string;
   subtitle: string;
   icon: ReactNode;
-  tone: keyof typeof nodeTones;
+  variant: FlowTone;
 }) {
+  const t = tone[variant];
+
   return (
     <div
-      className={`relative z-20 flex h-[116px] w-full max-w-[108px] flex-col items-center justify-center rounded-2xl border p-2 text-center backdrop-blur transition-transform duration-300 hover:-translate-y-0.5 sm:h-[148px] sm:max-w-[158px] sm:p-3 ${nodeTones[tone]}`}
+      className={`relative z-20 flex w-[112px] flex-col items-center text-center sm:w-[160px] ${t.glow}`}
     >
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 sm:h-11 sm:w-11">
-        {icon}
+      <div
+        className={`flex h-[78px] w-[78px] items-center justify-center rounded-[22px] border-2 bg-slate-900/85 backdrop-blur sm:h-[108px] sm:w-[108px] sm:rounded-[28px] ${t.border}`}
+      >
+        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl sm:h-16 sm:w-16 ${t.icon}`}>
+          {icon}
+        </div>
       </div>
-      <p className="mt-1.5 text-[9px] font-black tracking-[0.08em] text-slate-400">
+      <p className="mt-2 text-[10px] font-black tracking-[0.12em] text-slate-300 sm:text-xs">
         {title}
       </p>
-      <p className="mt-1 text-sm font-black text-slate-900 sm:text-xl">
+      <p className={`mt-1 text-xl font-black tracking-tight sm:text-3xl ${t.text}`}>
         {value}
       </p>
-      <p className="mt-1 max-w-full truncate text-[9px] font-bold text-slate-500">
+      <p className="mt-0.5 max-w-[150px] text-[10px] font-semibold text-slate-400 sm:text-xs">
         {subtitle}
       </p>
     </div>
-  );}
+  );
+}
 
 function BatteryNode({
   soc,
@@ -129,69 +99,145 @@ function BatteryNode({
   power: number;
 }) {
   const safe = clamp(Math.round(soc), 0, 100);
-  const radius = 24;
-  const circumference = 2 * Math.PI * radius;
-  const tone =
-    state === "charging"
-      ? "text-emerald-600"
-      : state === "discharging"
-        ? "text-blue-600"
-        : "text-slate-600";
+  const circumference = 2 * Math.PI * 31;
+  const stroke = state === "discharging" ? "#38bdf8" : "#34d399";
 
   return (
-    <div className="relative z-20 flex h-[116px] w-full max-w-[108px] flex-col items-center justify-center rounded-2xl border border-emerald-200 bg-white p-2 text-center shadow-[0_10px_30px_rgba(16,185,129,.11)] sm:h-[148px] sm:max-w-[158px] sm:p-3">
-      <div
-        className="relative h-[56px] w-[56px] shrink-0 sm:h-[66px] sm:w-[66px]"
-        aria-label={`نسبة البطارية ${safe}%`}
-      >
-        <svg className="-rotate-90 h-full w-full" viewBox="0 0 64 64" aria-hidden="true">
-          <circle cx="32" cy="32" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="6" />
+    <div className="relative z-20 flex w-[140px] flex-col items-center text-center sm:w-[180px]">
+      <div className="relative flex h-[112px] w-[112px] items-center justify-center rounded-[28px] border-2 border-emerald-400/70 bg-slate-900/90 shadow-[0_0_38px_rgba(52,211,153,.2)] sm:h-[132px] sm:w-[132px]">
+        <svg
+          className="-rotate-90 absolute inset-0 h-full w-full"
+          viewBox="0 0 72 72"
+          aria-hidden="true"
+        >
+          <circle cx="36" cy="36" r="31" fill="none" stroke="#1e293b" strokeWidth="4.5" />
           <circle
-            cx="32"
-            cy="32"
-            r={radius}
+            cx="36"
+            cy="36"
+            r="31"
             fill="none"
-            stroke={state === "discharging" ? "#3b82f6" : "#10b981"}
-            strokeWidth="6"
+            stroke={stroke}
+            strokeWidth="4.5"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={circumference * (1 - safe / 100)}
             className="transition-all duration-700"
           />
         </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-sm font-black text-slate-900 sm:text-base">
-          {safe}%
-        </span>
+        <div className="relative">
+          <p className="text-2xl font-black text-white sm:text-3xl">{safe}%</p>
+          <BatteryCharging
+            size={16}
+            className={state === "discharging" ? "mx-auto mt-1 text-sky-300" : "mx-auto mt-1 text-emerald-300"}
+            aria-hidden="true"
+          />
+        </div>
       </div>
-      <p className="mt-1.5 text-[9px] font-black tracking-[0.08em] text-slate-400">
-        البطارية
+      <p className="mt-2 text-[10px] font-black tracking-[0.12em] text-slate-300 sm:text-xs">
+        BATTERY STATUS
       </p>
-      <p className={`mt-0.5 max-w-full truncate text-[9px] font-bold ${tone}`}>
-        {batteryStateLabel(state)} · {kw(power)} kW
+      <p className="mt-1 text-lg font-black text-emerald-300 sm:text-2xl">
+        {kw(power)} kW
+      </p>
+      <p className={`text-xs font-bold ${state === "discharging" ? "text-sky-300" : "text-emerald-300"}`}>
+        {batteryStateLabel(state)}
       </p>
     </div>
   );
 }
 
-function FlowStatus({
-  icon,
-  label,
-  value,
-  tone,
+function FlowMap({
+  solarActive,
+  homeActive,
+  gridActive,
+  batteryActive,
+  charging,
+  discharging,
+  gridExport,
 }: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-  tone: string;
+  solarActive: boolean;
+  homeActive: boolean;
+  gridActive: boolean;
+  batteryActive: boolean;
+  charging: boolean;
+  discharging: boolean;
+  gridExport: boolean;
 }) {
+  const paths = [
+    {
+      d: "M50 25 C50 33 50 38 50 47",
+      color: "#fbbf24",
+      active: solarActive,
+    },
+    {
+      d: "M31 51 C38 51 42 51 47 51",
+      color: "#fb923c",
+      active: gridActive,
+    },
+    {
+      d: "M69 51 C62 51 58 51 53 51",
+      color: "#38bdf8",
+      active: homeActive,
+    },
+    {
+      d: "M50 56 C50 63 50 68 50 76",
+      color: charging ? "#34d399" : "#38bdf8",
+      active: batteryActive,
+    },
+    {
+      d: "M47 48 C40 42 35 37 29 32",
+      color: "#34d399",
+      active: charging,
+    },
+    {
+      d: "M53 48 C60 42 65 37 71 32",
+      color: "#38bdf8",
+      active: discharging,
+    },
+    {
+      d: gridExport ? "M47 55 C39 60 32 64 25 69" : "M25 69 C32 64 39 60 47 55",
+      color: "#fb923c",
+      active: gridActive && gridExport,
+    },
+  ];
+
   return (
-    <div className={`flex items-center gap-2 rounded-xl border bg-white px-3 py-2 ${tone}`}>
-      {icon}
-      <div className="min-w-0">
-        <p className="text-[10px] font-bold text-slate-500">{label}</p>
-        <p className="truncate text-xs font-black text-slate-800">{value}</p>
-      </div>
-    </div>
+    <svg
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      className="pointer-events-none absolute inset-0 z-10 h-full w-full"
+      aria-hidden="true"
+    >
+      <defs>
+        <filter id="energy-glow">
+          <feGaussianBlur stdDeviation="1.8" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      {paths.map((path, index) => (
+        <g key={`flow-${index}`}>
+          <path
+            d={path.d}
+            fill="none"
+            stroke={path.color}
+            strokeWidth={path.active ? "0.9" : "0.45"}
+            strokeDasharray={path.active ? "2.4 2.2" : "1.5 3.5"}
+            strokeLinecap="round"
+            opacity={path.active ? 0.9 : 0.16}
+            filter={path.active ? "url(#energy-glow)" : undefined}
+          />
+          {path.active && (
+            <circle r="1.25" fill={path.color} filter="url(#energy-glow)">
+              <animateMotion dur="1.7s" repeatCount="indefinite" path={path.d} />
+            </circle>
+          )}
+        </g>
+      ))}
+    </svg>
   );
 }
 
@@ -200,13 +246,13 @@ export function SolarHero({ data }: SolarHeroProps) {
     return (
       <section
         aria-label="شمسك - تدفق الطاقة"
-        className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_14px_45px_rgba(15,23,42,.08)]"
+        className="overflow-hidden rounded-[28px] border border-slate-200 bg-slate-950 shadow-[0_20px_60px_rgba(15,23,42,.18)]"
       >
-        <div className="flex min-h-[430px] items-center justify-center p-6">
+        <div className="flex min-h-[520px] items-center justify-center p-6">
           <div className="text-center" role="status" aria-live="polite">
-            <Sun className="mx-auto animate-pulse text-amber-500" size={38} aria-hidden="true" />
-            <p className="mt-3 font-black text-slate-800">جارٍ تحميل بيانات الطاقة…</p>
-            <p className="mt-1 text-xs text-slate-500">يتم تجهيز مخطط التدفق اللحظي</p>
+            <Sun className="mx-auto animate-pulse text-amber-300" size={42} aria-hidden="true" />
+            <p className="mt-4 font-black text-white">جارٍ تحميل بيانات الطاقة…</p>
+            <p className="mt-1 text-xs text-slate-400">يتم تجهيز مخطط التدفق اللحظي</p>
           </div>
         </div>
       </section>
@@ -220,229 +266,203 @@ export function SolarHero({ data }: SolarHeroProps) {
   const homeActive = data.homePowerW > 50;
   const gridImport = data.gridConnected && data.gridPowerW > 50;
   const gridExport = data.gridConnected && data.gridPowerW < -50;
+  const gridActive = gridImport || gridExport;
   const batteryActive = charging || discharging;
-  const netSolarAfterLoad = data.solarPowerW - data.homePowerW;
+
   const statusText = !data.gridConnected
     ? "الشبكة مفصولة"
     : gridExport
-      ? "يوجد فائض يُصدّر للشبكة"
+      ? "فائض يُصدّر للشبكة"
       : gridImport
-        ? "المنزل يسحب من الشبكة"
+        ? "سحب من الشبكة"
         : charging
-          ? "الشمس تشحن البطارية"
+          ? "الشمس أولاً — البطارية تشحن"
           : discharging
             ? "البطارية تدعم المنزل"
             : "تدفق الطاقة متوازن";
 
   return (
     <section
-      aria-labelledby="solar-hero-title"      className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_16px_50px_rgba(15,23,42,.09)]"
+      aria-labelledby="solar-hero-title"
+      className="overflow-hidden rounded-[28px] border border-slate-800 bg-[#061b31] text-white shadow-[0_24px_70px_rgba(2,12,27,.25)]"
     >
-      <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:px-6">
+      <header className="flex items-center justify-between gap-3 border-b border-white/10 bg-[#071f36]/90 px-4 py-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-amber-300/40 bg-amber-300/10 text-amber-300 shadow-[0_0_25px_rgba(251,191,36,.14)]">
             <Sun size={24} aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <h2 id="solar-hero-title" className="text-xl font-black text-slate-900">
-              شمسك
+            <h2 id="solar-hero-title" className="text-xl font-black">
+              شمسك ☀️
             </h2>
-            <p className="truncate text-xs font-semibold text-slate-500">
+            <p className="truncate text-xs font-semibold text-slate-400">
               إدارة ومراقبة الطاقة الشمسية
             </p>
           </div>
         </div>
         <span
-          className={`shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-black ${data.source === "demo"
-            ? "border-amber-200 bg-amber-50 text-amber-700"
-            : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}
+          className={`shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-black ${
+            data.source === "demo"
+              ? "border-amber-300/30 bg-amber-300/10 text-amber-200"
+              : "border-emerald-300/30 bg-emerald-300/10 text-emerald-200"
+          }`}
         >
-          {data.source === "demo" ? "Demo" : "Live"}
+          {data.source === "demo" ? "DEMO" : "LIVE"}
         </span>
       </header>
 
-      <div className="relative overflow-hidden bg-gradient-to-b from-slate-50/80 to-white px-3 py-5 sm:px-6 sm:py-7">
+      <div className="relative overflow-hidden px-3 py-5 sm:px-6 sm:py-7">
         <div
-          className="pointer-events-none absolute inset-0 opacity-70"
+          className="pointer-events-none absolute inset-0"
           aria-hidden="true"
           style={{
             background:
-              "radial-gradient(circle at 50% 42%, rgba(37,99,235,.055), transparent 34%), radial-gradient(circle at 50% 0%, rgba(245,158,11,.08), transparent 28%)",
+              "radial-gradient(circle at 50% 18%, rgba(251,191,36,.12), transparent 20%), radial-gradient(circle at 50% 58%, rgba(16,185,129,.07), transparent 28%), radial-gradient(circle at 100% 55%, rgba(56,189,248,.08), transparent 22%)",
           }}
         />
 
-        <div className="relative mx-auto max-w-[920px]">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="relative mx-auto max-w-[980px]">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,.10)]" />
-              <span className="text-xs font-bold text-slate-600">حالة النظام الآن</span>
+              <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,.9)]" />
+              <span className="text-xs font-bold text-slate-300">حالة النظام الآن</span>
             </div>
-            <span
-              className={`rounded-full px-3 py-1.5 text-[10px] font-black ${!data.gridConnected
-                ? "bg-slate-200 text-slate-600"
-                : "bg-amber-50 text-amber-700"}`}
-              aria-live="polite"
-            >
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-black text-slate-200">
               {statusText}
             </span>
           </div>
 
-          <div className="mx-auto grid w-full max-w-[820px] grid-cols-[minmax(0,1fr)_14px_minmax(104px,150px)_14px_minmax(0,1fr)] grid-rows-[auto_34px_auto_34px_auto] items-center justify-items-center gap-1 sm:grid-cols-[minmax(158px,1fr)_70px_minmax(120px,1fr)_70px_minmax(158px,1fr)] sm:grid-rows-[auto_72px_auto_72px_auto] sm:gap-3">
-            <div className="col-start-3 row-start-1">
-              <Node
-                tone="solar"
+          <div className="relative mx-auto mt-3 aspect-[0.82] w-full max-w-[620px] sm:aspect-[1/1] sm:max-w-[780px]">
+            <FlowMap
+              solarActive={solarActive}
+              homeActive={homeActive}
+              gridActive={gridActive}
+              batteryActive={batteryActive}
+              charging={charging}
+              discharging={discharging}
+              gridExport={gridExport}
+            />
+
+            <div className="absolute left-1/2 top-[3%] z-20 -translate-x-1/2">
+              <EnergyNode
+                variant="solar"
                 title="SOLAR"
                 value={`${kw(data.solarPowerW)} kW`}
                 subtitle={solarActive ? "إنتاج حالي" : "لا إنتاج حاليًا"}
-                icon={<Sun size={25} aria-hidden="true" />}
+                icon={<Sun size={34} aria-hidden="true" />}
               />
             </div>
 
-            <div className="col-start-3 row-start-2 flex h-full w-full items-center justify-center">
-              <FlowLine direction="down" active={solarActive} color="#f59e0b" />
-            </div>
-
-            <div className="col-start-1 row-start-3 flex w-full justify-end">
-              <Node
-                tone="grid"
-                title="GRID"
-                value={data.gridConnected ? `${kw(data.gridPowerW)} kW` : "مفصولة"}
+            <div className="absolute left-[1%] top-[45%] z-20">
+              <EnergyNode
+                variant="grid"
+                title="GRID STATUS"
+                value={!data.gridConnected ? "مفصولة" : `${kw(data.gridPowerW)} kW`}
                 subtitle={
                   !data.gridConnected
-                    ? "غير متاحة"
+                    ? "لا يوجد اتصال"
                     : gridImport
-                      ? "سحب من الشبكة"
+                      ? "Importing"
                       : gridExport
-                        ? "تصدير للشبكة"
-                        : "متوازنة"
+                        ? "Exporting"
+                        : "Balanced"
                 }
-                icon={<Network size={22} aria-hidden="true" />}
+                icon={<Network size={32} aria-hidden="true" />}
               />
             </div>
 
-            <div className="col-start-2 row-start-3 flex h-full w-full items-center justify-center">
-              <FlowLine
-                direction={gridExport ? "left" : "right"}
-                active={gridImport || gridExport}
-                color="#8b5cf6"
-              />
-            </div>
-
-            <div className="col-start-3 row-start-3">
-              <div
-                className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-white shadow-xl ring-4 ring-white sm:h-16 sm:w-16"
-                aria-label="مركز تدفق الطاقة"
-              >
-                <Zap size={23} className={solarActive ? "text-amber-400" : "text-slate-300"} aria-hidden="true" />
-              </div>
-            </div>
-
-            <div className="col-start-4 row-start-3 flex h-full w-full items-center justify-center">
-              <FlowLine direction="right" active={homeActive} color="#0ea5e9" />
-            </div>
-
-            <div className="col-start-5 row-start-3 flex w-full justify-start">
-              <Node
-                tone="home"
-                title="HOME"
+            <div className="absolute right-[1%] top-[45%] z-20">
+              <EnergyNode
+                variant="home"
+                title="HOME CONSUMPTION"
                 value={`${kw(data.homePowerW)} kW`}
                 subtitle={homeActive ? "استهلاك حالي" : "لا استهلاك حاليًا"}
-                icon={<Home size={22} aria-hidden="true" />}
+                icon={<Home size={32} aria-hidden="true" />}
               />
             </div>
 
-            <div className="col-start-3 row-start-4 flex h-full w-full items-center justify-center">
-              <FlowLine
-                direction={charging ? "down" : "up"}
-                active={batteryActive}
-                color={discharging ? "#3b82f6" : "#10b981"}              />
-            </div>
-
-            <div className="col-start-3 row-start-5">
+            <div className="absolute bottom-[2%] left-1/2 z-20 -translate-x-1/2">
               <BatteryNode soc={data.batterySoc} state={state} power={data.batteryPowerW} />
             </div>
+
+            <div className="absolute left-1/2 top-[47%] z-20 -translate-x-1/2">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-[#0a2742]/95 shadow-[0_0_35px_rgba(56,189,248,.12)] ring-4 ring-[#061b31] sm:h-20 sm:w-20">
+                <Zap
+                  size={28}
+                  className={solarActive ? "text-amber-300" : "text-slate-500"}
+                  aria-hidden="true"
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="mt-5 grid gap-2 sm:grid-cols-3">
-            <FlowStatus
-              icon={<Sun size={15} className="text-amber-500" aria-hidden="true" />}
-              label="الشمس"
-              value={`${kw(data.solarPowerW)} kW إنتاج`}
-              tone="border-amber-100"
-            />
-            <FlowStatus
-              icon={<Home size={15} className="text-sky-500" aria-hidden="true" />}
-              label="المنزل"
-              value={`${kw(data.homePowerW)} kW استهلاك`}
-              tone="border-sky-100"
-            />
-            <FlowStatus
-              icon={<Network size={15} className="text-violet-500" aria-hidden="true" />}
-              label="الشبكة"
-              value={!data.gridConnected ? "مفصولة" : gridExport ? `${kw(data.gridPowerW)} kW تصدير` : gridImport ? `${kw(data.gridPowerW)} kW سحب` : "متوازنة"}
-              tone="border-violet-100"
-            />
-          </div>
-
-          <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-3.5">
-              <p className="text-[10px] font-bold text-amber-700">إنتاج اليوم</p>
-              <p className="mt-1 text-lg font-black text-slate-900">
+          <div className="grid grid-cols-3 overflow-hidden rounded-2xl border border-white/10 bg-black/10">
+            <div className="min-w-0 border-l border-white/10 px-2 py-4 text-center sm:px-4">
+              <p className="truncate text-[9px] font-black tracking-[0.08em] text-slate-400 sm:text-xs">
+                TODAY'S PRODUCTION
+              </p>
+              <p className="mt-1 text-lg font-black text-emerald-300 sm:text-2xl">
                 {data.todayProductionKWh != null ? `${data.todayProductionKWh.toFixed(1)} kWh` : "—"}
               </p>
             </div>
-            <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-3.5">
-              <p className="text-[10px] font-bold text-sky-700">استهلاك المنزل اليوم</p>
-              <p className="mt-1 text-lg font-black text-slate-900">
+            <div className="min-w-0 border-l border-white/10 px-2 py-4 text-center sm:px-4">
+              <p className="truncate text-[9px] font-black tracking-[0.08em] text-slate-400 sm:text-xs">
+                HOME USAGE
+              </p>
+              <p className="mt-1 text-lg font-black text-emerald-300 sm:text-2xl">
                 {data.todayHomeUsageKWh != null ? `${data.todayHomeUsageKWh.toFixed(1)} kWh` : "—"}
               </p>
             </div>
-            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3.5">
-              <p className="text-[10px] font-bold text-emerald-700">التوفير من الشبكة</p>
-              <p className="mt-1 text-lg font-black text-slate-900">
+            <div className="min-w-0 px-2 py-4 text-center sm:px-4">
+              <p className="truncate text-[9px] font-black tracking-[0.08em] text-slate-400 sm:text-xs">
+                GRID SAVINGS
+              </p>
+              <p className="mt-1 text-lg font-black text-amber-300 sm:text-2xl">
                 {data.todayGridSavings != null ? `${data.todayGridSavings.toFixed(1)} kWh` : "—"}
               </p>
             </div>
           </div>
 
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-emerald-100 bg-white p-4">
+            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/5 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <BatteryCharging size={17} className="text-emerald-600" aria-hidden="true" />
-                  <span className="text-sm font-black text-slate-700">حالة البطارية</span>
+                  <BatteryCharging size={17} className="text-emerald-300" aria-hidden="true" />
+                  <span className="text-sm font-black text-slate-200">البطارية</span>
                 </div>
-                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">
+                <span className="rounded-full bg-emerald-300/10 px-2.5 py-1 text-xs font-black text-emerald-300">
                   {batteryStateLabel(state)}
                 </span>
               </div>
-              <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-100">
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
                 <div
-                  className={`h-full rounded-full transition-all duration-700 ${discharging ? "bg-blue-500" : "bg-emerald-500"}`}
+                  className={`h-full rounded-full transition-all duration-700 ${discharging ? "bg-sky-400" : "bg-emerald-400"}`}
                   style={{ width: `${clamp(data.batterySoc, 0, 100)}%` }}
                 />
               </div>
-              <div className="mt-2 flex items-center justify-between text-xs font-semibold text-slate-500">
+              <div className="mt-2 flex items-center justify-between text-xs font-bold text-slate-400">
                 <span>{Math.round(clamp(data.batterySoc, 0, 100))}%</span>
                 <span>{kw(data.batteryPowerW)} kW</span>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <Network size={17} className="text-violet-600" aria-hidden="true" />
-                  <span className="text-sm font-black text-slate-700">الشبكة</span>
+                  <Network size={17} className="text-orange-300" aria-hidden="true" />
+                  <span className="text-sm font-black text-slate-200">الشبكة</span>
                 </div>
                 <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-black ${data.gridConnected
-                    ? "bg-violet-50 text-violet-700"
-                    : "bg-slate-200 text-slate-600"}`}
+                  className={`rounded-full px-2.5 py-1 text-xs font-black ${
+                    data.gridConnected
+                      ? "bg-orange-300/10 text-orange-200"
+                      : "bg-slate-700 text-slate-300"
+                  }`}
                 >
                   {data.gridConnected ? "متصلة" : "مفصولة"}
                 </span>
               </div>
-              <p className="mt-3 text-sm font-semibold text-slate-600">
+              <p className="mt-3 text-sm font-semibold text-slate-400">
                 {!data.gridConnected
                   ? "لا يوجد اتصال بالشبكة حاليًا."
                   : gridImport
@@ -452,23 +472,6 @@ export function SolarHero({ data }: SolarHeroProps) {
                       : "لا يوجد سحب أو تصدير ملحوظ حاليًا."}
               </p>
             </div>
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-100 bg-white px-4 py-3 text-xs">
-            <div className="flex items-center gap-2 text-slate-500">
-              <Zap size={14} className="text-amber-500" aria-hidden="true" />
-              <span>صافي الشمس بعد استهلاك المنزل</span>
-            </div>
-            <strong className={netSolarAfterLoad >= 0 ? "text-emerald-700" : "text-blue-700"}>
-              {netSolarAfterLoad >= 0 ? "+" : "-"}{kw(netSolarAfterLoad)} kW
-            </strong>
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-[10px] font-semibold text-slate-400">
-            <span className="inline-flex items-center gap-1"><ArrowDown size={12} /> الشمس → البطارية عند الشحن</span>
-            <span className="inline-flex items-center gap-1"><ArrowUp size={12} /> البطارية → المنزل عند التفريغ</span>
-            <span className="inline-flex items-center gap-1"><ArrowLeft size={12} /> التصدير → الشبكة</span>
-            <span className="inline-flex items-center gap-1"><ArrowRight size={12} /> السحب ← الشبكة</span>
           </div>
         </div>
       </div>
