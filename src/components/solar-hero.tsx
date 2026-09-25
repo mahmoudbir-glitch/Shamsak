@@ -1,6 +1,6 @@
 import { Home, Network, Sun, Zap } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
-import { batteryState, batteryStateLabel, gridLabel } from "@/lib/energy";
+import { batteryState, batteryStateLabel } from "@/lib/energy";
 
 interface SolarHeroProps {
   data: EnergySnapshot | null;
@@ -8,10 +8,6 @@ interface SolarHeroProps {
 
 function kw(value: number) {
   return (Math.abs(value) / 1000).toFixed(2);
-}
-
-function kwh(value?: number) {
-  return value == null ? "—" : value.toFixed(1);
 }
 
 function FlowLine({
@@ -49,13 +45,21 @@ function FlowLine({
         x2={x2}
         y2={y2}
         stroke={color}
-        strokeWidth="2.2"
+        strokeWidth="2.5"
         strokeDasharray="8 8"
         strokeLinecap="round"
-        opacity={active ? 0.85 : 0.22}
+        opacity={active ? 0.85 : 0.15}
         style={active ? { animation: "dash 1.4s linear infinite" } : undefined}
       />
-      {active && <circle cx="50" cy="50" r="3" fill={color} className="animate-pulse" />}
+      {active && (
+        <circle r="3.5" fill={color} className="animate-pulse">
+          <animateMotion
+            dur="2s"
+            repeatCount="indefinite"
+            path={`M ${x1} ${y1} L ${x2} ${y2}`}
+          />
+        </circle>
+      )}
     </svg>
   );
 }
@@ -84,53 +88,53 @@ function Node({
     <div
       className={`relative z-20 box-border flex h-[112px] w-full max-w-[104px] flex-col items-center justify-center rounded-2xl border p-2 text-center backdrop-blur transition-transform duration-300 hover:-translate-y-0.5 sm:h-[154px] sm:max-w-[158px] sm:p-3 ${nodeTones[tone]}`}
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 sm:h-11 sm:w-11">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 sm:h-11 sm:w-11">
         {icon}
       </div>
       <p className="mt-1.5 text-[9px] font-bold tracking-[0.08em] text-slate-400">{title}</p>
-      <p className="mt-1 text-base font-black text-slate-900 sm:text-xl">{value}</p>
+      <p className="mt-1 text-sm font-black text-slate-900 sm:text-xl">{value}</p>
       <p className="mt-1 text-[9px] font-bold text-slate-500">{subtitle}</p>
     </div>
   );
 }
 
 function BatteryNode({
-  soc,
+  soc = 0, // حماية تفادي القيم غير المعرفة Null-safety fallback
   state,
   power,
 }: {
-  soc: number;
+  soc?: number;
   state: ReturnType<typeof batteryState>;
   power: number;
 }) {
-  const safe = Math.min(100, Math.max(0, soc));
-  const radius = 28;
+  const safe = Math.min(100, Math.max(0, Math.round(soc)));
+  const radius = 24;
   const circumference = 2 * Math.PI * radius;
 
   return (
     <div className="relative z-20 box-border flex h-[112px] w-full max-w-[104px] flex-col items-center justify-center rounded-2xl border border-emerald-200 bg-white p-2 text-center text-emerald-700 shadow-[0_8px_28px_rgba(16,185,129,.10)] backdrop-blur transition-transform duration-300 hover:-translate-y-0.5 sm:h-[154px] sm:max-w-[158px] sm:p-3">
-      <div className="relative h-[66px] w-[66px] shrink-0" aria-label={`نسبة البطارية ${safe}%`}>
-        <svg className="-rotate-90" viewBox="0 0 76 76" aria-hidden="true">
-          <circle cx="38" cy="38" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="7" />
+      <div className="relative h-[56px] w-[56px] shrink-0 sm:h-[66px] sm:w-[66px]" aria-label={`نسبة البطارية ${safe}%`}>
+        <svg className="-rotate-90 w-full h-full" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="32" cy="32" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="6" />
           <circle
-            cx="38"
-            cy="38"
+            cx="32"
+            cy="32"
             r={radius}
             fill="none"
             stroke="#10b981"
-            strokeWidth="7"
+            strokeWidth="6"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={circumference * (1 - safe / 100)}
             className="transition-all duration-700"
           />
         </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-base font-black text-slate-900">
+        <span className="absolute inset-0 flex items-center justify-center text-sm font-black text-slate-900 sm:text-base">
           {safe}%
         </span>
       </div>
-      <p className="mt-1.5 text-[9px] font-bold tracking-[0.08em] text-slate-400">حالة البطارية</p>
-      <p className="mt-1 text-[9px] font-bold text-slate-600">
+      <p className="mt-1.5 text-[9px] font-bold tracking-[0.08em] text-slate-400">البطارية</p>
+      <p className="mt-0.5 text-[9px] font-bold text-slate-600 truncate max-w-full">
         {batteryStateLabel(state)} · {kw(power)} kW
       </p>
     </div>
@@ -199,7 +203,10 @@ export function SolarHero({ data }: SolarHeroProps) {
             </span>
           </div>
 
-          <div className="mx-auto box-border grid w-full max-w-[820px] grid-cols-[minmax(0,1fr)_20px_64px_20px_minmax(0,1fr)] grid-rows-[auto_38px_auto_38px_auto] items-center justify-items-center gap-1 overflow-visible sm:grid-cols-[minmax(158px,1fr)_78px_minmax(110px,1fr)_78px_minmax(158px,1fr)] sm:grid-rows-[auto_78px_auto_78px_auto] sm:gap-3">
+          {/* تم تعديل هيكل الـ Grid لضمان التجاوب ومنع التداخل في الهواتف المحمولة */}
+          <div className="mx-auto box-border grid w-full max-w-[820px] grid-cols-[minmax(0,1fr)_16px_minmax(104px,158px)_16px_minmax(0,1fr)] grid-rows-[auto_38px_auto_38px_auto] items-center justify-items-center gap-1 overflow-visible sm:grid-cols-[minmax(158px,1fr)_78px_minmax(110px,1fr)_78px_minmax(158px,1fr)] sm:grid-rows-[auto_78px_auto_78px_auto] sm:gap-3">
+            
+            {/* 1. عقدة الطاقة الشمسية (أعلى المنتصف) */}
             <div className="col-start-3 row-start-1">
               <Node
                 tone="solar"
@@ -210,88 +217,38 @@ export function SolarHero({ data }: SolarHeroProps) {
               />
             </div>
 
+            {/* خط التدفق الحركي من الشمس لأسفل */}
             <div className="col-start-3 row-start-2 row-span-1 flex h-full w-full items-center justify-center">
               <FlowLine direction="down" active={solarActive} color="#d97706" />
             </div>
 
-            <div className="col-start-1 row-start-3">
+            {/* 2. عقدة شبكة الكهرباء العامة (يسار المنتصف) */}
+            <div className="col-start-1 row-start-3 w-full flex justify-end">
               <Node
                 tone="grid"
-                title="GRID STATUS"
-                value={data.gridConnected ? "متصلة" : "مقطوعة"}
-                subtitle={!data.gridConnected ? "لا يوجد اتصال" : gridLabel(data.gridPowerW, true)}
-                icon={<Network size={25} />}
+                title="GRID"
+                value={`${kw(data.gridPowerW)} kW`}
+                subtitle={gridImport ? "سحب من الشبكة" : gridExport ? "تصدير للشبكة" : "مستقرة"}
+                icon={<Network size={22} />}
               />
             </div>
 
+            {/* خط التدفق الأفقي بين الشبكة والعقدة المركزية */}
             <div className="col-start-2 row-start-3 flex h-full w-full items-center justify-center">
-              <FlowLine direction="right" active={gridImport || gridExport} color="#7c3aed" />
+              <FlowLine 
+                direction={gridExport ? "left" : "right"} 
+                active={gridImport || gridExport} 
+                color="#8b5cf6" 
+              />
             </div>
 
-            <div className="col-start-3 row-start-3 flex h-[88px] w-[88px] items-center justify-center rounded-full border border-blue-200 bg-white shadow-[0_10px_30px_rgba(37,99,235,.12)] sm:h-[104px] sm:w-[104px]">
-              <div className="flex h-[66px] w-[66px] items-center justify-center rounded-full border border-blue-100 bg-blue-50 sm:h-[78px] sm:w-[78px]">
-                <Zap className="text-blue-700" size={30} aria-hidden="true" />
+            {/* 3. العقدة المركزية / الموزع (المنتصف الهيكلي) */}
+            <div className="col-start-3 row-start-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white shadow-xl ring-4 ring-slate-100 z-30 animate-pulse">
+                <Zap size={20} className="text-amber-400" />
               </div>
             </div>
 
+            {/* خط التدفق الأفقي بين العقدة المركزية والمنزل */}
             <div className="col-start-4 row-start-3 flex h-full w-full items-center justify-center">
-              <FlowLine direction="right" active={data.homePowerW > 50} color="#0284c7" />
-            </div>
-
-            <div className="col-start-5 row-start-3">
-              <Node
-                tone="home"
-                title="HOME CONSUMPTION"
-                value={`${kw(data.homePowerW)} kW`}
-                subtitle="استهلاك حالي"
-                icon={<Home size={25} />}
-              />
-            </div>
-
-            <div className="col-start-3 row-start-4 flex h-full w-full items-center justify-center">
-              <FlowLine direction="down" active={charging || discharging} color="#059669" />
-            </div>
-
-            <div className="col-start-3 row-start-5">
-              <BatteryNode soc={data.batterySoc} state={state} power={data.batteryPowerW} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 divide-x divide-slate-100 border-t border-slate-100 bg-white">
-        <Stat label="TODAY'S PRODUCTION" value={kwh(data.todayProductionKWh)} unit="kWh" tone="text-amber-700" />
-        <Stat label="HOME USAGE" value={kwh(data.todayHomeUsageKWh)} unit="kWh" tone="text-blue-700" />
-        <Stat
-          label="GRID SAVINGS"
-          value={data.todayGridSavings == null ? "—" : data.todayGridSavings.toFixed(2)}
-          unit={data.todayGridSavings == null ? "" : "$"}
-          tone="text-emerald-700"
-        />
-      </div>
-    </section>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  unit,
-  tone,
-}: {
-  label: string;
-  value: string;
-  unit: string;
-  tone: string;
-}) {
-  return (
-    <div className="min-w-0 px-2 py-4 text-center sm:px-4">
-      <p className="truncate text-[8px] font-bold tracking-[0.08em] text-slate-400 sm:text-[10px]">{label}</p>
-      <p className={`mt-1 text-lg font-black ${tone} sm:text-2xl`}>
-        {value} <span className="text-[10px] font-bold text-slate-400">{unit}</span>
-      </p>
-    </div>
-  );
-}
-
-export default SolarHero;
+              <FlowLine 
