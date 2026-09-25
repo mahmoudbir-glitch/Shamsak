@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 
-// --- دالة الحساب والتنبؤ الذكي المدمجة ---
 interface BatteryData {
   capacityWh: number;
   currentSoc: number;
@@ -48,11 +47,10 @@ function calculateBatteryAutonomy(battery: BatteryData, weather: WeatherData) {
 }
 
 export default function SolarDashboard() {
-  // القراءات اللحظية المحدثة والمتوافقة مع الرسم البياني التدفقي
-  const [solarProduction, setSolarProduction] = useState<number>(6800); // 6.8 kW الشمس
-  const [homeConsumption, setHomeConsumption] = useState<number>(3200); // 3.2 kW المنزل
-  const [batteryLevel, setBatteryLevel] = useState<number>(94);         // 94% البطارية
-  const [gridImport, setGridImport] = useState<number>(500);            // 0.5 kW الشبكة
+  const [solarProduction] = useState<number>(6800); 
+  const [homeConsumption] = useState<number>(3200); 
+  const [batteryLevel] = useState<number>(94);         
+  const [gridImport] = useState<number>(500);            
 
   const prediction = calculateBatteryAutonomy(
     { capacityWh: 4800, currentSoc: batteryLevel, consumptionW: homeConsumption },
@@ -60,103 +58,67 @@ export default function SolarDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-4 pb-24 text-right selection:bg-amber-500 relative overflow-x-hidden" dir="rtl">
+    <div className="min-h-screen bg-slate-900 text-white p-4 pb-24 text-right relative overflow-x-hidden" dir="rtl">
       
-      {/* ستايل مدمج مخصص لحركة تدفق ذرات الطاقة الكهربائية في الأنابيب */}
-      <style jsx global>{`
-        @keyframes strokeFlow {
-          to {
-            stroke-dashoffset: -20;
-          }
-        }
-        .energy-flow-line {
-          stroke-dasharray: 6, 4;
-          animation: strokeFlow 1s linear infinite;
-        }
-        .pulse-core {
-          animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-        }
-      `}</style>
-
-      {/* الهيدر العلوي للتطبيق */}
-      <div className="flex justify-between items-center bg-slate-800 bg-opacity-60 backdrop-blur-md p-4 rounded-2xl shadow-lg mb-6 border border-slate-700 relative z-20">
-        <h1 className="text-xl font-black text-amber-400 flex items-center gap-1">
+      {/* الهيدر العلوي */}
+      <div className="flex justify-between items-center bg-slate-800 bg-opacity-60 p-4 rounded-2xl shadow-lg mb-6 border border-slate-700">
+        <h1 className="text-xl font-black text-amber-400">
           شمسك <span className="text-[10px] bg-amber-500 bg-opacity-20 text-amber-400 px-2.5 py-0.5 rounded-full font-bold">نظام حي تفاعلي</span>
         </h1>
-        <div className="text-xs text-slate-400 font-medium">مخطط التدفق اللحظي الفائق</div>
+        <div className="text-xs text-slate-400 font-medium">مخطط التدفق اللحظي</div>
       </div>
 
-      {/* ==================== بداية الرسم البياني والمخطط التدفقي في الخلفية ==================== */}
+      {/* المخطط التدفقي الرئيسي الخلفي */}
       <div className="bg-slate-800 bg-opacity-40 border border-slate-700 rounded-3xl p-4 shadow-xl mb-6 relative min-h-[460px] flex flex-col justify-between">
         
-        {/* شبكة الأنابيب والتدفق الديناميكي المدمج عبر الـ SVG */}
+        {/* رسمة شبكة التدفق الديناميكية */}
         <div className="absolute inset-0 z-0 pointer-events-none opacity-80">
           <svg className="w-full h-full" viewBox="0 0 400 460" fill="none" xmlns="http://w3.org">
-            {/* خطوط التوصيل المركزية المتقاطعة */}
             <path d="M 200 65 L 200 400" stroke="#475569" strokeWidth="2" />
             <path d="M 75 220 L 325 220" stroke="#475569" strokeWidth="2" />
-
-            {/* خطوط التدفق الجارية (الشمس تدفع إلى الأسفل) */}
-            <path d="M 200 65 L 200 220" stroke="#fbbf24" strokeWidth="2.5" className="energy-flow-line" />
-            
-            {/* الانعطافات المركزية (الشمس إلى المنزل والشبكة والبطارية) */}
-            <path d="M 200 220 L 325 220" stroke="#3b82f6" strokeWidth="2.5" className="energy-flow-line" />
-            <path d="M 75 220 L 200 220" stroke="#a855f7" strokeWidth="2.5" className="energy-flow-line" style={{ animationDirection: 'reverse' }} />
-            <path d="M 200 220 L 200 400" stroke="#10b981" strokeWidth="2.5" className="energy-flow-line" />
-
-            {/* الأقواس الخارجية التدفقية الزاوية */}
-            {/* أعلى اليسار: شبكة إلى شمس */}
+            <path d="M 200 65 L 200 220" stroke="#fbbf24" strokeWidth="2.5" strokeDasharray="6 4" />
+            <path d="M 200 220 L 325 220" stroke="#3b82f6" strokeWidth="2.5" strokeDasharray="6 4" />
+            <path d="M 75 220 L 200 220" stroke="#a855f7" strokeWidth="2.5" strokeDasharray="6 4" />
+            <path d="M 200 220 L 200 400" stroke="#10b981" strokeWidth="2.5" strokeDasharray="6 4" />
             <path d="M 75 200 A 110 110 0 0 1 180 65" stroke="#a855f7" strokeWidth="1.5" strokeDasharray="4 4" />
-            {/* أعلى اليمين: شمس إلى منزل */}
-            <path d="M 220 65 A 110 110 0 0 1 325 200" stroke="#3b82f6" strokeWidth="2" className="energy-flow-line" />
-            {/* أسفل اليسار: بطارية إلى شبكة */}
+            <path d="M 220 65 A 110 110 0 0 1 325 200" stroke="#3b82f6" strokeWidth="2" strokeDasharray="6 4" />
             <path d="M 75 240 A 110 110 0 0 0 180 390" stroke="#64748b" strokeWidth="1.5" strokeDasharray="3 3" />
-            {/* أسفل اليمين: منزل إلى بطارية */}
             <path d="M 220 390 A 110 110 0 0 0 325 240" stroke="#10b981" strokeWidth="1.5" strokeDasharray="4 4" />
           </svg>
         </div>
 
-        {/* عقد كروت البيانات الحية الموزعة هندسياً فوق الرسم الخلفي */}
+        {/* الكروت وعقد البيانات الحية المعروضة بشكل منظم */}
         <div className="relative z-10 h-full flex flex-col justify-between space-y-12">
           
-          {/* عقدة 1 (أعلى): توليد الشمس الحقيقي */}
           <div className="flex justify-center">
-            <div className="bg-slate-900 bg-opacity-90 border-2 border-amber-500 border-b-4 p-3 rounded-2xl w-36 shadow-lg text-center backdrop-blur-md">
-              <span className="text-amber-400 text-xl block animate-bounce">☀️</span>
+            <div className="bg-slate-900 bg-opacity-90 border-2 border-amber-500 border-b-4 p-3 rounded-2xl w-36 shadow-lg text-center">
+              <span className="text-amber-400 text-xl block">☀️</span>
               <span className="text-[10px] text-slate-400 block font-bold">SOLAR (الشمس)</span>
               <span className="text-lg font-black text-amber-400 mt-0.5 block">{(solarProduction / 1000).toFixed(1)} kW</span>
             </div>
           </div>
 
-          {/* العقد الوسطى (الشبكة في اليسار والمنزل في اليمين وبينهما مركز الطاقة المتحرك) */}
           <div className="flex justify-between items-center px-2">
-            
-            {/* عقدة 2: الشبكة واستيراد الأحمال */}
-            <div className="bg-slate-900 bg-opacity-90 border-2 border-purple-500 border-l-4 p-3 rounded-2xl w-28 shadow-lg text-center backdrop-blur-md">
+            <div className="bg-slate-900 bg-opacity-90 border-2 border-purple-500 border-l-4 p-3 rounded-2xl w-28 shadow-lg text-center">
               <span className="text-purple-400 text-lg block">🛜</span>
               <span className="text-[9px] text-slate-400 block font-bold">GRID STATUS</span>
               <span className="text-sm font-black text-purple-400 mt-0.5 block">{(gridImport / 1000).toFixed(1)} kW</span>
               <span className="text-[8px] text-slate-400 font-medium block mt-0.5">(Importing)</span>
             </div>
 
-            {/* كور سنتر الطاقة الكهربائي المتحرك في المنتصف */}
             <div className="relative w-10 h-10 flex items-center justify-center">
-              <div className="absolute w-8 h-8 rounded-full bg-amber-500 opacity-20 pulse-core"></div>
-              <div className="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-amber-400 shadow-md text-sm font-bold z-10">⚡</div>
+              <div className="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-amber-400 shadow-md text-sm font-bold z-10 animate-pulse">⚡</div>
             </div>
 
-            {/* عقدة 3: استهلاك المنزل الحقيقي */}
-            <div className="bg-slate-900 bg-opacity-90 border-2 border-blue-500 border-r-4 p-3 rounded-2xl w-28 shadow-lg text-center backdrop-blur-md">
+            <div className="bg-slate-900 bg-opacity-90 border-2 border-blue-500 border-r-4 p-3 rounded-2xl w-28 shadow-lg text-center">
               <span className="text-blue-400 text-lg block">🏠</span>
               <span className="text-[9px] text-slate-400 block font-bold">HOME CONSUMPTION</span>
               <span className="text-sm font-black text-blue-400 mt-0.5 block">{(homeConsumption / 1000).toFixed(1)} kW</span>
             </div>
-
           </div>
 
-          {/* عقدة 4 (أسفل): مخزون وسعة البطارية والنسبة */}
           <div className="flex justify-center">
-            <div className="bg-slate-900 bg-opacity-90 border-2 border-emerald-500 border-t-4 p-3 rounded-2xl w-44 shadow-lg text-center backdrop-blur-md">
+            <div className="bg-slate-900 bg-opacity-90 border-2 border-emerald-500 border-t-4 p-3 rounded-2xl w-44 shadow-lg text-center">
               <div className="flex justify-center items-center gap-1.5 mb-0.5">
                 <span className="text-emerald-400 text-base">🔋</span>
                 <span className="text-[10px] text-slate-400 font-bold block">BATTERY STATUS</span>
@@ -170,9 +132,8 @@ export default function SolarDashboard() {
 
         </div>
       </div>
-      {/* ==================== نهاية الرسم البياني والمخطط التتدفقي ==================== */}
 
-      {/* القسم 2: صندوق التنبؤ الذكي بصمود البطارية الجاري */}
+      {/* صندوق التنبؤ بالصمود */}
       <div className="bg-slate-800 bg-opacity-60 border border-slate-700 rounded-2xl p-4 mb-4 shadow-lg">
         <div className="flex justify-between items-center mb-2">
           <h3 className="font-bold text-amber-400 text-xs flex items-center gap-1">🌙 صمود البطارية ليلاً</h3>
@@ -182,3 +143,38 @@ export default function SolarDashboard() {
           <div className="flex items-start gap-2 text-emerald-400 font-bold text-xs">
             <span className="text-sm">✓</span>
             <div>
+              <p>تكفي حتى الصباح • صباحاً نحو {prediction.estimatedSocAtSunrise}%</p>
+              <p className="text-[10px] font-normal text-slate-400 mt-1">متبقي في مخزون البطارية حوالي {prediction.hoursRemaining} ساعة قبل حد الأمان</p>
+            </div>
+          </div>
+        </div>
+        <p className="text-[10px] text-slate-500 text-left">احتمال صمود المنظومة وفق الطقس نحو {prediction.confidenceScore}%</p>
+      </div>
+
+      {/* صندوق التوجيه والاستغلال الفائض */}
+      <div className="bg-slate-800 bg-opacity-60 border border-slate-700 rounded-2xl p-4 mb-6 shadow-lg">
+        <div className="flex items-center gap-1 text-blue-400 font-bold text-xs mb-2">
+          <span>⚡</span>
+          <h3>توجيه استغلال الفائض الشمسي القادم</h3>
+        </div>
+        <p className="text-[11px] text-slate-300 mb-3 leading-relaxed">
+          يتوقع وجود طاقة إنتاجية نظيفة فائضة بنحو <span className="font-bold text-amber-400 text-xs">{prediction.expectedSurplusWh} واط ساعي</span>.
+        </p>
+        <div className="bg-slate-900 bg-opacity-90 rounded-xl p-3 border border-slate-800 text-[10px] text-slate-400 leading-relaxed">
+          💡 **نصيحة شمسك:** يوصى بجدولة وتشغيل أجهزتك ذات الأحمال الكبيرة كـ **(الغسالة أو مضخة المياه)** بين الساعة <span className="font-bold text-amber-400">12:30 و 17:00</span> للاستفادة الكاملة والمجانية.
+        </div>
+      </div>
+
+      {/* شريط التنقل السفلي */}
+      <div className="fixed bottom-0 left-0 right-0 bg-slate-900 bg-opacity-95 border-t border-slate-800 flex justify-around py-3 text-[10px] text-slate-400 shadow-2xl z-50 rounded-t-2xl">
+        <div className="text-amber-400 font-bold flex flex-col items-center gap-0.5">
+          <span className="text-lg">📊</span>الرئيسية
+        </div>
+        <div className="flex flex-col items-center gap-0.5 opacity-60">
+          <span className="text-lg">🏠</span>المنزل
+        </div>
+        <div className="flex flex-col items-center gap-0.5 opacity-60">
+          <span className="text-lg">🔋</span>البطارية
+        </div>
+        <div className="flex flex-col items-center gap-0.5 opacity-60">
+          <span className="text-lg">☀️</span>الطاقة
