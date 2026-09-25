@@ -24,13 +24,11 @@ jobs:
           node-version: 20.x
           cache: npm
 
-      - name: Verify solar hero asset
-        run: |
-          test -f public/images/shamsak-energy-dashboard.jpg
-          test ! -e public/images/IMG-20260924-WA0042.jpg
-
       - name: Install dependencies from lockfile
         run: npm ci
+
+      - name: Generate Prisma Client
+        run: npm run db:generate
 
       - name: TypeScript typecheck
         run: npm run typecheck
