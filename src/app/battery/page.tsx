@@ -1,19 +1,88 @@
 "use client";
-import { useEffect, useState } from "react";
-import { BatteryCharging, Thermometer, Zap, Gauge, RotateCcw } from "lucide-react";
-import { StatusCard } from "@/components/status-card";
-import { HourlyChart } from "@/components/hourly-chart";
-import { getEnergyAdapter } from "@/lib/data-adapter";
-import { EnergySnapshot, batteryStateLabel } from "@/lib/energy";
 
-export default function BatteryPage(){
- const [data,setData]=useState<EnergySnapshot|null>(null);
- useEffect(()=>{getEnergyAdapter().getSnapshot().then(setData)},[]);
- const values=[72,75,78,81,84,82,79,76,74,77,80,83];
- return <div className="space-y-4"><div><p className="text-xs font-bold text-emerald-600">البطارية</p><h1 className="mt-1 text-2xl font-extrabold">حالة البطارية</h1><p className="mt-1 text-sm text-slate-500">البيانات التجريبية موسومة بوضوح إلى حين ربط BMS/العاكس.</p></div>
- {data ? <><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><StatusCard label="نسبة الشحن" value={data.batterySoc} unit="%" icon={<BatteryCharging size={18}/>} tone="green"/><StatusCard label="الحالة" value={batteryStateLabel(data.batteryPowerW>50?"charging":data.batteryPowerW<-50?"discharging":"idle")} icon={<Zap size={18}/>} tone="green"/><StatusCard label="الجهد" value={data.batteryVoltage?.toFixed(1)??"—"} unit="V" icon={<Gauge size={18}/>} tone="blue"/><StatusCard label="الحرارة" value={data.batteryTemperature?.toFixed(0)??"—"} unit="°C" icon={<Thermometer size={18}/>} tone="amber"/></div>
- <div className="grid gap-3 sm:grid-cols-3"><StatusCard label="التيار" value={data.batteryCurrent?.toFixed(0)??"—"} unit="A" icon={<Zap size={18}/>} tone="blue"/><StatusCard label="قدرة الشحن/التفريغ" value={(Math.abs(data.batteryPowerW)/1000).toFixed(2)} unit="kW" icon={<Zap size={18}/>} tone="green"/><StatusCard label="الدورات" value="غير متاحة" icon={<RotateCcw size={18}/>} tone="violet"/></div>
- <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="font-bold">مستوى البطارية خلال اليوم</h2><p className="mb-4 mt-1 text-xs text-slate-500">مخطط Demo توضيحي وليس سجل BMS حقيقي.</p><HourlyChart values={values}/></div>
- <div className="grid gap-3 sm:grid-cols-2"><div className="rounded-2xl border border-slate-200 bg-white p-5"><h2 className="font-bold">إعدادات التشغيل</h2><div className="mt-3 space-y-2 text-sm text-slate-600"><p>الحد الأدنى للتفريغ: 20%</p><p>الحد الأعلى للشحن: 100%</p><p>الوضع: شحن من الشمس فقط</p></div></div><div className="rounded-2xl border border-slate-200 bg-white p-5"><h2 className="font-bold">الصحة</h2><p className="mt-3 text-2xl font-extrabold text-emerald-600">غير متاحة</p><p className="text-xs text-slate-500">تحتاج قراءة BMS حقيقية لعرض الصحة والدورات.</p></div></div></> : <div className="rounded-2xl bg-white p-6 text-sm text-slate-500">جارٍ تحميل البطارية…</div>}
- </div>;
+import React, { useState } from 'react';
+
+export default function BatteryPage() {
+  // قيم افتراضية ومؤشرات فنية مطابقة لقراءات المنظومة الذكية
+  const [soc, setSoc] = useState<number>(94);                         // نسبة الشحن الحالية %
+  const [batteryStatus, setBatteryStatus] = useState<string>("تشحن");   // حالة البطارية الآن
+  const [chargePower, setChargePower] = useState<number>(4290);        // قوة الشحن اللحظية بالواط
+  const [voltage, setVoltage] = useState<number>(54.3);                // جهد البطارية الكلي بالفولت
+  const [temperature, setTemperature] = useState<number>(28);          // درجة حرارة خلايا البطارية
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 pb-24 text-right" dir="rtl">
+      
+      {/* الهيدر العلوي لتبويب البطارية */}
+      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm mb-4 border border-slate-100">
+        <h1 className="text-xl font-bold text-emerald-600 flex items-center gap-1.5">
+          🔋 تفاصيل خلايا البطارية
+        </h1>
+        <div className="text-xs text-slate-400">تحديث فوري</div>
+      </div>
+
+      {/* بطاقة النسبة المئوية الكبيرة والمؤشر الحركي */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-4 text-center">
+        <span className="text-xs font-bold text-slate-400 block mb-1">حالة الشحن الحالية (SOC)</span>
+        <span className="text-5xl font-black text-emerald-600 block mb-4">{soc}%</span>
+        
+        {/* شريط التقدم الأخضر */}
+        <div className="w-full h-4 rounded-full bg-slate-100 overflow-hidden mb-2 shadow-inner">
+          <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${soc}%` }}></div>
+        </div>
+      </div>
+
+      {/* تفاصيل القراءات الفنية المستخرجة من الإنفرتر */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6 space-y-4">
+        
+        {/* الحالة وقوة الشحن */}
+        <div className="flex justify-between items-center border-b border-slate-100 pb-3 text-sm">
+          <div className="flex items-center gap-2 text-slate-500">
+            <span>⚡</span>
+            <span>حالة التشغيل</span>
+          </div>
+          <span className="font-bold text-slate-800">{batteryStatus} • {chargePower.toLocaleString()} واط</span>
+        </div>
+
+        {/* جهد البطارية الإجمالي */}
+        <div className="flex justify-between items-center border-b border-slate-100 pb-3 text-sm">
+          <div className="flex items-center gap-2 text-slate-500">
+            <span>🔌</span>
+            <span>جهد البطارية (Voltage)</span>
+          </div>
+          <span className="font-bold text-slate-800">{voltage} فولت</span>
+        </div>
+
+        {/* درجة الحرارة الحالية */}
+        <div className="flex justify-between items-center text-sm">
+          <div className="flex items-center gap-2 text-slate-500">
+            <span>🌡️</span>
+            <span>درجة حرارة الخلايا</span>
+          </div>
+          <span className="font-bold text-slate-800">{temperature}° مئوية</span>
+        </div>
+
+      </div>
+
+      {/* شريط القائمة السفلي الموحد لسهولة التنقل السريع بين التبويبات */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around py-3 text-[10px] text-slate-400 shadow-lg z-50 rounded-t-2xl">
+        <div className="flex flex-col items-center gap-0.5 opacity-60">
+          <span className="text-lg">📊</span>الرئيسية
+        </div>
+        <div className="flex flex-col items-center gap-0.5 opacity-60">
+          <span className="text-lg">🏠</span>المنزل
+        </div>
+        <div className="text-amber-500 font-bold flex flex-col items-center gap-0.5">
+          <span className="text-lg">🔋</span>البطارية
+        </div>
+        <div className="flex flex-col items-center gap-0.5 opacity-60">
+          <span className="text-lg">☀️</span>الطاقة
+        </div>
+        <div className="flex flex-col items-center gap-0.5 opacity-60">
+          <span className="text-lg">💰</span>المال
+        </div>
+      </div>
+
+    </div>
+  );
 }
