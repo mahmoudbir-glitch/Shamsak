@@ -1,8 +1,43 @@
 "use client";
 
 import React, { useState } from 'react';
-// استخدام المسار المباشر الصحيح لتفادي مشاكل البناء
-import { calculateBatteryAutonomy } from '../utils/solarPredictions';
+
+// --- دالة الحساب الذكية مدمجة هنا مباشرة لتفادي مشاكل مسارات الاستيراد وفشل البناء ---
+interface BatteryData {
+  capacityWh: number;
+  currentSoc: number;
+  consumptionW: number;
+}
+
+interface WeatherData {
+  condition: 'sunny' | 'cloudy' | 'rainy';
+  expectedSunHours: number;
+}
+
+function calculateBatteryAutonomy(battery: BatteryData, weather: WeatherData) {
+  const availableEnergyWh = battery.capacityWh * (battery.currentSoc / 100);
+  const currentConsumption = battery.consumptionW > 0 ? battery.consumptionW : 150; 
+  const hoursRemaining = availableEnergyWh / currentConsumption;
+
+  const isNight = new Date().getHours() >= 18 || new Date().getHours() < 6;
+  const willLastUntilMorning = hoursRemaining >= 10;
+
+  let weatherFactor = 1.0;
+  if (weather.condition === 'cloudy') weatherFactor = 0.5;
+  if (weather.condition === 'rainy') weatherFactor = 0.15;
+
+  const expectedProductionWh = weather.expectedSunHours * weatherFactor * 5000;
+  const surplusWh = Math.max(0, expectedProductionWh - (currentConsumption * 8));
+
+  return {
+    hoursRemaining: Math.round(hoursRemaining * 10) / 10,
+    willLastUntilMorning: isNight ? willLastUntilMorning : true,
+    estimatedSocAtSunrise: isNight ? Math.max(0, Math.round((availableEnergyWh - (currentConsumption * 10)) / battery.capacityWh * 100)) : battery.currentSoc,
+    expectedSurplusWh: Math.round(surplusWh),
+    confidenceScore: weather.condition === 'sunny' ? 95 : 75
+  };
+}
+// ----------------------------------------------------------------------------------
 
 export default function SolarDashboard() {
   // إعداد قيم الطاقة اللحظية (مطابقة لقراءات الصور)
@@ -15,7 +50,7 @@ export default function SolarDashboard() {
   const weatherCondition: 'sunny' | 'cloudy' | 'rainy' = 'sunny';
   const expectedSunHours = 5.5;
 
-  // استدعاء الدالة الذكية وتمرير البيانات لها للحصول على التوقعات الحية
+  // استدعاء الدالة الذكية المتواجدة في الأعلى
   const prediction = calculateBatteryAutonomy(
     {
       capacityWh: 4800,        // سعة المنظومة الافتراضية بالواط ساعي
