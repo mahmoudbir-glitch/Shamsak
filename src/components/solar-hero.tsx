@@ -1,11 +1,8 @@
 import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
   BatteryCharging,
   BatteryFull,
   Home,
+  Info,
   Network,
   Sun,
   Zap,
@@ -17,55 +14,8 @@ interface SolarHeroProps {
   data: EnergySnapshot | null;
 }
 
-function kw(w: number) {
-  return `${(Math.abs(w) / 1000).toFixed(2)} kW`;
-}
-
-function FlowLine({
-  direction,
-  active,
-}: {
-  direction: "up" | "down" | "left" | "right";
-  active: boolean;
-}) {
-  const Icon =
-    direction === "up"
-      ? ArrowUp
-      : direction === "down"
-        ? ArrowDown
-        : direction === "left"
-          ? ArrowLeft
-          : ArrowRight;
-
-  return (
-    <div
-      aria-hidden="true"
-      className={`pointer-events-none absolute z-20 flex items-center justify-center
-        ${
-          direction === "up"
-            ? "bottom-[32%] left-1/2 h-[12%] w-8 -translate-x-1/2 md:bottom-[28%] md:top-auto md:h-[17%]"
-            : direction === "down"
-              ? "left-1/2 top-[32%] h-[12%] w-8 -translate-x-1/2 md:top-[28%] md:h-[17%]"
-              : direction === "left"
-                ? "left-[32%] top-1/2 h-8 w-[12%] -translate-y-1/2 md:left-[28%] md:w-[17%]"
-                : "right-[32%] top-1/2 h-8 w-[12%] -translate-y-1/2 md:right-[28%] md:w-[17%]"
-        }`}
-    >
-      <span
-        className={`absolute inset-0 border-dashed border-slate-300 ${
-          direction === "up" || direction === "down"
-            ? "border-l-2"
-            : "border-t-2"
-        } ${active ? "animate-pulse border-emerald-400" : ""}`}
-      />
-      <Icon
-        size={18}
-        className={`relative rounded-full bg-white p-1 shadow-sm ${
-          active ? "text-emerald-600" : "text-slate-400"
-        }`}
-      />
-    </div>
-  );
+function watts(value: number) {
+  return `${Math.round(Math.abs(value)).toLocaleString("ar-LB")} واط`;
 }
 
 function NodeCard({
@@ -77,10 +27,46 @@ function NodeCard({
 }) {
   return (
     <div
-      className={`relative z-30 w-full min-w-0 rounded-2xl border bg-white/95 p-2 text-center shadow-md backdrop-blur sm:p-3 ${className}`}
+      className={`relative z-20 w-full max-w-[150px] rounded-xl border border-slate-200 bg-white p-3 text-center shadow-sm sm:max-w-[170px] sm:p-4 ${className}`}
     >
       {children}
     </div>
+  );
+}
+
+function ConnectorLines() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-10 h-full w-full"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+    >
+      <defs>
+        <linearGradient id="solar-flow" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#f59e0b" />
+          <stop offset="100%" stopColor="#fbbf24" />
+        </linearGradient>
+        <linearGradient id="grid-flow" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#8b5cf6" />
+          <stop offset="100%" stopColor="#a78bfa" />
+        </linearGradient>
+        <linearGradient id="home-flow" x1="100%" y1="0%" x2="0%" y2="0%">
+          <stop offset="0%" stopColor="#3b82f6" />
+          <stop offset="100%" stopColor="#60a5fa" />
+        </linearGradient>
+        <linearGradient id="battery-flow" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#10b981" />
+          <stop offset="100%" stopColor="#34d399" />
+        </linearGradient>
+      </defs>
+      <line x1="50" y1="28" x2="50" y2="42" stroke="url(#solar-flow)" strokeWidth="0.7" strokeDasharray="2 1.5" />
+      <line x1="28" y1="50" x2="42" y2="50" stroke="url(#grid-flow)" strokeWidth="0.7" strokeDasharray="2 1.5" />
+      <line x1="58" y1="50" x2="72" y2="50" stroke="url(#home-flow)" strokeWidth="0.7" strokeDasharray="2 1.5" />
+      <line x1="50" y1="58" x2="50" y2="72" stroke="url(#battery-flow)" strokeWidth="0.7" strokeDasharray="2 1.5" />
+      <circle cx="50" cy="50" r="4.2" fill="white" stroke="#e2e8f0" strokeWidth="1" />
+      <circle cx="50" cy="50" r="3" fill="#0f172a" />
+    </svg>
   );
 }
 
@@ -88,158 +74,149 @@ export function SolarHero({ data }: SolarHeroProps) {
   if (!data) {
     return (
       <section
-        aria-label="شمسك"
-        className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm"
+        aria-label="شمسك - تدفق الطاقة"
+        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
       >
-        <div className="relative flex min-h-[360px] w-full items-center justify-center bg-gradient-to-br from-amber-50 via-white to-slate-100 p-5 sm:min-h-[420px]">
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 bg-[radial-gradient(circle_at_50%_25%,rgba(251,191,36,0.18),transparent_34%),linear-gradient(135deg,rgba(248,250,252,0.95),rgba(255,255,255,0.98))]"
-          />
-          <div className="relative z-10 w-full max-w-sm rounded-3xl border border-slate-200 bg-white/95 p-6 text-center shadow-lg backdrop-blur">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-50 text-amber-500" aria-hidden="true">
-              <Sun size={34} />
-            </div>
-            <p className="mt-4 text-lg font-black text-slate-900">شمسك</p>
-            <p className="mt-1 text-sm font-semibold text-slate-500">مخطط الشبكة والطاقة</p>
-            <div className="mt-5 grid grid-cols-3 gap-2 text-slate-400" aria-hidden="true">
-              <div className="flex h-11 items-center justify-center rounded-xl bg-amber-50">
-                <Sun size={20} className="text-amber-500" />
-              </div>
-              <div className="flex h-11 items-center justify-center rounded-xl bg-slate-50">
-                <Zap size={20} className="text-slate-500" />
-              </div>
-              <div className="flex h-11 items-center justify-center rounded-xl bg-violet-50">
-                <Network size={20} className="text-violet-500" />
-              </div>
-            </div>
-            <p className="mt-4 text-sm font-bold text-slate-600">جارٍ تحميل بيانات الطاقة…</p>
+        <div className="flex min-h-[360px] items-center justify-center bg-slate-50 p-6">
+          <div className="text-center">
+            <Sun className="mx-auto text-amber-500" size={32} aria-hidden="true" />
+            <p className="mt-3 font-bold text-slate-700">جارٍ تحميل بيانات الطاقة…</p>
           </div>
         </div>
       </section>
     );
   }
 
-  const bs = batteryState(data.batteryPowerW);
-  const batteryCharging = bs === "charging";
-  const batteryDischarging = bs === "discharging";
-  const gridImport = data.gridPowerW > 50;
-  const gridExport = data.gridPowerW < -50;
+  const state = batteryState(data.batteryPowerW);
+  const charging = state === "charging";
+  const discharging = state === "discharging";
+  const gridImport = data.gridConnected && data.gridPowerW > 50;
+  const gridExport = data.gridConnected && data.gridPowerW < -50;
   const solarActive = data.solarPowerW > 50;
-  const sourceLabel = data.source === "demo" ? "Demo — بيانات تجريبية" : "Live — بيانات حية";
 
   return (
     <section
       aria-labelledby="solar-hero-title"
-      className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm"
+      className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
     >
-      <div className="border-b border-slate-100 px-4 py-4 sm:px-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <Sun size={20} className="text-amber-500" aria-hidden="true" />
-              <h2 id="solar-hero-title" className="text-xl font-black text-slate-900">شمسك</h2>
+      <div className="border-b border-slate-200 px-4 py-4 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Sun className="text-amber-500" size={22} aria-hidden="true" />
+            <div>
+              <h2 id="solar-hero-title" className="text-xl font-black text-slate-900">
+                شمسك
+              </h2>
+              <p className="text-xs font-semibold text-slate-500">إدارة ومراقبة الطاقة الشمسية</p>
             </div>
-            <p className="mt-1 text-sm text-slate-500">إدارة ومراقبة الطاقة الشمسية في منزلك</p>
           </div>
-          <span className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${
-            data.source === "demo" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"
-          }`}>
-            {sourceLabel}
+          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+            الشمس أولاً ✓
           </span>
         </div>
       </div>
 
-      <div className="relative mx-auto w-full max-w-5xl overflow-hidden bg-gradient-to-br from-amber-50/80 via-white to-slate-100">
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(251,191,36,0.15),transparent_30%),radial-gradient(circle_at_50%_80%,rgba(16,185,129,0.08),transparent_35%)]"
-        />
+      <div className="bg-slate-50/70 px-3 py-5 sm:px-6 sm:py-7">
+        <div className="mx-auto mb-3 flex max-w-[560px] justify-end">
+          <span className="text-xs font-bold text-slate-500">
+            {data.source === "demo" ? "Demo — بيانات تجريبية" : "Live — بيانات حية"}
+          </span>
+        </div>
 
-        {/* Mobile: a real 2x2 grid prevents overlap. Desktop: the same nodes become a compact flow diagram. */}
-        <div className="relative grid min-h-[440px] grid-cols-2 grid-rows-2 gap-3 p-4 sm:min-h-[500px] sm:gap-4 sm:p-6 md:block md:aspect-[16/9] md:min-h-0 md:p-0">
-          <div className="absolute inset-0 hidden md:block">
-            <FlowLine direction="down" active={solarActive} />
-            <FlowLine direction="right" active={gridImport || gridExport} />
-            <FlowLine direction="left" active={data.homePowerW > 50} />
-            <FlowLine direction="up" active={batteryCharging || batteryDischarging} />
-            <div className="absolute left-1/2 top-1/2 z-30 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-4 border-white bg-slate-900 text-white shadow-xl sm:h-20 sm:w-20">
-              <Zap size={26} fill="currentColor" aria-label="مركز تدفق الطاقة" />
-            </div>
-          </div>
+        <div className="relative mx-auto grid min-h-[500px] max-w-[620px] grid-cols-[1fr_72px_1fr] grid-rows-[1fr_72px_1fr] items-center justify-items-center gap-2 sm:min-h-[570px] sm:grid-cols-[1fr_96px_1fr] sm:grid-rows-[1fr_96px_1fr] sm:gap-3">
+          <ConnectorLines />
 
-          <div className="relative md:absolute md:left-1/2 md:top-3 md:w-44 md:-translate-x-1/2">
-            <NodeCard className="border-amber-100">
-              <Sun className="mx-auto text-amber-500" size={22} aria-hidden="true" />
-              <p className="mt-1 text-[11px] font-bold text-slate-500 sm:text-xs">الشمس</p>
-              <p className="text-sm font-black text-slate-900 sm:text-xl">{kw(data.solarPowerW)}</p>
-              <p className="text-[9px] font-semibold text-amber-700 sm:text-[10px]">
+          <div className="col-start-2 row-start-1">
+            <NodeCard className="border-amber-200">
+              <Sun className="mx-auto text-amber-500" size={24} aria-hidden="true" />
+              <p className="mt-1 text-xs font-bold text-slate-500">الشمس</p>
+              <p className="mt-1 text-base font-black text-slate-900 sm:text-lg">
+                {watts(data.solarPowerW)}
+              </p>
+              <p className={`mt-1 text-[10px] font-bold ${solarActive ? "text-amber-600" : "text-slate-400"}`}>
                 {solarActive ? "إنتاج حالي" : "لا إنتاج حاليًا"}
               </p>
             </NodeCard>
           </div>
 
-          <div className="relative md:absolute md:right-6 md:top-1/2 md:w-40 md:-translate-y-1/2">
-            <NodeCard className="border-blue-100">
-              <Home className="mx-auto text-blue-600" size={22} aria-hidden="true" />
-              <p className="mt-1 text-[11px] font-bold text-slate-500 sm:text-xs">المنزل</p>
-              <p className="text-sm font-black text-slate-900 sm:text-xl">{kw(data.homePowerW)}</p>
-              <p className="text-[9px] font-semibold text-blue-700 sm:text-[10px]">استهلاك حالي</p>
-            </NodeCard>
-          </div>
-
-          <div className="relative md:absolute md:left-6 md:top-1/2 md:w-40 md:-translate-y-1/2">
-            <NodeCard className="border-violet-100">
-              <Network className="mx-auto text-violet-600" size={22} aria-hidden="true" />
-              <p className="mt-1 text-[11px] font-bold text-slate-500 sm:text-xs">الشبكة</p>
-              <p className={`text-sm font-black sm:text-base ${data.gridConnected ? "text-violet-700" : "text-slate-500"}`}>
-                {data.gridConnected ? "متصلة" : "مفصولة"}
+          <div className="col-start-1 row-start-2 justify-self-end">
+            <NodeCard className="border-violet-200">
+              <Network className={data.gridConnected ? "mx-auto text-violet-600" : "mx-auto text-slate-400"} size={24} aria-hidden="true" />
+              <p className="mt-1 text-xs font-bold text-slate-500">الشبكة</p>
+              <p className={`mt-1 text-sm font-black ${data.gridConnected ? "text-violet-700" : "text-slate-500"}`}>
+                {data.gridConnected ? "متصلة" : "مقطوعة"}
               </p>
-              {data.gridConnected ? (
-                <p className="text-[9px] font-semibold text-violet-600 sm:text-[10px]">
-                  {gridImport ? `سحب ${kw(data.gridPowerW)}` : gridExport ? `تصدير ${kw(data.gridPowerW)}` : gridLabel(data.gridPowerW, true)}
-                </p>
-              ) : (
-                <p className="text-[9px] font-semibold text-slate-500 sm:text-[10px]">لا يوجد اتصال</p>
-              )}
+              <p className="mt-1 text-[10px] font-bold text-slate-500">
+                {!data.gridConnected
+                  ? "لا يوجد اتصال"
+                  : gridImport
+                    ? `سحب ${watts(data.gridPowerW)}`
+                    : gridExport
+                      ? `تصدير ${watts(data.gridPowerW)}`
+                      : gridLabel(data.gridPowerW, true)}
+              </p>
             </NodeCard>
           </div>
 
-          <div className="relative md:absolute md:bottom-3 md:left-1/2 md:w-48 md:-translate-x-1/2">
-            <NodeCard className={batteryCharging ? "border-emerald-200" : batteryDischarging ? "border-blue-200" : "border-slate-200"}>
-              {batteryCharging ? (
-                <BatteryCharging className="mx-auto text-emerald-600" size={23} aria-hidden="true" />
-              ) : (
-                <BatteryFull className="mx-auto text-emerald-600" size={23} aria-hidden="true" />
-              )}
-              <p className="mt-1 text-[11px] font-bold text-slate-500 sm:text-xs">البطارية</p>
-              <p className="text-base font-black text-slate-900 sm:text-lg">{data.batterySoc}%</p>
-              <p className="text-[9px] font-semibold text-emerald-700 sm:text-[10px]">{batteryStateLabel(bs)} {kw(data.batteryPowerW)}</p>
+          <div className="col-start-3 row-start-2 justify-self-start">
+            <NodeCard className="border-blue-200">
+              <Home className="mx-auto text-blue-600" size={24} aria-hidden="true" />
+              <p className="mt-1 text-xs font-bold text-slate-500">المنزل</p>
+              <p className="mt-1 text-base font-black text-slate-900 sm:text-lg">
+                {watts(data.homePowerW)}
+              </p>
+              <p className="mt-1 text-[10px] font-bold text-blue-600">استهلاك حالي</p>
             </NodeCard>
           </div>
 
-          <div className="pointer-events-none col-span-2 flex items-center justify-center md:hidden" aria-hidden="true">
-            <div className="absolute flex h-12 w-12 items-center justify-center rounded-full border-4 border-white bg-slate-900 text-white shadow-lg">
-              <Zap size={20} fill="currentColor" />
-            </div>
+          <div className="col-start-2 row-start-3">
+            <NodeCard className={charging ? "border-emerald-200" : discharging ? "border-blue-200" : "border-slate-200"}>
+              {charging ? (
+                <BatteryCharging className="mx-auto text-emerald-600" size={25} aria-hidden="true" />
+              ) : (
+                <BatteryFull className={discharging ? "mx-auto text-blue-600" : "mx-auto text-emerald-600"} size={25} aria-hidden="true" />
+              )}
+              <p className="mt-1 text-xs font-bold text-slate-500">البطارية</p>
+              <p className="mt-1 text-base font-black text-slate-900 sm:text-lg">{data.batterySoc}%</p>
+              <p className={`mt-1 text-[10px] font-bold ${charging ? "text-emerald-700" : discharging ? "text-blue-700" : "text-slate-500"}`}>
+                {batteryStateLabel(state)} • {watts(data.batteryPowerW)}
+              </p>
+            </NodeCard>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 border-t border-slate-100 bg-white p-3 sm:gap-3 sm:p-4">
-        <Metric label="إنتاج اليوم" value={data.todayProductionKWh == null ? "—" : `${data.todayProductionKWh.toFixed(1)} kWh`} />
-        <Metric label="استهلاك اليوم" value={data.todayHomeUsageKWh == null ? "—" : `${data.todayHomeUsageKWh.toFixed(1)} kWh`} />
-        <Metric label="التوفير من الشبكة" value={data.todayGridSavings == null ? "—" : `${data.todayGridSavings.toFixed(1)}`} />
+      <div className="border-t border-slate-200 bg-white p-4 sm:p-5">
+        <div className="flex items-center gap-2">
+          <BatteryCharging className="text-emerald-600" size={21} aria-hidden="true" />
+          <h3 className="font-black text-slate-900">البطارية</h3>
+        </div>
+
+        <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-100" aria-label={`شحن البطارية ${data.batterySoc}%`}>
+          <div
+            className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+            style={{ width: `${Math.min(100, Math.max(0, data.batterySoc))}%` }}
+          />
+        </div>
+
+        <div className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-100">
+          <BatteryDetail label="شحن البطارية" value={`${data.batterySoc}%`} />
+          <BatteryDetail label="الحالة" value={`${batteryStateLabel(state)} • ${watts(data.batteryPowerW)}`} />
+          <BatteryDetail label="جهد البطارية" value={data.batteryVoltage == null ? "—" : `${data.batteryVoltage.toFixed(1)} فولت`} />
+        </div>
       </div>
     </section>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function BatteryDetail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-xl bg-slate-50 p-2.5 text-center sm:p-3">
-      <p className="text-[10px] font-semibold leading-tight text-slate-500 sm:text-xs">{label}</p>
-      <p className="mt-1 break-words text-sm font-black text-slate-900 sm:text-base">{value}</p>
+    <div className="flex min-w-0 items-center justify-between gap-4 px-3 py-3">
+      <div className="flex min-w-0 items-center gap-2">
+        <Info size={15} className="shrink-0 text-slate-400" aria-hidden="true" />
+        <span className="text-sm font-semibold text-slate-500">{label}</span>
+      </div>
+      <strong className="shrink-0 text-sm font-black text-slate-900">{value}</strong>
     </div>
   );
 }
