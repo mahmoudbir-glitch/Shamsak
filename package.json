@@ -2,7 +2,7 @@
   "name": "shamsak-private",
   "version": "1.1.0",
   "private": true,
-  "engines": { "node": ">=20.9.0" },
+  "engines": { "node": "20.x" },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,7 +11,8 @@
     "lint": "node scripts/lint.mjs",
     "typecheck": "tsc --noEmit",
     "db:migrate": "prisma migrate dev",
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "5.19.0",
