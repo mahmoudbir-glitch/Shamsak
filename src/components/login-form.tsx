@@ -21,7 +21,7 @@ export default function LoginForm(){
       })});
       const data=(await response.json()) as {error?:string};
       if(!response.ok){
-        setError(response.status===429?"تم تجاوز عدد محاولات الدخول. حاول لاحقًا.":data.error==="auth_not_configured"?"نظام الدخول غير مهيأ بعد.":"اسم المستخدم أو كلمة المرور غير صحيحة.");
+        setError(response.status===429?"تم تجاوز عدد محاولات الدخول. حاول لاحقًا.":data.error==="auth_not_configured"?"تعذر تهيئة تسجيل الدخول على الخادم.":"اسم المستخدم أو كلمة المرور غير صحيحة.");
         return;
       }
       router.replace("/"); router.refresh();
