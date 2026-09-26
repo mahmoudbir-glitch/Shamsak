@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { InfoTip } from "@/components/info-tip";
+import { InverterWifiPairing } from "@/components/inverter-wifi-pairing";
 
 type InverterModel = "Deye" | "Voltronic" | "Growatt" | "Felicity" | "غير ذلك";
 type Protocol = "Modbus RTU" | "Modbus TCP" | "Wi-Fi Datalogger";
@@ -220,6 +221,14 @@ export default function SettingsPage() {
           </div>
         </div>
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium leading-6 text-amber-800">⚠️ المتصفح وحده لا يستطيع برمجة شبكة Wi‑Fi للإنفرتر أو اكتشاف أجهزة Wi‑Fi القريبة بشكل عام. الربط اللاسلكي الحقيقي يحتاج Wi‑Fi dongle/بوابة تدعم بروتوكول الإنفرتر أو خدمة وسيطة.</div>
+        <InverterWifiPairing
+          onComplete={({ ssid, password }) => {
+            setWifiSsid(ssid);
+            setWifiPassword(password);
+            setNetworkStatus("success");
+            setConnectionState("connecting");
+          }}
+        />
         <div className="flex items-center justify-between gap-3"><span className="text-base font-black text-slate-800">اختبار وصول القراءات الحية</span><InfoTip label="شرح حالة الاتصال" title="حالة اتصال الإنفرتر"><span>يعتبر الاختبار ناجحًا فقط عندما تصل قراءة telemetry مصدرها live. وجود إعدادات Wi‑Fi محفوظة لا يعني أن الإنفرتر متصل فعليًا.</span></InfoTip></div>
         <button type="button" onClick={() => void testNetwork()} disabled={connectionState === "connecting"} className="min-h-14 w-full rounded-xl bg-blue-600 px-4 text-lg font-bold text-white shadow-sm transition active:scale-95 hover:bg-blue-700 disabled:opacity-60">{connectionState === "connecting" ? "جاري الاتصال والتحقق…" : "اتصال واختبار الإنفرتر"}</button>
         {connectionState === "connected" && <p className="rounded-xl bg-emerald-50 p-3 text-base font-bold text-emerald-700">✓ الاتصال ناجح — وصلت بيانات حية من الإنفرتر.</p>}
