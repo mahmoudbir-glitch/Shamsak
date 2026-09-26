@@ -13,29 +13,29 @@ export default function HomeConsumptionPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 pb-24 text-right" dir="rtl">
+    <div className="w-full text-right" dir="rtl">
       
       {/* الهيدر العلوي الأبيض النظيف لتبويب المنزل */}
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm mb-4 border border-slate-100">
-        <h1 className="text-xl font-bold text-blue-600 flex items-center gap-1.5">
+      <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm mb-5 border border-slate-100">
+        <h1 className="text-2xl font-extrabold text-blue-600 flex items-center gap-1.5">
           🏠 استهلاك أحمال المنزل
         </h1>
-        <div className="text-xs text-slate-400">قراءة حية موحدة</div>
+        <div className="text-base font-semibold text-slate-500">قراءة حية موحدة</div>
       </div>
 
       {/* بطاقة السحب الإجمالي للمنزل بالواط (1300 واط تعادل 1.30 kW) */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-4 text-center">
-        <span className="text-xs font-bold text-slate-400 block mb-1">إجمالي سحب المنزل الآن</span>
-        <span className="text-4xl font-black text-blue-600 block mt-2">{(homeConsumption).toLocaleString()} واط</span>
-        <span className="text-[10px] text-slate-400 font-bold block mt-1">kW 1.30</span>
+        <span className="text-base font-semibold text-slate-400 block mb-1">إجمالي سحب المنزل الآن</span>
+        <span className="text-5xl font-black text-blue-600 block mt-2">{(homeConsumption).toLocaleString()} واط</span>
+        <span className="text-[10px] text-slate-400 font-semibold block mt-1">kW 1.30</span>
       </div>
 
       {/* تفصيل توزيع الأحمال المنزلية الحالية */}
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-4">
-        <h3 className="font-bold text-sm text-slate-700 mb-3">📋 تفصيل توزيع الأحمال</h3>
+        <h3 className="font-bold text-xl font-black text-slate-700 mb-3">📋 تفصيل توزيع الأحمال</h3>
         <div className="space-y-3">
           {appliances.map((app, index) => (
-            <div key={index} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
+            <div key={index} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100 text-base">
               <div className="flex items-center gap-2">
                 <span className="text-lg">{app.icon}</span>
                 <span className="text-slate-700 font-medium">{app.name}</span>
@@ -55,14 +55,6 @@ export default function HomeConsumptionPage() {
       </div>
 
       {/* شريط القائمة السفلي الموحد الفاتح للتنقل السريع */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around py-3 text-[10px] text-slate-400 z-50 rounded-t-2xl shadow-md">
-        <div className="opacity-60 flex flex-col items-center">📊 الرئيسية</div>
-        <div className="text-blue-600 font-bold flex flex-col items-center">🏠 المنزل</div>
-        <div className="opacity-60 flex flex-col items-center">🔋 البطارية</div>
-        <div className="opacity-60 flex flex-col items-center">☀️ الطاقة</div>
-        <div className="opacity-60 flex flex-col items-center">💰 المال</div>
-      </div>
-
     </div>
   );
 }
