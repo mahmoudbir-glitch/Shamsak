@@ -31,12 +31,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ar" dir="rtl">
       <body className="min-h-screen w-full text-slate-900 antialiased">
         <div className="min-h-screen w-full bg-slate-50 flex flex-col">
-          <header className="w-full border-b border-slate-200/70 bg-white/95 backdrop-blur">
-            <div className="mx-auto flex w-full max-w-2xl items-center justify-start px-4 py-3 sm:px-6">
-              <div className="text-xl font-bold text-amber-500" dir="rtl">
-                شمسك ☀️
-              </div>
+          <header className="z-50 flex w-full items-center justify-between px-4 pt-4 pb-2 border-b border-slate-200/70 bg-white/95 backdrop-blur">
+            <div className="flex items-center gap-2" dir="rtl" aria-label="شمسك">
+              <span className="text-2xl font-black tracking-tight text-amber-500 sm:text-3xl">
+                شمسك
+              </span>
+              <span className="text-2xl animate-spin-slow sm:text-3xl" aria-hidden="true">
+                ☀️
+              </span>
             </div>
+            <div aria-hidden="true" />
           </header>
 
           <main className="min-h-screen w-full max-w-2xl mx-auto px-4 py-5 safe-bottom flex-1">{children}</main>
