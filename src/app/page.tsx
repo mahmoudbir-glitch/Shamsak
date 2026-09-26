@@ -44,35 +44,14 @@ export default function SolarDashboard() {
     return () => window.clearInterval(timer);
   }, [loadTelemetry]);
 
-  const solarKw = (snapshot?.solarPowerW ?? 0) / 1000;
-  const homeKw = (snapshot?.homePowerW ?? 0) / 1000;
-  const gridKw = (snapshot?.gridPowerW ?? 0) / 1000;
-  const batteryKw = (snapshot?.batteryPowerW ?? 0) / 1000;
-  const batteryPercentage = snapshot?.batterySoc ?? 0;
-
-  const SAFETY_RESERVE = 10;
-  const usableSoc = Math.max(0, batteryPercentage - SAFETY_RESERVE);
-  const availableWh = 4800 * (usableSoc / 100);
-  const currentConsumption = snapshot?.homePowerW && snapshot.homePowerW > 0 ? snapshot.homePowerW : 0;
-  const hoursRemaining = currentConsumption > 0
-    ? Math.round((availableWh / currentConsumption) * 10) / 10
-    : 0;
-  const estimatedSocAtSunrise = currentConsumption > 0
-    ? Math.max(
-        SAFETY_RESERVE,
-        Math.round(((4800 * (batteryPercentage / 100) - currentConsumption * 10) / 4800) * 100),
-      )
-    : batteryPercentage;
-  const isBatteryEnough = hoursRemaining >= 8;
-
   return (
-    <div className="relative w-full overflow-x-hidden text-right text-slate-800" dir="rtl">
+    <div className="w-full overflow-x-hidden text-right text-slate-800" dir="rtl">
       <EnergyFlow
-        solarKw={solarKw}
-        homeKw={homeKw}
-        gridKw={gridKw}
-        batteryKw={batteryKw}
-        batteryPercentage={batteryPercentage}
+        solarKw={(snapshot?.solarPowerW ?? 0) / 1000}
+        homeKw={(snapshot?.homePowerW ?? 0) / 1000}
+        gridKw={(snapshot?.gridPowerW ?? 0) / 1000}
+        batteryKw={(snapshot?.batteryPowerW ?? 0) / 1000}
+        batteryPercentage={snapshot?.batterySoc ?? 0}
         gridConnected={snapshot?.gridConnected ?? false}
         todayProductionKWh={snapshot?.todayProductionKWh}
         todayHomeUsageKWh={snapshot?.todayHomeUsageKWh}
@@ -82,45 +61,26 @@ export default function SolarDashboard() {
       />
 
       <div className="mx-auto mt-5 flex max-w-lg items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white px-4 py-4 shadow-sm">
-        <div className={isLive ? "text-base font-extrabold text-emerald-600" : "text-base font-extrabold text-amber-600"}>
+        <div className={isLive ? "text-sm font-extrabold text-emerald-600" : "text-sm font-extrabold text-amber-600"}>
           {isLive ? '● البيانات الحية متصلة' : '● غير متصل بالبيانات الحية'}
         </div>
         <button
           onClick={() => void loadTelemetry()}
           disabled={loading}
-          className="rounded-xl px-3 py-2 text-base font-extrabold text-blue-600 transition active:scale-95 hover:bg-blue-50 disabled:opacity-50"
+          className="rounded-xl px-3 py-2 text-sm font-extrabold text-blue-600 transition active:scale-95 hover:bg-blue-50 disabled:opacity-50"
         >
           {loading ? 'جاري التحديث…' : 'تحديث الآن'}
         </button>
       </div>
 
       {error && (
-        <div className="mx-auto mt-4 max-w-lg rounded-2xl border border-amber-200 bg-amber-50 p-4 text-base font-semibold text-amber-800">
+        <div className="mx-auto mt-4 max-w-lg rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-800">
           ⚠️ {error}. لا يتم عرض أرقام DEMO على أنها بيانات حقيقية.
         </div>
       )}
 
-      <div className="mx-auto mt-5 max-w-lg rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-        <h3 className="mb-2 text-sm font-black text-slate-700">🌙 صمود البطارية الجاري ليلاً</h3>
-        {!snapshot ? (
-          <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-base font-semibold text-slate-500">
-            بانتظار أول قراءة حية…
-          </div>
-        ) : isBatteryEnough ? (
-          <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-base font-semibold text-emerald-800">
-            ✓ تكفي حتى الصباح • صباحاً نحو {estimatedSocAtSunrise}%
-            <p className="mt-1 text-sm font-normal text-slate-500">
-              متبقي في مخزون البطارية حوالي {hoursRemaining} ساعة
-            </p>
-          </div>
-        ) : (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-base font-semibold text-amber-800">
-            ⚠️ قد لا تكفي حتى الصباح بناءً على الاستهلاك الحالي
-            <p className="mt-1 text-xs font-normal text-slate-500">
-              متبقي في مخزون البطارية حوالي {hoursRemaining} ساعة فقط قبل حد الأمان
-            </p>
-          </div>
-        )}
+      <div className="mx-auto mt-4 max-w-lg rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm font-semibold leading-6 text-sky-900">
+        <strong className="font-black">ملاحظة:</strong> بيانات الصفحة الرئيسية هنا هي قراءات الإنفرتر الحية فقط. تفاصيل كفاية الليل والتوقعات موجودة في تبويب الطاقة.
       </div>
     </div>
   );
