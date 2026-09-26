@@ -63,7 +63,10 @@ export default function SettingsPage() {
     localStorage.setItem("shamsak_inverter_address", inverterAddress);
     localStorage.setItem("shamsak_wifi_ssid", wifiSsid);
     localStorage.setItem("shamsak_wifi_password", wifiPassword);
-    alert("تم حفظ إعدادات شمسك بنجاح! ✅");
+    localStorage.setItem("shamsak_notify_surplus", String(notifySurplus));
+    localStorage.setItem("shamsak_notify_low_battery", String(notifyLowBattery));
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 3000);
   };
 
   const testNetwork = async () => {
