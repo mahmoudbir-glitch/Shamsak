@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { BatteryCharging, Home, RadioTower, Sun, Zap } from 'lucide-react';
+import { InfoTip } from '@/components/info-tip';
 
 interface EnergyFlowProps {
   solarKw: number;
@@ -73,16 +74,23 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             تدفق الطاقة الآن
           </span>
 
-          <span
-            className={
-              isLive
-                ? 'rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-700'
-                : 'rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700'
-            }
-            aria-live="polite"
-          >
-            {isLive ? '● مباشر' : 'غير متصل'}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className={
+                isLive
+                  ? 'rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-700'
+                  : 'rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700'
+              }
+              aria-live="polite"
+            >
+              {isLive ? '● مباشر' : 'غير متصل'}
+            </span>
+            <InfoTip label="شرح حالة اتصال الإنفرتر" title="حالة الاتصال">
+              {isLive
+                ? 'مباشر: آخر قراءة وصلت من قناة telemetry الحية. هذه ليست بيانات DEMO.'
+                : 'غير متصل: لا توجد قراءة حية مؤكدة الآن. تبقى آخر بيانات ناجحة معروضة ولا يتم استبدالها بأرقام DEMO.'}
+            </InfoTip>
+          </div>
         </div>
       </div>
 
