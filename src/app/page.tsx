@@ -73,6 +73,7 @@ export default function SolarDashboard() {
         gridKw={gridKw}
         batteryKw={batteryKw}
         batteryPercentage={batteryPercentage}
+        gridConnected={snapshot?.gridConnected ?? false}
         todayProductionKWh={snapshot?.todayProductionKWh}
         todayHomeUsageKWh={snapshot?.todayHomeUsageKWh}
         todayGridSavings={snapshot?.todayGridSavings}
