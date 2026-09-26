@@ -57,17 +57,17 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   const formatKwh = (value?: number) => value === undefined ? '—' : value.toFixed(1) + ' kWh';
   const formatSavings = (value?: number) => value === undefined ? '—' : savingsCurrency + value.toFixed(2);
 
-  // Curved, independent routes follow the four-node layout without ever forming a circle.
-  // Each route ends at the target node so the arrowhead clearly communicates direction.
-  const solarHomePath = 'M 214 104 Q 260 122 306 178';
-  const solarBatteryPath = 'M 200 108 Q 200 198 200 292';
-  const solarGridPath = 'M 186 104 Q 140 122 94 178';
+  // True circular arcs around the four nodes. Every endpoint lies on the same
+  // imaginary circle centered at (200, 200), so the curvature stays uniform.
+  const solarHomePath = 'M 200 85 A 115 115 0 0 1 315 200';
+  const solarBatteryPath = 'M 200 85 A 115 115 0 0 1 200 315';
+  const solarGridPath = 'M 200 85 A 115 115 0 0 0 85 200';
   const batteryHomePath = batteryToHome
-    ? 'M 226 292 Q 274 274 306 226'
-    : 'M 306 226 Q 274 274 226 292';
+    ? 'M 200 315 A 115 115 0 0 0 315 200'
+    : 'M 315 200 A 115 115 0 0 1 200 315';
   const gridHomePath = gridImporting
-    ? 'M 94 200 Q 200 150 306 200'
-    : 'M 306 200 Q 200 250 94 200';
+    ? 'M 85 200 A 115 115 0 0 1 315 200'
+    : 'M 315 200 A 115 115 0 0 1 85 200';
 
   return (
     <section className="w-full max-w-lg mx-auto overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.09)]" aria-label="مخطط تدفق الطاقة">
