@@ -10,6 +10,7 @@ interface EnergyFlowProps {
   gridKw: number;
   batteryKw: number;
   batteryPercentage: number;
+  gridConnected?: boolean;
   todayProductionKWh?: number;
   todayHomeUsageKWh?: number;
   todayGridSavings?: number;
@@ -26,6 +27,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   gridKw,
   batteryKw,
   batteryPercentage,
+  gridConnected = true,
   todayProductionKWh,
   todayHomeUsageKWh,
   todayGridSavings,
@@ -37,20 +39,17 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   const homeActive = homeKw > FLOW_THRESHOLD;
   const batteryCharging = batteryKw > FLOW_THRESHOLD;
   const batteryDischarging = batteryKw < -FLOW_THRESHOLD;
-  const gridImporting = gridKw > FLOW_THRESHOLD;
-  const gridExporting = gridKw < -FLOW_THRESHOLD;
+  const gridImporting = gridConnected && gridKw > FLOW_THRESHOLD;
+  const gridExporting = gridConnected && gridKw < -FLOW_THRESHOLD;
 
   const solarToHome = solarActive && homeActive;
   const solarToBattery = solarActive && batteryCharging;
   const solarToGrid = solarActive && gridExporting;
   const batteryToHome = batteryDischarging && homeActive;
-  const gridToHome = gridImporting && homeActive;
 
   const formatKw = (value: number) => Math.abs(value).toFixed(2) + ' kW';
-  const formatKwh = (value?: number) =>
-    value === undefined ? '—' : value.toFixed(1) + ' kWh';
-  const formatSavings = (value?: number) =>
-    value === undefined ? '—' : savingsCurrency + value.toFixed(2);
+  const formatKwh = (value?: number) => value === undefined ? '—' : value.toFixed(1) + ' kWh';
+  const formatSavings = (value?: number) => value === undefined ? '—' : savingsCurrency + value.toFixed(2);
 
   const solarHomePath = 'M 218 98 C 252 108 286 132 306 170';
   const solarBatteryPath = 'M 200 105 C 200 150 200 230 200 292';
@@ -63,120 +62,39 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
     : 'M 306 200 C 246 216 148 216 94 200';
 
   return (
-    <section
-      className="w-full max-w-lg mx-auto rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.09)] overflow-hidden"
-      aria-label="مخطط تدفق الطاقة"
-    >
+    <section className="w-full max-w-lg mx-auto overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.09)]" aria-label="مخطط تدفق الطاقة">
       <div className="px-4 pt-4 sm:px-6 sm:pt-5">
         <div className="flex items-center justify-between gap-3">
           <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-extrabold text-emerald-700">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
             تدفق الطاقة الآن
           </span>
-
           <div className="flex items-center gap-2">
-            <span
-              className={
-                isLive
-                  ? 'rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-700'
-                  : 'rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700'
-              }
-              aria-live="polite"
-            >
+            <span className={isLive ? 'rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-700' : 'rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700'}>
               {isLive ? '● مباشر' : 'غير متصل'}
             </span>
             <InfoTip label="شرح حالة اتصال الإنفرتر" title="حالة الاتصال">
               {isLive
-                ? 'مباشر: آخر قراءة وصلت من قناة telemetry الحية. هذه ليست بيانات DEMO.'
-                : 'غير متصل: لا توجد قراءة حية مؤكدة الآن. تبقى آخر بيانات ناجحة معروضة ولا يتم استبدالها بأرقام DEMO.'}
+                ? 'مباشر: آخر قراءة وصلت من قناة telemetry الحية.'
+                : 'غير متصل: لا توجد قراءة حية مؤكدة الآن.'}
             </InfoTip>
           </div>
         </div>
       </div>
 
-      <div className="relative mx-auto mt-2 w-full max-w-lg aspect-square p-2 sm:p-4">
-        <svg
-          className="pointer-events-none absolute inset-0 h-full w-full"
-          viewBox="0 0 400 400"
-          fill="none"
-          aria-hidden="true"
-        >
+      <div className="relative mx-auto mt-2 aspect-square w-full max-w-lg p-2 sm:p-4">
+        <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 400 400" fill="none" aria-hidden="true">
           <defs>
-            <marker id="arrow-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#10B981" />
-            </marker>
-            <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#3B82F6" />
-            </marker>
-            <marker id="arrow-orange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#F59E0B" />
-            </marker>
+            <marker id="arrow-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10B981" /></marker>
+            <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#3B82F6" /></marker>
+            <marker id="arrow-orange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#F59E0B" /></marker>
           </defs>
-
-          <path
-            d={solarHomePath}
-            pathLength="100"
-            stroke="#10B981"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            opacity={solarToHome ? 1 : 0.18}
-            markerEnd="url(#arrow-green)"
-            className={solarToHome ? 'energy-flow-path' : ''}
-          />
-          <path
-            d={solarBatteryPath}
-            pathLength="100"
-            stroke="#10B981"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            opacity={solarToBattery ? 1 : 0.18}
-            markerEnd="url(#arrow-green)"
-            className={solarToBattery ? 'energy-flow-path' : ''}
-          />
-          <path
-            d={solarGridPath}
-            pathLength="100"
-            stroke="#10B981"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            opacity={solarToGrid ? 1 : 0.18}
-            markerEnd="url(#arrow-green)"
-            className={solarToGrid ? 'energy-flow-path' : ''}
-          />
-
-          <path
-            d={batteryHomePath}
-            pathLength="100"
-            stroke="#10B981"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            opacity={batteryToHome ? 1 : 0.18}
-            markerEnd="url(#arrow-green)"
-            className={batteryToHome ? 'energy-flow-path' : ''}
-          />
-
-          <path
-            d={gridHomePath}
-            pathLength="100"
-            stroke="#F59E0B"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            opacity={gridImporting || gridExporting ? 1 : 0.18}
-            markerEnd="url(#arrow-orange)"
-            className={gridImporting || gridExporting ? 'energy-flow-path' : ''}
-          />
-
-          <path
-            d="M 220 200 C 246 200 276 200 306 200"
-            pathLength="100"
-            stroke="#3B82F6"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            opacity={homeActive ? 1 : 0.18}
-            markerEnd="url(#arrow-blue)"
-            className={homeActive ? 'energy-flow-path' : ''}
-          />
-
+          <path d={solarHomePath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={solarToHome ? 1 : 0.18} markerEnd="url(#arrow-green)" className={solarToHome ? 'energy-flow-path' : ''} />
+          <path d={solarBatteryPath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={solarToBattery ? 1 : 0.18} markerEnd="url(#arrow-green)" className={solarToBattery ? 'energy-flow-path' : ''} />
+          <path d={solarGridPath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={solarToGrid ? 1 : 0.18} markerEnd="url(#arrow-green)" className={solarToGrid ? 'energy-flow-path' : ''} />
+          <path d={batteryHomePath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={batteryToHome ? 1 : 0.18} markerEnd="url(#arrow-green)" className={batteryToHome ? 'energy-flow-path' : ''} />
+          <path d={gridHomePath} pathLength="100" stroke="#F59E0B" strokeWidth="3.5" strokeLinecap="round" opacity={gridConnected && (gridImporting || gridExporting) ? 1 : 0.12} markerEnd="url(#arrow-orange)" className={gridConnected && (gridImporting || gridExporting) ? 'energy-flow-path' : ''} />
+          <path d="M 220 200 C 246 200 276 200 306 200" pathLength="100" stroke="#3B82F6" strokeWidth="3.5" strokeLinecap="round" opacity={homeActive ? 1 : 0.18} markerEnd="url(#arrow-blue)" className={homeActive ? 'energy-flow-path' : ''} />
           <circle cx="200" cy="200" r="28" fill="white" stroke="#E2E8F0" strokeWidth="1.5" />
           <circle cx="200" cy="200" r="20" fill="#FFFBEB" />
         </svg>
@@ -191,14 +109,14 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
         </div>
 
         <div className="absolute left-[3%] top-1/2 z-10 w-[27%] min-w-[88px] -translate-y-1/2 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 shadow-sm sm:h-16 sm:w-16">
-            <RadioTower className="h-8 w-8 text-amber-500" strokeWidth={2.1} />
+          <div className={gridConnected ? "mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 shadow-sm sm:h-16 sm:w-16" : "mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-100 shadow-sm sm:h-16 sm:w-16"}>
+            <RadioTower className={gridConnected ? "h-8 w-8 text-emerald-500" : "h-8 w-8 text-slate-400"} strokeWidth={2.1} />
           </div>
-          <div className="mt-1.5 text-[10px] font-black tracking-wide text-slate-400">GRID STATUS</div>
-          <div className="text-sm font-black text-amber-600 sm:text-base">{formatKw(gridKw)}</div>
-          <div className="text-[10px] font-bold text-slate-500">
-            {gridExporting ? 'تصدير' : gridImporting ? 'سحب' : 'متوازنة'}
+          <div className="mt-1.5 text-[10px] font-black tracking-wide text-slate-400">GRID</div>
+          <div className={gridConnected ? "text-sm font-black text-emerald-600 sm:text-base" : "text-sm font-black text-slate-500 sm:text-base"}>
+            {gridConnected ? "متصلة" : "مقطوعة"}
           </div>
+          <div className="text-[10px] font-bold text-slate-500">{gridConnected ? (gridExporting ? "تصدير" : gridImporting ? "سحب" : "متوازنة") : "لا يوجد تدفق"}</div>
         </div>
 
         <div className="absolute right-[3%] top-1/2 z-10 w-[27%] min-w-[88px] -translate-y-1/2 text-center">
@@ -217,11 +135,9 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
               <span className="mt-2 text-sm font-black text-slate-800">{batteryPercentage.toFixed(0)}%</span>
             </div>
           </div>
-          <div className="mt-1.5 text-[10px] font-black tracking-wide text-slate-400">BATTERY STATUS</div>
+          <div className="mt-1.5 text-[10px] font-black tracking-wide text-slate-400">BATTERY</div>
           <div className="text-sm font-black text-emerald-600 sm:text-base">{formatKw(batteryKw)}</div>
-          <div className="text-[10px] font-bold text-slate-500">
-            {batteryCharging ? 'شحن' : batteryDischarging ? 'تفريغ' : 'ثابتة'}
-          </div>
+          <div className="text-[10px] font-bold text-slate-500">{batteryCharging ? 'تشحن' : batteryDischarging ? 'تفرغ' : 'ثابتة'}</div>
         </div>
 
         <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
@@ -231,37 +147,17 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
         </div>
       </div>
 
-      {!isLive && (
-        <div className="mx-4 mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-center text-xs font-bold text-amber-800 sm:mx-6">
-          ⚠️ لا توجد قراءة حية متاحة حاليًا. تحقّق من اتصال الإنفرتر وإرسال بيانات القياس.
-        </div>
-      )}
+      {!isLive && <div className="mx-4 mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-center text-xs font-bold text-amber-800 sm:mx-6">⚠️ لا توجد قراءة حية متاحة حاليًا. تحقّق من اتصال الإنفرتر وإرسال بيانات القياس.</div>}
 
       <div className="border-t border-slate-100 bg-slate-50/70 px-3 py-4 sm:px-5">
         <div className="grid grid-cols-3 divide-x divide-x-reverse divide-slate-200 text-center">
-          <div className="px-2">
-            <div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">TODAY'S PRODUCTION</div>
-            <div className="mt-1 text-base font-black text-emerald-600 sm:text-lg">{formatKwh(todayProductionKWh)}</div>
-            <div className="text-[10px] font-bold text-slate-500">إنتاج اليوم</div>
-          </div>
-          <div className="px-2">
-            <div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">HOME USAGE</div>
-            <div className="mt-1 text-base font-black text-blue-600 sm:text-lg">{formatKwh(todayHomeUsageKWh)}</div>
-            <div className="text-[10px] font-bold text-slate-500">استهلاك المنزل</div>
-          </div>
-          <div className="px-2">
-            <div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">GRID SAVINGS</div>
-            <div className="mt-1 text-base font-black text-amber-500 sm:text-lg">{formatSavings(todayGridSavings)}</div>
-            <div className="text-[10px] font-bold text-slate-500">التوفير</div>
-          </div>
+          <div className="px-2"><div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">TODAY'S PRODUCTION</div><div className="mt-1 text-base font-black text-emerald-600 sm:text-lg">{formatKwh(todayProductionKWh)}</div><div className="text-[10px] font-bold text-slate-500">إنتاج اليوم</div></div>
+          <div className="px-2"><div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">HOME USAGE</div><div className="mt-1 text-base font-black text-blue-600 sm:text-lg">{formatKwh(todayHomeUsageKWh)}</div><div className="text-[10px] font-bold text-slate-500">استهلاك المنزل</div></div>
+          <div className="px-2"><div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">GRID SAVINGS</div><div className="mt-1 text-base font-black text-amber-500 sm:text-lg">{formatSavings(todayGridSavings)}</div><div className="text-[10px] font-bold text-slate-500">التوفير</div></div>
         </div>
       </div>
 
-      {lastUpdated && (
-        <div className="border-t border-slate-100 px-4 py-2 text-center text-[10px] font-semibold text-slate-400">
-          آخر قراءة: {lastUpdated}
-        </div>
-      )}
+      {lastUpdated && <div className="border-t border-slate-100 px-4 py-2 text-center text-[10px] font-semibold text-slate-400">آخر قراءة: {lastUpdated}</div>}
     </section>
   );
 };
