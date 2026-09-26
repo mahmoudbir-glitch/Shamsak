@@ -62,7 +62,7 @@ export default function EnergyPage() {
   const currentTemp = weatherData?.current?.temperature_2m || 25;
   const currentStatus = interpretWeatherCode(weatherData?.current?.weather_code || 0);
 
-  // استخراج الأكواد اليومية بأمان مع وضع قيم افتراضية ثابتة كبديل آمن
+  // استخراج الأكواد والدرجات اليومية بأمان تام بدون أي تكرار أو علامات مفقودة
   const day1Code = weatherData?.daily?.weather_code?.[0] ?? 0;
   const day2Code = weatherData?.daily?.weather_code?.[1] ?? 0;
   const day3Code = weatherData?.daily?.weather_code?.[2] ?? 0;
@@ -128,7 +128,7 @@ export default function EnergyPage() {
         </div>
       </div>
 
-      {/* جدول توقعات الأيام القادمة المستخرج ديناميكياً بدون أخطاء مصفوفات */}
+      {/* جدول التوقعات اليومية الثلاثية المصحح بالكامل */}
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-4">
         <h3 className="font-bold text-sm text-slate-700 mb-3">📅 توقعات الأيام القادمة</h3>
         <div className="grid grid-cols-3 gap-2 text-center text-xs">
