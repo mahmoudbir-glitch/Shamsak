@@ -24,7 +24,7 @@ export async function POST(request:NextRequest){
   const password=typeof b.password==="string"?b.password:"";
   if(!username||!password) return NextResponse.json({error:"missing_credentials"},{status:400});
 
-  const configuredUsername=process.env.SHAMSAK_USER;
+  const configuredUsername=process.env.SHAMSAK_USER || process.env.SHAMSAK_USERNAME;
   const configuredPassword=process.env.SHAMSAK_PASSWORD;
   const configuredHash=process.env.SHAMSAK_PASSWORD_HASH;
   if(!configuredUsername||(!configuredPassword&&!configuredHash)||!process.env.AUTH_SECRET)
