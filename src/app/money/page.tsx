@@ -16,20 +16,20 @@ export default function MoneyDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 pb-24 text-right" dir="rtl">
+    <div className="w-full text-right" dir="rtl">
       
       {/* الهيدر العلوي لتبويب المال */}
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm mb-4 border border-slate-100">
-        <h1 className="text-xl font-bold text-slate-800 flex items-center gap-1">
+      <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm mb-5 border border-slate-100">
+        <h1 className="text-2xl font-extrabold text-slate-800 flex items-center gap-1">
           ⚡ الطاقة والمال
         </h1>
-        <div className="text-xs bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full font-bold">
+        <div className="text-base bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full font-semibold">
           تغطية ونسب مستقرة
         </div>
       </div>
 
       {/* الفلتر الزمني السفلي للهيدر */}
-      <div className="grid grid-cols-3 gap-2 bg-slate-200 bg-opacity-60 p-1 rounded-xl mb-6 text-center text-xs font-bold text-slate-600">
+      <div className="grid grid-cols-3 gap-2 bg-slate-200 bg-opacity-60 p-1 rounded-xl mb-6 text-center text-base font-semibold text-slate-600">
         <div className="py-2 rounded-lg">يوم</div>
         <div className="py-2 rounded-lg">أسبوع</div>
         <div className="bg-slate-900 text-white py-2 rounded-lg shadow-sm">شهر</div>
@@ -37,7 +37,7 @@ export default function MoneyDashboard() {
 
       {/* القسم 1: من أين تأتي كهرباء منزلك؟ */}
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-4">
-        <h3 className="font-bold text-sm text-slate-700 mb-3 flex items-center gap-1">
+        <h3 className="font-bold text-xl font-black text-slate-700 mb-3 flex items-center gap-1">
           <span>ℹ️</span> من أين تأتي كهرباء منزلك هذا الشهر؟
         </h3>
         
@@ -69,7 +69,7 @@ export default function MoneyDashboard() {
         <h3 className="font-bold text-sm text-slate-700 mb-1 flex items-center gap-1">
           <span>🪙</span> التحليل المالي التقديري
         </h3>
-        <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+        <p className="text-base font-semibold text-slate-500 mb-4 leading-relaxed">
           لولا نظامك الشمسي المطور لدفعت <span className="font-bold text-slate-700">{estimatedCost.toLocaleString()} ل.س</span> للشبكة.
         </p>
 
@@ -93,14 +93,6 @@ export default function MoneyDashboard() {
       </div>
 
       {/* شريط القائمة السفلي الموحد الفاتح للتنقل السريع */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around py-3 text-[10px] text-slate-400 z-50 rounded-t-2xl shadow-md">
-        <div className="opacity-60 flex flex-col items-center">📊 الرئيسية</div>
-        <div className="opacity-60 flex flex-col items-center">🏠 المنزل</div>
-        <div className="opacity-60 flex flex-col items-center">🔋 البطارية</div>
-        <div className="opacity-60 flex flex-col items-center">☀️ الطاقة</div>
-        <div className="text-amber-500 font-bold flex flex-col items-center">💰 المال</div>
-      </div>
-
     </div>
   );
 }
