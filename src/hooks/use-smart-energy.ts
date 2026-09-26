@@ -100,12 +100,15 @@ export function useSmartEnergy() {
       const dailyHomeKWh = (currentLoadW / 1000) * 24;
       const batterySoc = nextSnapshot?.batterySoc ?? snapshotRef.current?.batterySoc ?? 50;
 
+      let projectedSoc = batterySoc;
       const nextForecasts = daily.time.slice(0, 4).map((date, dayIndex) => {
         const indexes = hourly.time!.map((time, i) => ({ time, i })).filter(({ time }) => time.startsWith(date));
         const points: HourlySolarPoint[] = indexes.map(({ time, i }) => {
           const irradiance = hourly.shortwave_radiation?.[i] ?? 0;
           const solarKWh = estimateSolarKWh(irradiance, panelCapacityKw);
-          return {
+          projectedSoc = batteryTiming.sunriseSoc;
+
+        return {
             time,
             irradianceWm2: irradiance,
             weatherCode: hourly.weather_code?.[i] ?? 0,
