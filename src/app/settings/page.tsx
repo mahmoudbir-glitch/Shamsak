@@ -31,6 +31,20 @@ export default function SettingsPage() {
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   useEffect(() => {
+    void fetch("/api/inverter/connection", { cache: "no-store" })
+      .then(async (response) => response.ok ? (await response.json()) as { connection?: { systemName?: string; inverterAddress?: string; inverterUsername?: string; inverterLinkCode?: string; wifiSsid?: string; hasWifiPassword?: boolean } } : null)
+      .then((data) => {
+        const row = data?.connection;
+        if (!row) return;
+        if (row.systemName) setSystemName(row.systemName);
+        if (row.inverterAddress) setInverterAddress(row.inverterAddress);
+        if (row.inverterUsername) setInverterUsername(row.inverterUsername);
+        if (row.inverterLinkCode) setInverterLinkCode(row.inverterLinkCode);
+        if (row.wifiSsid) setWifiSsid(row.wifiSsid);
+        if (row.hasWifiPassword) setWifiPassword("");
+      })
+      .catch(() => {});
+
     const saved = {
       panels: localStorage.getItem("shamsak_panel_capacity"),
       battery: localStorage.getItem("shamsak_battery_capacity"),
@@ -69,7 +83,7 @@ export default function SettingsPage() {
     if (saved.longitude) setLongitude(Number(saved.longitude));
   }, []);
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
     localStorage.setItem("shamsak_panel_capacity", String(panelCapacity));
     localStorage.setItem("shamsak_battery_capacity", String(batteryCapacity));
     localStorage.setItem("shamsak_currency", currency);
@@ -82,6 +96,28 @@ export default function SettingsPage() {
     localStorage.setItem("shamsak_inverter_link_code", inverterLinkCode);
     localStorage.setItem("shamsak_system_name", systemName);
     localStorage.setItem("shamsak_wifi_ssid", wifiSsid);
+    try {
+      const response = await fetch("/api/inverter/connection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemName,
+          inverterModel,
+          protocol,
+          inverterAddress,
+          inverterUsername,
+          inverterLinkCode,
+          wifiSsid,
+          wifiPassword,
+        }),
+      });
+      if (!response.ok) throw new Error("save_failed");
+      setSaved(true);
+    } catch {
+      setSaved(false);
+      window.alert("تعذر حفظ إعدادات ربط الإنفرتر على الخادم. تحقق من اتصال قاعدة البيانات.");
+      return;
+    }
     localStorage.setItem("shamsak_notify_surplus", String(notifySurplus));
     localStorage.setItem("shamsak_notify_low_battery", String(notifyLowBattery));
     localStorage.setItem("shamsak_latitude", String(latitude));
@@ -220,7 +256,7 @@ export default function SettingsPage() {
         </label>
       </div>
 
-      {saved && <div role="status" className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center text-base font-black text-emerald-700">✓ تم حفظ إعدادات شمسك بنجاح</div>}\n\n      <button type="button" onClick={handleSaveSettings} className="mb-4 min-h-16 w-full rounded-2xl bg-slate-900 px-5 py-4 text-lg font-bold text-white shadow-md transition active:scale-95 active:bg-slate-800">
+      {saved && <div role="status" className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center text-base font-black text-emerald-700">✓ تم حفظ إعدادات شمسك بنجاح</div>}\n\n      <button type="button" onClick={() => void handleSaveSettings()} className="mb-4 min-h-16 w-full rounded-2xl bg-slate-900 px-5 py-4 text-lg font-bold text-white shadow-md transition active:scale-95 active:bg-slate-800">
         حفظ وتثبيت الإعدادات في ذاكرة الهاتف
       </button>
     </div>
