@@ -12,7 +12,11 @@ function unauthorized() {
 }
 
 function configured() {
-  return Boolean(process.env.DATABASE_URL);
+  return Boolean(
+    process.env.DATABASE_URL ||
+    process.env.PRISMA_DATABASE_URL ||
+    process.env.POSTGRES_URL
+  );
 }
 
 function validToken(request: NextRequest) {
