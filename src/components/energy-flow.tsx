@@ -63,29 +63,29 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center shadow-sm mb-1">
             <span className="text-xl" aria-hidden="true">☀️</span>
           </div>
-          <span className="text-[10px] font-bold text-gray-400 tracking-wider">SOLAR</span>
-          <span className="text-xs font-black text-amber-600">kW {solarKw.toFixed(2)}</span>
-          <span className="text-[9px] text-gray-400">إنتاج حالي</span>
+          <span className="text-xs font-bold text-slate-800 tracking-wider">SOLAR</span>
+          <span className="text-sm font-bold text-amber-600">kW {solarKw.toFixed(2)}</span>
+          <span className="text-xs font-medium text-slate-600">إنتاج حالي</span>
         </div>
 
         <div className="absolute right-0 top-1/2 -translate-y-1/2 z-10 flex flex-col items-center">
           <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shadow-sm mb-1">
             <span className="text-lg" aria-hidden="true">📶</span>
           </div>
-          <span className="text-[10px] font-bold text-gray-400 tracking-wider">GRID STATUS</span>
-          <span className="text-xs font-black text-purple-600">kW {Math.abs(gridKw).toFixed(2)}</span>
-          <span className="text-[9px] text-gray-400">
+          <span className="text-xs font-bold text-slate-800 tracking-wider">GRID STATUS</span>
+          <span className="text-sm font-bold text-purple-600">kW {Math.abs(gridKw).toFixed(2)}</span>
+          <span className="text-xs font-medium text-slate-600">
             {gridKw < -0.05 ? 'تصدير إلى الشبكة' : gridKw > 0.05 ? 'سحب من الشبكة' : 'متوازنة'}
           </span>
         </div>
 
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center">
           <div className="w-12 h-12 rounded-full border-4 border-emerald-400 bg-white flex items-center justify-center shadow-sm mb-1">
-            <span className="text-xs font-bold text-gray-700">{batteryPercentage.toFixed(0)}%</span>
+            <span className="text-xl font-black text-slate-800">{batteryPercentage.toFixed(0)}%</span>
           </div>
-          <span className="text-[10px] font-bold text-gray-400 tracking-wider">BATTERY STATUS</span>
-          <span className="text-xs font-black text-emerald-600">kW {Math.abs(batteryKw).toFixed(2)}</span>
-          <span className="text-[9px] text-gray-400">
+          <span className="text-xs font-bold text-slate-800 tracking-wider">BATTERY STATUS</span>
+          <span className="text-sm font-bold text-emerald-600">kW {Math.abs(batteryKw).toFixed(2)}</span>
+          <span className="text-xs font-medium text-slate-600">
             {batteryKw > 0.05 ? 'شحن' : batteryKw < -0.05 ? 'تفريغ' : 'ثابتة'}
           </span>
         </div>
@@ -94,9 +94,9 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center shadow-sm mb-1">
             <span className="text-lg" aria-hidden="true">🏠</span>
           </div>
-          <span className="text-[10px] font-bold text-gray-400 tracking-wider">HOME CONSUMPTION</span>
-          <span className="text-xs font-black text-blue-600">kW {homeKw.toFixed(2)}</span>
-          <span className="text-[9px] text-gray-400">استهلاك حالي</span>
+          <span className="text-xs font-bold text-slate-800 tracking-wider">HOME CONSUMPTION</span>
+          <span className="text-sm font-bold text-blue-600">kW {homeKw.toFixed(2)}</span>
+          <span className="text-xs font-medium text-slate-600">استهلاك حالي</span>
         </div>
       </div>
 
@@ -107,7 +107,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
       )}
 
       {lastUpdated && (
-        <div className="mt-3 text-center text-[10px] text-slate-400">
+        <div className="mt-3 text-center text-xs text-slate-500">
           آخر قراءة: {lastUpdated}
         </div>
       )}
