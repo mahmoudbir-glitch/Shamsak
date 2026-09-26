@@ -19,16 +19,21 @@ function safeEqual(a: string, b: string) {
 
 export async function POST(request: NextRequest) {
   let body: unknown;
+
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const input = body as { username?: unknown; password?: unknown };
+  const input = body as { username?: unknown; password?: unknown; next?: unknown };
   const username = typeof input.username === "string" ? input.username.trim() : "";
-  // Password is compared exactly as entered; never trim or transform it.
+  // Passwords are compared exactly as entered; never trim or transform them.
   const password = typeof input.password === "string" ? input.password : "";
+  const next =
+    typeof input.next === "string" && input.next.startsWith("/") && !input.next.startsWith("//")
+      ? input.next
+      : "/";
 
   if (!username || !password) {
     return NextResponse.json({ error: "missing_credentials" }, { status: 400 });
@@ -36,11 +41,14 @@ export async function POST(request: NextRequest) {
 
   const config = getAuthConfig();
   if (!config.configured) {
+    console.error("[auth] Missing SHAMSAK_USER/SHAMSAK_PASSWORD configuration.");
     return NextResponse.json({ error: "auth_not_configured" }, { status: 503 });
   }
 
   const key =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
   const now = Date.now();
   const state = attempts.get(key);
 
@@ -52,20 +60,30 @@ export async function POST(request: NextRequest) {
     attempts.set(key, { count: 0, resetAt: now + WINDOW_MS });
   }
 
+  const usernameOk = safeEqual(username, config.username);
   const passwordOk = config.password
     ? safeEqual(password, config.password)
-    : verifyPassword(password, config.passwordHash!);
-  const usernameOk = safeEqual(username, config.username);
+    : verifyPassword(password, config.passwordHash);
 
   if (!usernameOk || !passwordOk) {
-    const next = attempts.get(key) || { count: 0, resetAt: now + WINDOW_MS };
-    next.count++;
-    attempts.set(key, next);
-    return NextResponse.json({ error: "invalid_credentials" }, { status: 401 });
+    const nextState = attempts.get(key) || { count: 0, resetAt: now + WINDOW_MS };
+    nextState.count++;
+    attempts.set(key, nextState);
+    return NextResponse.json(
+      { error: usernameOk ? "invalid_password" : "invalid_username" },
+      { status: 401 },
+    );
   }
 
   attempts.delete(key);
-  const response = NextResponse.json({ ok: true });
-  response.cookies.set(sessionCookie(await createSessionToken(config.username)));
-  return response;
+
+  try {
+    const token = await createSessionToken(config.username);
+    const response = NextResponse.json({ ok: true, redirectTo: next });
+    response.cookies.set(sessionCookie(token));
+    return response;
+  } catch (error) {
+    console.error("[auth] Session creation failed:", error);
+    return NextResponse.json({ error: "session_creation_failed" }, { status: 500 });
+  }
 }
