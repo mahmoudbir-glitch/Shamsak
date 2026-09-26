@@ -15,7 +15,7 @@ function unb64(value: string) {
   return new TextDecoder().decode(bytes);
 }
 function getSessionSecret() {
-  return process.env.AUTH_SECRET || process.env.SHAMSAK_PASSWORD || "";
+  return process.env.AUTH_SECRET || process.env.SHAMSAK_PASSWORD || process.env.SHAMSAK_PASSWORD_HASH || "";
 }
 async function sign(value: string, secret: string) {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), {name:"HMAC",hash:"SHA-256"}, false, ["sign"]);
