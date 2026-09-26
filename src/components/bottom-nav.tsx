@@ -16,7 +16,9 @@ const items = [
 export function BottomNav() {
   const path = usePathname();
 
-  if (path === "/login") return null;\n\n  return (
+  if (path === "/login") return null;
+
+  return (
     <nav
       aria-label="التنقل السفلي"
       className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden"
