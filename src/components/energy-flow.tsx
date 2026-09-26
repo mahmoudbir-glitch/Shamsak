@@ -75,7 +75,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             تدفق الطاقة الآن
           </span>
           <div className="flex items-center gap-2">
-            <span className={isLive ? 'rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-700' : 'rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700'}>
+            <span className={liveFlowActive ? 'rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-700' : isLive ? 'rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-black text-sky-700' : 'rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700'}>
               {liveFlowActive ? '● مباشر' : isLive ? '● متصل بلا قراءة' : 'غير متصل'}
             </span>
             <InfoTip label="شرح حالة اتصال الإنفرتر" title="حالة الاتصال">
