@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { EnergySnapshot } from "@/lib/energy";
 import { estimateSolarKWh, splitEnergy, weatherConfidence, type DayForecast, type HourlySolarPoint } from "@/lib/smart-forecast";
 
@@ -50,6 +50,7 @@ function dayLabel(index: number) {
 
 export function useSmartEnergy() {
   const [snapshot, setSnapshot] = useState<EnergySnapshot | null>(null);
+  const snapshotRef = useRef<EnergySnapshot | null>(null);
   const [weather, setWeather] = useState<WeatherResponse | null>(null);
   const [forecasts, setForecasts] = useState<DayForecast[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,7 +80,7 @@ export function useSmartEnergy() {
         fetch(weatherUrl.toString(), { cache: "no-store" }),
       ]);
 
-      let nextSnapshot: EnergySnapshot | null = snapshot;
+      let nextSnapshot: EnergySnapshot | null = snapshotRef.current;
       if (telemetryResponse.ok) {
         const data = (await telemetryResponse.json()) as EnergySnapshot;
         if (data.source === "live") nextSnapshot = data;
@@ -95,9 +96,9 @@ export function useSmartEnergy() {
         throw new Error("forecast_empty");
       }
 
-      const currentLoadW = Math.max(0, nextSnapshot?.homePowerW ?? snapshot?.homePowerW ?? 1200);
+      const currentLoadW = Math.max(0, nextSnapshot?.homePowerW ?? snapshotRef.current?.homePowerW ?? 1200);
       const dailyHomeKWh = (currentLoadW / 1000) * 24;
-      const batterySoc = nextSnapshot?.batterySoc ?? snapshot?.batterySoc ?? 50;
+      const batterySoc = nextSnapshot?.batterySoc ?? snapshotRef.current?.batterySoc ?? 50;
 
       const nextForecasts = daily.time.slice(0, 3).map((date, dayIndex) => {
         const indexes = hourly.time!.map((time, i) => ({ time, i })).filter(({ time }) => time.startsWith(date));
@@ -141,6 +142,7 @@ export function useSmartEnergy() {
         };
       });
 
+      snapshotRef.current = nextSnapshot;
       setSnapshot(nextSnapshot);
       setWeather(nextWeather);
       setForecasts(nextForecasts);
@@ -153,7 +155,7 @@ export function useSmartEnergy() {
       if (mode === "initial") setLoading(false);
       else setIsRefreshing(false);
     }
-  }, [snapshot]);
+  }, []);
 
   useEffect(() => {
     void load("initial");
