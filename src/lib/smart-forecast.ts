@@ -7,6 +7,14 @@ export type HourlySolarPoint = {
   surplusKWh: number;
 };
 
+export type BatteryTiming = {
+  sunriseSoc: number;
+  sunsetSoc: number;
+  fullChargeTime?: string;
+  autonomyHours: number;
+  autonomyProbability: number;
+};
+
 export type DayForecast = {
   date: string;
   label: string;
@@ -16,12 +24,15 @@ export type DayForecast = {
   sunrise: string;
   sunset: string;
   productionKWh: number;
+  batteryKWh: number;
+  homeKWh: number;
   batteryPct: number;
   homePct: number;
   surplusPct: number;
   surplusKWh: number;
   confidence: "عالية" | "متوسطة" | "منخفضة";
   hourly: HourlySolarPoint[];
+  batteryTiming?: BatteryTiming;
 };
 
 export type AutonomyResult = {
@@ -72,19 +83,105 @@ export function calculateAutonomy(
   const expectedSocAtSunrise = safeLoad > 0
     ? Math.max(safetyReserve, Math.min(100, safeSoc - (requiredWh / safeCapacity) * 100))
     : safeSoc;
-  return { expectedSocAtSunrise: Math.round(expectedSocAtSunrise), hoursCovered: Math.round(hoursCovered * 10) / 10, probability, sufficient: margin >= 1 };
+  return {
+    expectedSocAtSunrise: Math.round(expectedSocAtSunrise),
+    hoursCovered: Math.round(hoursCovered * 10) / 10,
+    probability,
+    sufficient: margin >= 1,
+  };
 }
 
 export function splitEnergy(productionKWh: number, homeKWh: number, batteryChargeKWh: number) {
-  const directHome = Math.min(homeKWh, Math.max(0, productionKWh - batteryChargeKWh));
-  const remaining = Math.max(0, productionKWh - directHome);
+  const total = Math.max(productionKWh, 0);
+  const directHome = Math.min(Math.max(homeKWh, 0), total);
+  const remaining = Math.max(0, total - directHome);
   const battery = Math.min(remaining, Math.max(0, batteryChargeKWh));
-  const surplus = Math.max(0, productionKWh - directHome - battery);
-  const total = Math.max(productionKWh, 0.001);
+  const surplus = Math.max(0, total - directHome - battery);
+  const denominator = Math.max(total, 0.001);
+
   return {
-    directHome, battery, surplus,
-    batteryPct: Math.round((battery / total) * 100),
-    homePct: Math.round((directHome / total) * 100),
-    surplusPct: Math.round((surplus / total) * 100),
+    directHome,
+    battery,
+    surplus,
+    batteryPct: Math.round((battery / denominator) * 100),
+    homePct: Math.round((directHome / denominator) * 100),
+    surplusPct: Math.round((surplus / denominator) * 100),
+  };
+}
+
+export function formatForecastTime(value?: string) {
+  if (!value) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date.toLocaleTimeString("ar-LB", { hour: "2-digit", minute: "2-digit" });
+}
+
+export function calculateBatteryTiming(params: {
+  soc: number;
+  capacityWh: number;
+  loadW: number;
+  hourly: HourlySolarPoint[];
+  sunrise?: string;
+  sunset?: string;
+  now?: Date;
+  chargeEfficiency?: number;
+  safetyReserve?: number;
+}): BatteryTiming {
+  const {
+    soc,
+    capacityWh,
+    loadW,
+    hourly,
+    sunrise,
+    sunset,
+    now = new Date(),
+    chargeEfficiency = 0.9,
+    safetyReserve = 10,
+  } = params;
+
+  const safeCapacity = Math.max(1, capacityWh);
+  const safeLoad = Math.max(0, loadW);
+  const startSoc = Math.min(100, Math.max(0, soc));
+  let currentSoc = startSoc;
+  let fullChargeTime: string | undefined;
+
+  for (const point of hourly) {
+    const t = new Date(point.time);
+    if (Number.isNaN(t.getTime()) || t < now) continue;
+    const hourHome = safeLoad / 1000;
+    const directHome = Math.min(point.solarKWh, hourHome);
+    const chargeInput = Math.max(0, point.solarKWh - directHome);
+    currentSoc = Math.min(100, currentSoc + (chargeInput * chargeEfficiency / (safeCapacity / 1000)) * 100);
+    if (!fullChargeTime && currentSoc >= 99.5) {
+      fullChargeTime = point.time;
+      break;
+    }
+  }
+
+  const sunsetDate = sunset ? new Date(sunset) : undefined;
+  let sunsetSoc = startSoc;
+  let afterSunset = false;
+  for (const point of hourly) {
+    const t = new Date(point.time);
+    if (Number.isNaN(t.getTime()) || t < now) continue;
+    if (sunsetDate && t > sunsetDate) break;
+    const hourHome = safeLoad / 1000;
+    const directHome = Math.min(point.solarKWh, hourHome);
+    const chargeInput = Math.max(0, point.solarKWh - directHome);
+    sunsetSoc = Math.min(100, sunsetSoc + (chargeInput * chargeEfficiency / (safeCapacity / 1000)) * 100);
+    afterSunset = true;
+  }
+  if (!afterSunset) sunsetSoc = startSoc;
+
+  const sunriseDate = sunrise ? new Date(sunrise) : undefined;
+  const nightHours = sunriseDate ? Math.max(0, (sunriseDate.getTime() - now.getTime()) / 3_600_000) : 8;
+  const autonomy = calculateAutonomy(sunsetSoc, safeCapacity, safeLoad, nightHours, safetyReserve);
+
+  return {
+    sunriseSoc: autonomy.expectedSocAtSunrise,
+    sunsetSoc: Math.round(sunsetSoc),
+    fullChargeTime: fullChargeTime ? formatForecastTime(fullChargeTime) : undefined,
+    autonomyHours: autonomy.hoursCovered,
+    autonomyProbability: autonomy.probability,
   };
 }
