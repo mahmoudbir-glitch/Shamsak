@@ -26,6 +26,14 @@ export function SurplusRecommendations() {
 
   const best = windows.sort((a, b) => b.kwh - a.kwh)[0];
 
+  const recommendationsList = [
+    { id: "washing_machine", title: "تشغيل الغسالة", description: "يفضل تشغيله خلال نافذة الفائض.", minSurplusKwh: 0.5 },
+    { id: "water_pump", title: "تشغيل مضخة المياه", description: "يفضل تشغيله خلال نافذة الفائض.", minSurplusKwh: 0.8 },
+    { id: "water_heater", title: "تشغيل سخان الماء", description: "يفضل تشغيله خلال نافذة الفائض.", minSurplusKwh: 1.5 },
+    { id: "air_conditioner", title: "تشغيل المكيف", description: "يفضل تشغيله خلال نافذة الفائض.", minSurplusKwh: 1.0 },
+    { id: "ev_charger", title: "شحن السيارة الكهربائية", description: "يفضل تشغيله خلال نافذة الفائض.", minSurplusKwh: 3.0 },
+  ];
+
   return (
     <section dir="rtl" className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
       <h2 className="text-xl font-black text-slate-900">⚡ إدارة الفائض والتوصيات الذكية</h2>
@@ -38,11 +46,11 @@ export function SurplusRecommendations() {
             <strong className="mt-1 block text-2xl font-black text-amber-700">{formatHour(best.start)} — {formatHour(best.end)}</strong>
             <p className="mt-2 text-base font-semibold text-slate-600">فائض قابل للاستفادة: نحو {Math.round(best.kwh * 10) / 10} ك.و.س</p>
           </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            {["تشغيل الغسالة", "تشغيل مضخة المياه", "شحن السيارة الكهربائية"].map((item) => (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {recommendationsList.filter((item) => best.kwh >= item.minSurplusKwh).map((item) => (
               <div key={item} className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
-                <strong className="text-lg font-extrabold text-emerald-800">{item}</strong>
-                <p className="mt-1 text-sm font-semibold text-emerald-700">يفضل تشغيله خلال نافذة الفائض.</p>
+                <strong className="text-base font-extrabold text-emerald-900">{item.title}</strong>
+                <p className="mt-1 text-xs font-semibold text-emerald-700/80">{item.description}</p>
               </div>
             ))}
           </div>
