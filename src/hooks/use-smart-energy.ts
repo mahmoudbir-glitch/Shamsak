@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { EnergySnapshot } from "@/lib/energy";
-import { estimateSolarKWh, splitEnergy, weatherConfidence, type DayForecast, type HourlySolarPoint } from "@/lib/smart-forecast";
+import { calculateBatteryTiming, estimateSolarKWh, splitEnergy, weatherConfidence, type DayForecast, type HourlySolarPoint } from "@/lib/smart-forecast";
 
 type WeatherResponse = {
   hourly?: {
@@ -100,7 +100,7 @@ export function useSmartEnergy() {
       const dailyHomeKWh = (currentLoadW / 1000) * 24;
       const batterySoc = nextSnapshot?.batterySoc ?? snapshotRef.current?.batterySoc ?? 50;
 
-      const nextForecasts = daily.time.slice(0, 3).map((date, dayIndex) => {
+      const nextForecasts = daily.time.slice(0, 4).map((date, dayIndex) => {
         const indexes = hourly.time!.map((time, i) => ({ time, i })).filter(({ time }) => time.startsWith(date));
         const points: HourlySolarPoint[] = indexes.map(({ time, i }) => {
           const irradiance = hourly.shortwave_radiation?.[i] ?? 0;
@@ -133,12 +133,15 @@ export function useSmartEnergy() {
           sunrise: daily.sunrise?.[dayIndex] ?? "",
           sunset: daily.sunset?.[dayIndex] ?? "",
           productionKWh: Math.round(productionKWh * 10) / 10,
+          batteryKWh: Math.round(split.battery * 10) / 10,
+          homeKWh: Math.round(split.directHome * 10) / 10,
           batteryPct: split.batteryPct,
           homePct: split.homePct,
           surplusPct: split.surplusPct,
           surplusKWh: Math.round(split.surplus * 10) / 10,
           confidence,
           hourly: points,
+          batteryTiming,
         };
       });
 
