@@ -21,10 +21,13 @@ export type DayForecast = {
   batteryPct: number;
   homePct: number;
   surplusPct: number;
+  batteryKWh: number;
+  homeKWh: number;
   surplusKWh: number;
   confidence: "عالية" | "متوسطة" | "منخفضة";
   hourly: HourlySolarPoint[];
   chargeAtSunsetPct: number;
+  chargeAtSunrisePct: number;
   fullChargeTime: string | null;
 };
 
@@ -44,6 +47,16 @@ export function weatherLabel(code: number) {
   if (code <= 77) return "ثلوج";
   if (code <= 82) return "زخات مطر";
   return "عواصف";
+}
+
+export function weatherIcon(code: number) {
+  if (code === 0) return "☀️";
+  if (code <= 3) return "⛅";
+  if (code <= 48) return "🌫️";
+  if (code <= 67) return "🌧️";
+  if (code <= 77) return "❄️";
+  if (code <= 82) return "🌦️";
+  return "⛈️";
 }
 
 export function weatherConfidence(codes: number[], rainProbabilities: number[]) {
@@ -76,19 +89,10 @@ export function calculateAutonomy(
   const expectedSocAtSunrise = safeLoad > 0
     ? Math.max(safetyReserve, Math.min(100, safeSoc - (requiredWh / safeCapacity) * 100))
     : safeSoc;
-  return { expectedSocAtSunrise: Math.round(expectedSocAtSunrise), hoursCovered: Math.round(hoursCovered * 10) / 10, probability, sufficient: margin >= 1 };
-}
-
-export function splitEnergy(productionKWh: number, homeKWh: number, batteryChargeKWh: number) {
-  const directHome = Math.min(homeKWh, Math.max(0, productionKWh - batteryChargeKWh));
-  const remaining = Math.max(0, productionKWh - directHome);
-  const battery = Math.min(remaining, Math.max(0, batteryChargeKWh));
-  const surplus = Math.max(0, productionKWh - directHome - battery);
-  const total = Math.max(productionKWh, 0.001);
   return {
-    directHome, battery, surplus,
-    batteryPct: Math.round((battery / total) * 100),
-    homePct: Math.round((directHome / total) * 100),
-    surplusPct: Math.round((surplus / total) * 100),
+    expectedSocAtSunrise: Math.round(expectedSocAtSunrise),
+    hoursCovered: Math.round(hoursCovered * 10) / 10,
+    probability,
+    sufficient: margin >= 1,
   };
 }
