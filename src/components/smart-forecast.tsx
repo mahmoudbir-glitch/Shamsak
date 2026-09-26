@@ -41,7 +41,7 @@ export function SmartForecast() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-black text-slate-900">🔮 التنبؤ الذكي بالطاقة</h1>
-            <p className="mt-2 text-base font-semibold text-slate-500">توقع شمسي + بطارية + طقس + فائض</p>
+            <p className="mt-2 text-base font-semibold text-slate-500">توقع شمسي + بطارية + طقس + إشعاع + فائض • المصدر: Open-Meteo</p>
           </div>
           <button
             type="button"
@@ -71,6 +71,10 @@ export function SmartForecast() {
               <strong className="mt-1 block text-xl font-extrabold text-amber-600">{Math.round(current.temperature_2m ?? 0)}°م</strong>
             </div>
           </div>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-orange-50 p-4"><span className="text-sm font-semibold text-slate-500">الإشعاع الآن</span><strong className="mt-1 block text-xl font-black text-orange-700">{Math.round(forecasts[0]?.hourly.find((p) => p.time <= new Date().toISOString().slice(0,13))?.irradianceWm2 ?? 0)} W/m²</strong></div>
+            <div className="rounded-xl bg-emerald-50 p-4"><span className="text-sm font-semibold text-slate-500">حالة البيانات</span><strong className="mt-1 block text-xl font-black text-emerald-700">حيّة</strong></div>
+          </div>
         )}
 
         {error && (
@@ -92,6 +96,7 @@ export function SmartForecast() {
             <div className="text-left">
               <span className="block text-base font-semibold text-slate-500">توليد متوقع</span>
               <strong className="text-xl font-extrabold text-amber-600">نحو {day.productionKWh} ك.و.س</strong>
+              <span className="mt-1 block text-sm font-bold text-slate-500">الشحن عند الغروب: {day.chargeAtSunsetPct}%{day.fullChargeTime ? ` • امتلاء متوقع ${new Intl.DateTimeFormat("ar-LB", { timeZone: "Asia/Beirut", hour: "2-digit", minute: "2-digit" }).format(new Date(day.fullChargeTime))}` : ""}</span>
             </div>
           </div>
 
