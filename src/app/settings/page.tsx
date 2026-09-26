@@ -9,6 +9,8 @@ export default function SettingsPage() {
   const [panelCapacity, setPanelCapacity] = useState(6);
   const [batteryCapacity, setBatteryCapacity] = useState(4800);
   const [currency, setCurrency] = useState("ل.س");
+  const [gridTariff, setGridTariff] = useState(0);
+  const [exportTariff, setExportTariff] = useState(0);
   const [notifySurplus, setNotifySurplus] = useState(true);
   const [notifyLowBattery, setNotifyLowBattery] = useState(true);
   const [inverterModel, setInverterModel] = useState<InverterModel>("Felicity");
@@ -24,6 +26,8 @@ export default function SettingsPage() {
       panels: localStorage.getItem("shamsak_panel_capacity"),
       battery: localStorage.getItem("shamsak_battery_capacity"),
       currency: localStorage.getItem("shamsak_currency"),
+      gridTariff: localStorage.getItem("shamsak_grid_tariff"),
+      exportTariff: localStorage.getItem("shamsak_export_tariff"),
       model: localStorage.getItem("shamsak_inverter_model"),
       protocol: localStorage.getItem("shamsak_protocol"),
       address: localStorage.getItem("shamsak_inverter_address"),
@@ -33,6 +37,8 @@ export default function SettingsPage() {
     if (saved.panels) setPanelCapacity(Number(saved.panels));
     if (saved.battery) setBatteryCapacity(Number(saved.battery));
     if (saved.currency) setCurrency(saved.currency);
+    if (saved.gridTariff) setGridTariff(Number(saved.gridTariff));
+    if (saved.exportTariff) setExportTariff(Number(saved.exportTariff));
     if (saved.model) setInverterModel(saved.model as InverterModel);
     if (saved.protocol) setProtocol(saved.protocol as Protocol);
     if (saved.address) setInverterAddress(saved.address);
@@ -44,6 +50,8 @@ export default function SettingsPage() {
     localStorage.setItem("shamsak_panel_capacity", String(panelCapacity));
     localStorage.setItem("shamsak_battery_capacity", String(batteryCapacity));
     localStorage.setItem("shamsak_currency", currency);
+    localStorage.setItem("shamsak_grid_tariff", String(gridTariff));
+    localStorage.setItem("shamsak_export_tariff", String(exportTariff));
     localStorage.setItem("shamsak_inverter_model", inverterModel);
     localStorage.setItem("shamsak_protocol", protocol);
     localStorage.setItem("shamsak_inverter_address", inverterAddress);
@@ -139,6 +147,14 @@ export default function SettingsPage() {
           <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={selectClass}>
             <option value="ل.س">ليرة سورية (ل.س)</option><option value="USD">دولار أمريكي ($)</option><option value="LBP">ليرة لبنانية (L.B.P)</option>
           </select>
+        </div>
+        <div className="space-y-2">
+          <label className="text-base font-semibold text-slate-700">سعر شراء الكهرباء من الشبكة لكل ك.و.س</label>
+          <input type="number" min="0" value={gridTariff} onChange={(e) => setGridTariff(Number(e.target.value))} className={inputClass} />
+        </div>
+        <div className="space-y-2">
+          <label className="text-base font-semibold text-slate-700">سعر بيع/تصدير الفائض لكل ك.و.س</label>
+          <input type="number" min="0" value={exportTariff} onChange={(e) => setExportTariff(Number(e.target.value))} className={inputClass} />
         </div>
       </div>
 
