@@ -24,7 +24,8 @@
     "react-dom": "19.1.0",
     "recharts": "^2.15.4",
     "zod": "3.23.8",
-    "lucide-react": "0.439.0"
+    "lucide-react": "0.439.0",
+    "@supabase/supabase-js": "2.109.0"
   },
   "devDependencies": {
     "@types/node": "22.10.0",
