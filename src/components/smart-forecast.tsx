@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, CloudSun, Loader2, RefreshCw, SunMedium } from "lucide-react";
 import { useSmartEnergy } from "@/hooks/use-smart-energy";
-import { calculateAutonomy, formatForecastTime, weatherLabel } from "@/lib/smart-forecast";
-import { InfoTip } from "@/components/info-tip";
+import { calculateAutonomy, weatherLabel } from "@/lib/smart-forecast";
 
 export function SmartForecast() {
   const { forecasts, weather, snapshot, loading, isRefreshing, error, refresh } = useSmartEnergy();
