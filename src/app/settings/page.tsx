@@ -92,11 +92,22 @@ export default function SettingsPage() {
 
   const testNetwork = async () => {
     setNetworkStatus("testing");
+    setConnectionState("connecting");
     try {
       const response = await fetch("/api/telemetry", { cache: "no-store" });
-      setNetworkStatus(response.ok ? "success" : "error");
+      if (!response.ok) throw new Error("telemetry_unavailable");
+      const data = (await response.json()) as { source?: string; snapshot?: { source?: string } };
+      const source = data.snapshot?.source ?? data.source;
+      if (source === "live") {
+        setNetworkStatus("success");
+        setConnectionState("connected");
+      } else {
+        setNetworkStatus("error");
+        setConnectionState("error");
+      }
     } catch {
       setNetworkStatus("error");
+      setConnectionState("error");
     }
   };
 
