@@ -59,7 +59,6 @@ export default function SettingsPage() {
       linkCode: localStorage.getItem("shamsak_inverter_link_code"),
       systemName: localStorage.getItem("shamsak_system_name"),
       ssid: localStorage.getItem("shamsak_wifi_ssid"),
-      password: localStorage.getItem("shamsak_wifi_password"),
       notifySurplus: localStorage.getItem("shamsak_notify_surplus"),
       notifyLowBattery: localStorage.getItem("shamsak_notify_low_battery"),
       latitude: localStorage.getItem("shamsak_latitude"),
@@ -77,7 +76,6 @@ export default function SettingsPage() {
     if (saved.linkCode) setInverterLinkCode(saved.linkCode);
     if (saved.systemName) setSystemName(saved.systemName);
     if (saved.ssid) setWifiSsid(saved.ssid);
-    if (saved.password) setWifiPassword(saved.password);
     if (saved.notifySurplus !== null) setNotifySurplus(saved.notifySurplus !== "false");
     if (saved.notifyLowBattery !== null) setNotifyLowBattery(saved.notifyLowBattery !== "false");
     if (saved.latitude) setLatitude(Number(saved.latitude));
@@ -224,9 +222,30 @@ export default function SettingsPage() {
         <InverterWifiPairing
           onComplete={({ ssid, password }) => {
             setWifiSsid(ssid);
-            setWifiPassword(password);
+            setWifiPassword("");
             setNetworkStatus("success");
             setConnectionState("connecting");
+            void fetch("/api/inverter/connection", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                systemName,
+                inverterModel: "Felicity",
+                protocol: "Wi-Fi Datalogger",
+                inverterAddress,
+                inverterUsername,
+                inverterLinkCode,
+                wifiSsid: ssid,
+                wifiPassword: password,
+              }),
+            }).then(async (response) => {
+              if (!response.ok) throw new Error("save_failed");
+              setSaved(true);
+              window.setTimeout(() => setSaved(false), 3000);
+            }).catch(() => {
+              setNetworkStatus("error");
+              window.alert("تم إرسال بيانات Wi‑Fi إلى الوحدة، لكن تعذر حفظها في خادم شمسك.");
+            });
           }}
         />
         <div className="flex items-center justify-between gap-3"><span className="text-base font-black text-slate-800">اختبار وصول القراءات الحية</span><InfoTip label="شرح حالة الاتصال" title="حالة اتصال الإنفرتر"><span>يعتبر الاختبار ناجحًا فقط عندما تصل قراءة telemetry مصدرها live. وجود إعدادات Wi‑Fi محفوظة لا يعني أن الإنفرتر متصل فعليًا.</span></InfoTip></div>
