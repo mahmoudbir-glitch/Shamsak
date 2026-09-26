@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import React from "react";
 import "./globals.css";
-import { BottomNav } from "@/components/bottom-nav";\nimport LogoutButton from "@/components/logout-button";
+import { BottomNav } from "@/components/bottom-nav";
+import LogoutButton from "@/components/logout-button";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://shamsak-steel.vercel.app"),
