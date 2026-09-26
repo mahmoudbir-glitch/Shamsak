@@ -22,6 +22,9 @@ export default function SettingsPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [networkStatus, setNetworkStatus] = useState<"idle" | "testing" | "success" | "error">("idle");
   const [saved, setSaved] = useState(false);
+  const [latitude, setLatitude] = useState(33.8938);
+  const [longitude, setLongitude] = useState(35.5018);
+  const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   useEffect(() => {
     const saved = {
@@ -37,6 +40,8 @@ export default function SettingsPage() {
       password: localStorage.getItem("shamsak_wifi_password"),
       notifySurplus: localStorage.getItem("shamsak_notify_surplus"),
       notifyLowBattery: localStorage.getItem("shamsak_notify_low_battery"),
+      latitude: localStorage.getItem("shamsak_latitude"),
+      longitude: localStorage.getItem("shamsak_longitude"),
     };
     if (saved.panels) setPanelCapacity(Number(saved.panels));
     if (saved.battery) setBatteryCapacity(Number(saved.battery));
@@ -50,6 +55,8 @@ export default function SettingsPage() {
     if (saved.password) setWifiPassword(saved.password);
     if (saved.notifySurplus !== null) setNotifySurplus(saved.notifySurplus !== "false");
     if (saved.notifyLowBattery !== null) setNotifyLowBattery(saved.notifyLowBattery !== "false");
+    if (saved.latitude) setLatitude(Number(saved.latitude));
+    if (saved.longitude) setLongitude(Number(saved.longitude));
   }, []);
 
   const handleSaveSettings = () => {
@@ -65,6 +72,8 @@ export default function SettingsPage() {
     localStorage.setItem("shamsak_wifi_password", wifiPassword);
     localStorage.setItem("shamsak_notify_surplus", String(notifySurplus));
     localStorage.setItem("shamsak_notify_low_battery", String(notifyLowBattery));
+    localStorage.setItem("shamsak_latitude", String(latitude));
+    localStorage.setItem("shamsak_longitude", String(longitude));
     setSaved(true);
     window.setTimeout(() => setSaved(false), 3000);
   };
@@ -77,6 +86,16 @@ export default function SettingsPage() {
     } catch {
       setNetworkStatus("error");
     }
+  };
+
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) { setLocationStatus("error"); return; }
+    setLocationStatus("loading");
+    navigator.geolocation.getCurrentPosition(
+      (position) => { setLatitude(Number(position.coords.latitude.toFixed(6))); setLongitude(Number(position.coords.longitude.toFixed(6))); setLocationStatus("success"); },
+      () => setLocationStatus("error"),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
+    );
   };
 
   const inputClass = "w-full min-h-14 rounded-xl border border-slate-200 bg-slate-50 px-4 text-lg font-bold text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
