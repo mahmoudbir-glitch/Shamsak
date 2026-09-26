@@ -66,12 +66,8 @@ export default function SolarDashboard() {
   const isBatteryEnough = hoursRemaining >= 8;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 p-4 pb-24 text-right relative overflow-x-hidden" dir="rtl">
-      <div className="flex items-center bg-white border border-slate-100 p-4 rounded-2xl shadow-sm mb-4 relative z-20">
-        <h1 className="text-base font-black text-amber-500">شمسك ☀️</h1>
-      </div>
-
-      <div className="mb-4">
+    <div className="w-full text-slate-800 text-right relative overflow-x-hidden" dir="rtl">
+      <div className="mb-5">
         <EnergyFlow
           solarKw={solarKw}
           homeKw={homeKw}
@@ -83,41 +79,41 @@ export default function SolarDashboard() {
         />
       </div>
 
-      <div className="flex items-center justify-between bg-white border border-slate-100 rounded-2xl px-4 py-3 mb-4 shadow-sm text-xs">
+      <div className="flex items-center justify-between bg-white border border-slate-100 rounded-2xl px-4 py-4 mb-5 shadow-sm text-base">
         <div className={isLive ? "text-emerald-600 font-bold" : "text-amber-600 font-bold"}>
           {isLive ? '● البيانات الحية متصلة' : '● غير متصل بالبيانات الحية'}
         </div>
         <button
           onClick={() => void loadTelemetry()}
           disabled={loading}
-          className="text-blue-600 font-bold disabled:opacity-50"
+          className="text-lg font-extrabold text-blue-600 disabled:opacity-50"
         >
           {loading ? 'جاري التحديث…' : 'تحديث الآن'}
         </button>
       </div>
 
       {error && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4 text-xs font-bold text-amber-800">
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5 text-base font-semibold text-amber-800">
           ⚠️ {error}. لا يتم عرض أرقام DEMO على أنها بيانات حقيقية.
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-2 bg-white border border-slate-100 rounded-2xl p-3 mb-4 text-center shadow-sm text-[9px] font-bold text-slate-400">
+      <div className="grid grid-cols-3 gap-2 bg-white border border-slate-100 rounded-2xl p-4 mb-5 text-center shadow-sm text-base font-semibold text-slate-400">
         <div>
           <span className="block mb-1 text-slate-400">DAY'S PRODUCTION</span>
-          <span className="text-xs font-black text-amber-600">
+          <span className="text-lg font-extrabold text-amber-600">
             {snapshot?.todayProductionKWh !== undefined ? `${snapshot.todayProductionKWh.toFixed(1)} kWh` : '—'}
           </span>
         </div>
         <div className="border-x border-slate-100">
           <span className="block mb-1 text-slate-400">HOME USAGE</span>
-          <span className="text-xs font-black text-blue-600">
+          <span className="text-lg font-extrabold text-blue-600">
             {snapshot?.todayHomeUsageKWh !== undefined ? `${snapshot.todayHomeUsageKWh.toFixed(1)} kWh` : '—'}
           </span>
         </div>
         <div>
           <span className="block mb-1 text-slate-400">GRID SAVINGS</span>
-          <span className="text-xs font-black text-emerald-600">
+          <span className="text-lg font-extrabold text-emerald-600">
             {snapshot?.todayGridSavings !== undefined ? `$${snapshot.todayGridSavings.toFixed(2)}` : '—'}
           </span>
         </div>
@@ -126,18 +122,18 @@ export default function SolarDashboard() {
       <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
         <h3 className="font-bold text-slate-700 text-xs mb-2">🌙 صمود البطارية الجاري ليلاً</h3>
         {!snapshot ? (
-          <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl text-xs font-bold text-slate-500">
+          <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-base font-semibold text-slate-500">
             بانتظار أول قراءة حية…
           </div>
         ) : isBatteryEnough ? (
-          <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-xl text-xs font-bold text-emerald-800">
+          <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl text-base font-semibold text-emerald-800">
             ✓ تكفي حتى الصباح • صباحاً نحو {estimatedSocAtSunrise}%
-            <p className="text-[10px] font-normal text-slate-500 mt-1">
+            <p className="text-sm font-normal text-slate-500 mt-1">
               متبقي في مخزون البطارية حوالي {hoursRemaining} ساعة
             </p>
           </div>
         ) : (
-          <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-xs font-bold text-amber-800">
+          <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl text-base font-semibold text-amber-800">
             ⚠️ قد لا تكفي حتى الصباح بناءً على الاستهلاك الحالي
             <p className="text-[10px] font-normal text-slate-500 mt-1">
               متبقي في مخزون البطارية حوالي {hoursRemaining} ساعة فقط قبل حد الأمان
