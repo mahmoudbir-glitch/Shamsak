@@ -56,15 +56,18 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   const formatKwh = (value?: number) => value === undefined ? '—' : value.toFixed(1) + ' kWh';
   const formatSavings = (value?: number) => value === undefined ? '—' : savingsCurrency + value.toFixed(2);
 
-  const solarHomePath = 'M 218 98 C 252 108 286 132 306 170';
-  const solarBatteryPath = 'M 200 105 C 200 150 200 230 200 292';
-  const solarGridPath = 'M 182 98 C 148 108 114 132 94 170';
+  // One circular energy route surrounds the four system nodes.
+  // Each live flow uses a segment of the same circle, so the animated dash
+  // and arrowhead always follow the exact circular geometry.
+  const solarHomePath = 'M 200 58 A 142 142 0 0 1 342 200';
+  const solarBatteryPath = 'M 200 58 A 142 142 0 0 1 200 342';
+  const solarGridPath = 'M 200 58 A 142 142 0 0 0 58 200';
   const batteryHomePath = batteryToHome
-    ? 'M 226 292 C 252 276 284 248 306 230'
-    : 'M 306 230 C 284 248 252 276 226 292';
+    ? 'M 200 342 A 142 142 0 0 0 342 200'
+    : 'M 342 200 A 142 142 0 0 1 200 342';
   const gridHomePath = gridImporting
-    ? 'M 94 200 C 148 184 246 184 306 200'
-    : 'M 306 200 C 246 216 148 216 94 200';
+    ? 'M 58 200 A 142 142 0 0 0 342 200'
+    : 'M 342 200 A 142 142 0 0 0 58 200';
 
   return (
     <section className="w-full max-w-lg mx-auto overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.09)]" aria-label="مخطط تدفق الطاقة">
@@ -96,12 +99,13 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#3B82F6" /></marker>
             <marker id="arrow-orange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#F59E0B" /></marker>
           </defs>
-          <path d={solarHomePath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={solarToHome ? 1 : 0.18} markerEnd="url(#arrow-green)" className={solarToHome ? activeFlowClass : ''} />
-          <path d={solarBatteryPath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={solarToBattery ? 1 : 0.18} markerEnd="url(#arrow-green)" className={solarToBattery ? activeFlowClass : ''} />
-          <path d={solarGridPath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={solarToGrid ? 1 : 0.18} markerEnd="url(#arrow-green)" className={solarToGrid ? activeFlowClass : ''} />
-          <path d={batteryHomePath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={batteryToHome ? 1 : 0.18} markerEnd="url(#arrow-green)" className={batteryToHome ? activeFlowClass : ''} />
+          <circle cx="200" cy="200" r="142" pathLength="100" fill="none" stroke="#E2E8F0" strokeWidth="3.5" strokeLinecap="round" opacity="0.65" />
+          <path d={solarHomePath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={solarToHome ? 1 : 0.12} markerEnd="url(#arrow-green)" className={solarToHome ? activeFlowClass : ''} />
+          <path d={solarBatteryPath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={solarToBattery ? 1 : 0.12} markerEnd="url(#arrow-green)" className={solarToBattery ? activeFlowClass : ''} />
+          <path d={solarGridPath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={solarToGrid ? 1 : 0.12} markerEnd="url(#arrow-green)" className={solarToGrid ? activeFlowClass : ''} />
+          <path d={batteryHomePath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={batteryToHome ? 1 : 0.12} markerEnd="url(#arrow-green)" className={batteryToHome ? activeFlowClass : ''} />
           <path d={gridHomePath} pathLength="100" stroke="#F59E0B" strokeWidth="3.5" strokeLinecap="round" opacity={gridConnected && (gridImporting || gridExporting) ? 1 : 0.12} markerEnd="url(#arrow-orange)" className={gridConnected && (gridImporting || gridExporting) ? activeFlowClass : ''} />
-          <path d="M 220 200 C 246 200 276 200 306 200" pathLength="100" stroke="#3B82F6" strokeWidth="3.5" strokeLinecap="round" opacity={homeActive ? 1 : 0.18} markerEnd="url(#arrow-blue)" className={homeActive ? activeFlowClass : ''} />
+          <path d={solarHomePath} pathLength="100" stroke="#3B82F6" strokeWidth="3.5" strokeLinecap="round" opacity={homeActive ? 0.55 : 0.08} markerEnd="url(#arrow-blue)" />
           <circle cx="200" cy="200" r="28" fill="white" stroke="#E2E8F0" strokeWidth="1.5" />
           <circle cx="200" cy="200" r="20" fill="#FFFBEB" />
         </svg>
