@@ -71,7 +71,7 @@ export default function MoneyDashboard() {
   const periodTitle = periods.find((item) => item.key === period)?.label ?? "الشهر";
 
   const tariff = data?.financial.tariff ?? 0;
-  const currency = data?.currency || localStorage.getItem("shamsak_currency") || "ل.س";
+  const currency = data?.currency || "ل.س";
 
   const sourceTotal = useMemo(() => sourceRows.reduce((sum, row) => sum + row.kwh, 0), [sourceRows]);
 
