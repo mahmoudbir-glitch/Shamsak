@@ -87,7 +87,7 @@ export default function SolarDashboard() {
         <button
           onClick={() => void loadTelemetry()}
           disabled={loading}
-          className="text-base font-extrabold text-blue-600 disabled:opacity-50"
+          className="rounded-xl px-3 py-2 text-base font-extrabold text-blue-600 transition active:scale-95 hover:bg-blue-50 disabled:opacity-50"
         >
           {loading ? 'جاري التحديث…' : 'تحديث الآن'}
         </button>
