@@ -106,9 +106,7 @@ export function useSmartEnergy() {
         const points: HourlySolarPoint[] = indexes.map(({ time, i }) => {
           const irradiance = hourly.shortwave_radiation?.[i] ?? 0;
           const solarKWh = estimateSolarKWh(irradiance, panelCapacityKw);
-          projectedSoc = batteryTiming.sunriseSoc;
-
-        return {
+          return {
             time,
             irradianceWm2: irradiance,
             weatherCode: hourly.weather_code?.[i] ?? 0,
@@ -119,13 +117,23 @@ export function useSmartEnergy() {
         });
 
         const productionKWh = points.reduce((sum, point) => sum + point.solarKWh, 0);
-        const maxBatteryCharge = Math.max(0, (100 - batterySoc) / 100 * batteryCapacityWh / 1000);
+        const maxBatteryCharge = Math.max(0, (100 - projectedSoc) / 100 * batteryCapacityWh / 1000);
         const homeKWh = Math.min(dailyHomeKWh, productionKWh);
         const split = splitEnergy(productionKWh, homeKWh, Math.min(maxBatteryCharge, productionKWh));
         const confidence = weatherConfidence(
           points.map((p) => p.weatherCode),
           points.map((p) => p.precipitationProbability),
         );
+        const batteryTiming = calculateBatteryTiming({
+          soc: projectedSoc,
+          capacityWh: batteryCapacityWh,
+          loadW: currentLoadW,
+          hourly: points,
+          sunrise: daily.sunrise?.[dayIndex],
+          sunset: daily.sunset?.[dayIndex],
+        });
+
+        projectedSoc = batteryTiming.sunriseSoc;
 
         return {
           date,
