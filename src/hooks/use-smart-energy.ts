@@ -13,6 +13,8 @@ type WeatherResponse = {
     cloud_cover?: number[];
     weather_code?: number[];
     shortwave_radiation?: number[];
+    direct_radiation?: number[];
+    diffuse_radiation?: number[];
   };
   daily?: {
     time?: string[];
@@ -63,17 +65,19 @@ export function useSmartEnergy() {
 
     try {
       const panelCapacityKw = readNumber("shamsak_panel_capacity", 6);
+      const latitude = readNumber("shamsak_latitude", DEFAULT_LAT);
+      const longitude = readNumber("shamsak_longitude", DEFAULT_LON);
       const batteryCapacityWh = readNumber("shamsak_battery_capacity", 4800);
 
       const telemetryPromise = fetch("/api/telemetry", { cache: "no-store" });
       const weatherUrl = new URL("https://api.open-meteo.com/v1/forecast");
-      weatherUrl.searchParams.set("latitude", String(DEFAULT_LAT));
-      weatherUrl.searchParams.set("longitude", String(DEFAULT_LON));
+      weatherUrl.searchParams.set("latitude", String(latitude));
+      weatherUrl.searchParams.set("longitude", String(longitude));
       weatherUrl.searchParams.set("timezone", DEFAULT_TIMEZONE);
       weatherUrl.searchParams.set("forecast_days", "4");
       weatherUrl.searchParams.set("current", "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,is_day");
       weatherUrl.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset");
-      weatherUrl.searchParams.set("hourly", "temperature_2m,precipitation_probability,precipitation,cloud_cover,weather_code,shortwave_radiation");
+      weatherUrl.searchParams.set("hourly", "temperature_2m,precipitation_probability,precipitation,cloud_cover,weather_code,shortwave_radiation,direct_radiation,diffuse_radiation");
 
       const [telemetryResponse, weatherResponse] = await Promise.all([
         telemetryPromise,
@@ -112,6 +116,8 @@ export function useSmartEnergy() {
             precipitationProbability: hourly.precipitation_probability?.[i] ?? 0,
             solarKWh,
             surplusKWh: Math.max(0, solarKWh - currentLoadW / 1000),
+            directRadiationWm2: hourly.direct_radiation?.[i] ?? 0,
+            diffuseRadiationWm2: hourly.diffuse_radiation?.[i] ?? 0,
           };
         });
 
@@ -139,6 +145,8 @@ export function useSmartEnergy() {
           surplusKWh: Math.round(split.surplus * 10) / 10,
           confidence,
           hourly: points,
+          chargeAtSunsetPct: Math.round(Math.min(100, batterySoc + (split.battery / Math.max(batteryCapacityWh / 1000, 0.001)) * 100)),
+          fullChargeTime: points.find((point) => point.time <= (daily.sunset?.[dayIndex] ?? "") && point.irradianceWm2 > 200)?.time ?? null,
         };
       });
 
