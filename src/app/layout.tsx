@@ -42,13 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   {label}
                 </a>
               ))}
-              <a href="/settings" className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
-                الإعدادات
-              </a>
             </nav>
-            <a href="/settings" className="rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 md:hidden">
-              الإعدادات
-            </a>
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-6 md:py-6 safe-bottom">{children}</main>
