@@ -46,10 +46,10 @@ export function SmartForecast() {
           <button
             type="button"
             onClick={() => void handleRefreshForecast()}
-            disabled={isRefreshing}
+            disabled={loading || isRefreshing}
             className="inline-flex min-w-24 items-center justify-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-base font-extrabold text-blue-700 transition active:scale-95 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isRefreshing ? (
+            {loading || isRefreshing ? (
               <>
                 <Loader2 size={17} className="animate-spin" aria-hidden="true" />
                 جاري التحديث...
