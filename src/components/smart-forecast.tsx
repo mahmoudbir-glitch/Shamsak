@@ -61,6 +61,7 @@ export function SmartForecast() {
         </div>
 
         {current && (
+          <>
           <div className="mt-5 grid grid-cols-2 gap-3">
             <div className="rounded-xl bg-sky-50 p-4">
               <span className="text-base font-semibold text-slate-500">الطقس الآن</span>
@@ -75,6 +76,7 @@ export function SmartForecast() {
             <div className="rounded-xl bg-orange-50 p-4"><span className="text-sm font-semibold text-slate-500">الإشعاع الآن</span><strong className="mt-1 block text-xl font-black text-orange-700">{Math.round(forecasts[0]?.hourly.find((p) => p.time <= new Date().toISOString().slice(0,13))?.irradianceWm2 ?? 0)} W/m²</strong></div>
             <div className="rounded-xl bg-emerald-50 p-4"><span className="text-sm font-semibold text-slate-500">حالة البيانات</span><strong className="mt-1 block text-xl font-black text-emerald-700">حيّة</strong></div>
           </div>
+          </>
         )}
 
         {error && (
