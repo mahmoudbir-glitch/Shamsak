@@ -67,14 +67,8 @@ export default function SolarDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 p-4 pb-24 text-right relative overflow-x-hidden" dir="rtl">
-      <div className="flex justify-between items-center bg-white border border-slate-100 p-4 rounded-2xl shadow-sm mb-4 relative z-20">
+      <div className="flex items-center bg-white border border-slate-100 p-4 rounded-2xl shadow-sm mb-4 relative z-20">
         <h1 className="text-base font-black text-amber-500">شمسك ☀️</h1>
-        <button
-          onClick={() => window.location.href = '/settings'}
-          className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-xl font-bold border border-slate-200"
-        >
-          الإعدادات
-        </button>
       </div>
 
       <div className="mb-4">
@@ -150,14 +144,6 @@ export default function SolarDashboard() {
             </p>
           </div>
         )}
-      </div>
-
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around py-3 text-[10px] text-slate-400 z-50 rounded-t-2xl shadow-md">
-        <div className="text-amber-500 font-bold" onClick={() => window.location.href = '/'}>📊 الرئيسية</div>
-        <div className="opacity-60" onClick={() => window.location.href = '/home'}>🏠 المنزل</div>
-        <div className="opacity-60" onClick={() => window.location.href = '/battery'}>🔋 البطارية</div>
-        <div className="opacity-60" onClick={() => window.location.href = '/energy'}>☀️ الطاقة</div>
-        <div className="opacity-60" onClick={() => window.location.href = '/money'}>💰 المال</div>
       </div>
     </div>
   );
