@@ -5,6 +5,8 @@ export type HourlySolarPoint = {
   precipitationProbability: number;
   solarKWh: number;
   surplusKWh: number;
+  directRadiationWm2?: number;
+  diffuseRadiationWm2?: number;
 };
 
 export type DayForecast = {
@@ -22,6 +24,8 @@ export type DayForecast = {
   surplusKWh: number;
   confidence: "عالية" | "متوسطة" | "منخفضة";
   hourly: HourlySolarPoint[];
+  chargeAtSunsetPct: number;
+  fullChargeTime: string | null;
 };
 
 export type AutonomyResult = {
