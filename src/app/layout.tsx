@@ -30,8 +30,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ar" dir="rtl">
       <body className="min-h-screen w-full text-slate-900 antialiased">
-        <main className="min-h-screen w-full max-w-2xl mx-auto px-4 py-6 safe-bottom">{children}</main>
-        <BottomNav />
+        <div className="min-h-screen w-full animate-dynamic-bg flex flex-col">
+          <main className="min-h-screen w-full max-w-2xl mx-auto px-4 py-6 safe-bottom flex-1">{children}</main>
+          <BottomNav />
+        </div>
       </body>
     </html>
   );
