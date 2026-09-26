@@ -158,6 +158,17 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             className={gridImporting || gridExporting ? 'energy-flow-path' : ''}
           />
 
+          <path
+            d="M 220 200 C 246 200 276 200 306 200"
+            pathLength="100"
+            stroke="#3B82F6"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            opacity={homeActive ? 1 : 0.18}
+            markerEnd="url(#arrow-blue)"
+            className={homeActive ? 'energy-flow-path' : ''}
+          />
+
           <circle cx="200" cy="200" r="28" fill="white" stroke="#E2E8F0" strokeWidth="1.5" />
           <circle cx="200" cy="200" r="20" fill="#FFFBEB" />
         </svg>
