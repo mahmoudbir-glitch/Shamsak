@@ -1,9 +1,13 @@
 import { NextRequest,NextResponse } from "next/server";
 import { COOKIE_NAME,verifySessionToken } from "@/lib/auth-session";
 
+function configuredUsername(){
+  return process.env.SHAMSAK_USER || process.env.SHAMSAK_USERNAME;
+}
+
 function authConfigured(){
   return Boolean(
-    process.env.SHAMSAK_USER &&
+    configuredUsername() &&
     (process.env.SHAMSAK_PASSWORD || process.env.SHAMSAK_PASSWORD_HASH) &&
     process.env.AUTH_SECRET
   );
