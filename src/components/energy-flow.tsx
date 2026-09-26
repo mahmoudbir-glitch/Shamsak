@@ -1,37 +1,46 @@
 import React from 'react';
 
 interface EnergyFlowProps {
-  solarKw?: number;
-  homeKw?: number;
-  gridKw?: number;
-  batteryKw?: number;
-  batteryPercentage?: number;
+  solarKw: number;
+  homeKw: number;
+  gridKw: number;
+  batteryKw: number;
+  batteryPercentage: number;
+  isLive?: boolean;
+  lastUpdated?: string;
 }
 
 export const EnergyFlow: React.FC<EnergyFlowProps> = ({
-  solarKw = 5.83,
-  homeKw = 1.30,
-  gridKw = 0.45,
-  batteryKw = 4.98,
-  batteryPercentage = 78,
+  solarKw,
+  homeKw,
+  gridKw,
+  batteryKw,
+  batteryPercentage,
+  isLive = false,
+  lastUpdated,
 }) => {
   return (
     <div className="w-full max-w-md mx-auto p-4 bg-white rounded-2xl shadow-sm border border-gray-100">
-      {/* Header Tags */}
       <div className="flex justify-between items-center mb-6">
         <span className="px-3 py-1 bg-green-50 text-green-600 text-xs font-semibold rounded-full flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
           حالة النظام الآن
         </span>
-        <span className="px-3 py-1 bg-amber-50 text-amber-600 text-xs font-bold rounded-md">
-          DEMO
+
+        <span
+          className={`px-3 py-1 text-xs font-bold rounded-md border transition-colors ${
+            isLive
+              ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+              : 'bg-amber-50 text-amber-600 border-amber-200'
+          }`}
+          aria-live="polite"
+        >
+          {isLive ? '● مباشر' : 'غير متصل'}
         </span>
       </div>
 
-      {/* Main Circular Diagram Container */}
       <div className="relative w-64 h-64 mx-auto my-4 flex items-center justify-center">
-        {/* SVG Dashed/Dotted Connecting Ring */}
-        <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+        <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100" aria-hidden="true">
           <circle
             cx="50"
             cy="50"
@@ -43,51 +52,65 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           />
         </svg>
 
-        {/* ⚡ CENTER LIGHTNING BADGE (Centered) */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white rounded-full shadow-md flex items-center justify-center border border-gray-100">
-          <span className="text-amber-500 text-lg">⚡</span>
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white rounded-full shadow-md flex items-center justify-center border border-gray-100"
+          aria-label="مركز تدفق الطاقة"
+        >
+          <span className="text-amber-500 text-lg" aria-hidden="true">⚡</span>
         </div>
 
-        {/* 1. TOP NODE: SOLAR */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center">
           <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center shadow-sm mb-1">
-            <span className="text-xl">☀️</span>
+            <span className="text-xl" aria-hidden="true">☀️</span>
           </div>
           <span className="text-[10px] font-bold text-gray-400 tracking-wider">SOLAR</span>
-          <span className="text-xs font-black text-amber-600">kW {solarKw}</span>
+          <span className="text-xs font-black text-amber-600">kW {solarKw.toFixed(2)}</span>
           <span className="text-[9px] text-gray-400">إنتاج حالي</span>
         </div>
 
-        {/* 2. RIGHT NODE: GRID */}
         <div className="absolute right-0 top-1/2 -translate-y-1/2 z-10 flex flex-col items-center">
           <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shadow-sm mb-1">
-            <span className="text-lg">📶</span>
+            <span className="text-lg" aria-hidden="true">📶</span>
           </div>
           <span className="text-[10px] font-bold text-gray-400 tracking-wider">GRID STATUS</span>
-          <span className="text-xs font-black text-purple-600">kW {gridKw}</span>
-          <span className="text-[9px] text-gray-400">تصدير إلى الشبكة</span>
+          <span className="text-xs font-black text-purple-600">kW {Math.abs(gridKw).toFixed(2)}</span>
+          <span className="text-[9px] text-gray-400">
+            {gridKw < -0.05 ? 'تصدير إلى الشبكة' : gridKw > 0.05 ? 'سحب من الشبكة' : 'متوازنة'}
+          </span>
         </div>
 
-        {/* 3. BOTTOM NODE: BATTERY */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center">
           <div className="w-12 h-12 rounded-full border-4 border-emerald-400 bg-white flex items-center justify-center shadow-sm mb-1">
-            <span className="text-xs font-bold text-gray-700">{batteryPercentage}%</span>
+            <span className="text-xs font-bold text-gray-700">{batteryPercentage.toFixed(0)}%</span>
           </div>
           <span className="text-[10px] font-bold text-gray-400 tracking-wider">BATTERY STATUS</span>
-          <span className="text-xs font-black text-emerald-600">kW {batteryKw}</span>
-          <span className="text-[9px] text-gray-400">شحن</span>
+          <span className="text-xs font-black text-emerald-600">kW {Math.abs(batteryKw).toFixed(2)}</span>
+          <span className="text-[9px] text-gray-400">
+            {batteryKw > 0.05 ? 'شحن' : batteryKw < -0.05 ? 'تفريغ' : 'ثابتة'}
+          </span>
         </div>
 
-        {/* 4. LEFT NODE: HOME */}
         <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10 flex flex-col items-center">
           <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center shadow-sm mb-1">
-            <span className="text-lg">🏠</span>
+            <span className="text-lg" aria-hidden="true">🏠</span>
           </div>
           <span className="text-[10px] font-bold text-gray-400 tracking-wider">HOME CONSUMPTION</span>
-          <span className="text-xs font-black text-blue-600">kW {homeKw}</span>
+          <span className="text-xs font-black text-blue-600">kW {homeKw.toFixed(2)}</span>
           <span className="text-[9px] text-gray-400">استهلاك حالي</span>
         </div>
       </div>
+
+      {!isLive && (
+        <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-center text-xs font-bold text-amber-800">
+          ⚠️ لا توجد قراءة حية متاحة حاليًا. تحقّق من اتصال الإنفرتر وإرسال بيانات القياس.
+        </div>
+      )}
+
+      {lastUpdated && (
+        <div className="mt-3 text-center text-[10px] text-slate-400">
+          آخر قراءة: {lastUpdated}
+        </div>
+      )}
     </div>
   );
 };
