@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { EnergySnapshot } from "@/lib/energy";
-import { estimateSolarKWh, splitEnergy, weatherConfidence, type DayForecast, type HourlySolarPoint } from "@/lib/smart-forecast";
+import { estimateSolarKWh, weatherConfidence, type DayForecast, type HourlySolarPoint } from "@/lib/smart-forecast";
 
 type WeatherResponse = {
   hourly?: {
@@ -39,6 +39,7 @@ type WeatherResponse = {
 const DEFAULT_LAT = 33.8938;
 const DEFAULT_LON = 35.5018;
 const DEFAULT_TIMEZONE = "Asia/Beirut";
+const SAFETY_RESERVE = 10;
 
 function readNumber(key: string, fallback: number) {
   if (typeof window === "undefined") return fallback;
@@ -46,8 +47,20 @@ function readNumber(key: string, fallback: number) {
   return Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
-function dayLabel(index: number) {
-  return index === 0 ? "اليوم" : index === 1 ? "غداً" : index === 2 ? "بعد غد" : "اليوم التالي";
+function dayLabel(index: number, date: string) {
+  if (index === 0) return "اليوم";
+  if (index === 1) return "غداً";
+  if (index === 2) return "بعد غد";
+  return new Intl.DateTimeFormat("ar-LB", {
+    timeZone: DEFAULT_TIMEZONE,
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+  }).format(new Date(date + "T12:00:00"));
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }
 
 export function useSmartEnergy() {
@@ -74,10 +87,19 @@ export function useSmartEnergy() {
       weatherUrl.searchParams.set("latitude", String(latitude));
       weatherUrl.searchParams.set("longitude", String(longitude));
       weatherUrl.searchParams.set("timezone", DEFAULT_TIMEZONE);
-      weatherUrl.searchParams.set("forecast_days", "4");
-      weatherUrl.searchParams.set("current", "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,is_day");
-      weatherUrl.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset");
-      weatherUrl.searchParams.set("hourly", "temperature_2m,precipitation_probability,precipitation,cloud_cover,weather_code,shortwave_radiation,direct_radiation,diffuse_radiation");
+      weatherUrl.searchParams.set("forecast_days", "7");
+      weatherUrl.searchParams.set(
+        "current",
+        "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,is_day",
+      );
+      weatherUrl.searchParams.set(
+        "daily",
+        "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset",
+      );
+      weatherUrl.searchParams.set(
+        "hourly",
+        "temperature_2m,precipitation_probability,precipitation,cloud_cover,weather_code,shortwave_radiation,direct_radiation,diffuse_radiation",
+      );
 
       const [telemetryResponse, weatherResponse] = await Promise.all([
         telemetryPromise,
@@ -100,11 +122,11 @@ export function useSmartEnergy() {
         throw new Error("forecast_empty");
       }
 
-      const currentLoadW = Math.max(0, nextSnapshot?.homePowerW ?? snapshotRef.current?.homePowerW ?? 1200);
-      const dailyHomeKWh = (currentLoadW / 1000) * 24;
-      const batterySoc = nextSnapshot?.batterySoc ?? snapshotRef.current?.batterySoc ?? 50;
+      const currentLoadW = Math.max(0, nextSnapshot?.homePowerW ?? snapshotRef.current?.homePowerW ?? 0);
+      const initialSoc = clamp(nextSnapshot?.batterySoc ?? snapshotRef.current?.batterySoc ?? 50, 0, 100);
+      let modeledBatteryWh = batteryCapacityWh * initialSoc / 100;
 
-      const nextForecasts = daily.time.slice(0, 3).map((date, dayIndex) => {
+      const nextForecasts = daily.time.slice(0, 7).map((date, dayIndex) => {
         const indexes = hourly.time!.map((time, i) => ({ time, i })).filter(({ time }) => time.startsWith(date));
         const points: HourlySolarPoint[] = indexes.map(({ time, i }) => {
           const irradiance = hourly.shortwave_radiation?.[i] ?? 0;
@@ -115,16 +137,62 @@ export function useSmartEnergy() {
             weatherCode: hourly.weather_code?.[i] ?? 0,
             precipitationProbability: hourly.precipitation_probability?.[i] ?? 0,
             solarKWh,
-            surplusKWh: Math.max(0, solarKWh - currentLoadW / 1000),
+            surplusKWh: 0,
             directRadiationWm2: hourly.direct_radiation?.[i] ?? 0,
             diffuseRadiationWm2: hourly.diffuse_radiation?.[i] ?? 0,
           };
         });
 
-        const productionKWh = points.reduce((sum, point) => sum + point.solarKWh, 0);
-        const maxBatteryCharge = Math.max(0, (100 - batterySoc) / 100 * batteryCapacityWh / 1000);
-        const homeKWh = Math.min(dailyHomeKWh, productionKWh);
-        const split = splitEnergy(productionKWh, homeKWh, Math.min(maxBatteryCharge, productionKWh));
+        let directHomeKWh = 0;
+        let batteryChargeKWh = 0;
+        let surplusKWh = 0;
+        let dayStartSoc = modeledBatteryWh / batteryCapacityWh * 100;
+        let sunsetSoc = dayStartSoc;
+        let sunriseSoc = dayStartSoc;
+        let fullChargeTime: string | null = null;
+        const sunrise = daily.sunrise?.[dayIndex] ?? "";
+        const sunset = daily.sunset?.[dayIndex] ?? "";
+
+        for (const point of points) {
+          const homeKWh = currentLoadW / 1000;
+          const directHome = Math.min(homeKWh, point.solarKWh);
+          const netSolarAfterHome = Math.max(0, point.solarKWh - directHome);
+          const batteryCanTake = Math.max(0, batteryCapacityWh - modeledBatteryWh) / 1000;
+          const charge = Math.min(netSolarAfterHome, batteryCanTake);
+          const remaining = Math.max(0, netSolarAfterHome - charge);
+
+          directHomeKWh += directHome;
+          batteryChargeKWh += charge;
+          surplusKWh += remaining;
+          point.surplusKWh = Math.round(remaining * 100) / 100;
+
+          if (point.solarKWh < homeKWh) {
+            const deficitWh = (homeKWh - point.solarKWh) * 1000;
+            const usableWh = Math.max(0, modeledBatteryWh - batteryCapacityWh * SAFETY_RESERVE / 100);
+            modeledBatteryWh -= Math.min(deficitWh, usableWh);
+          }
+
+          modeledBatteryWh = clamp(modeledBatteryWh + charge * 1000, batteryCapacityWh * SAFETY_RESERVE / 100, batteryCapacityWh);
+
+          if (sunrise && point.time >= sunrise && sunriseSoc === dayStartSoc) {
+            sunriseSoc = modeledBatteryWh / batteryCapacityWh * 100;
+          }
+          if (sunset && point.time <= sunset) {
+            sunsetSoc = modeledBatteryWh / batteryCapacityWh * 100;
+          }
+          if (!fullChargeTime && modeledBatteryWh >= batteryCapacityWh * 0.995 && point.time <= sunset) {
+            fullChargeTime = point.time;
+          }
+        }
+
+        if (sunrise && points[0]?.time >= sunrise) {
+          sunriseSoc = dayStartSoc;
+        }
+
+        const total = Math.max(0.001, directHomeKWh + batteryChargeKWh + surplusKWh);
+        const batteryPct = Math.round(batteryChargeKWh / total * 100);
+        const homePct = Math.round(directHomeKWh / total * 100);
+        const surplusPct = Math.max(0, 100 - batteryPct - homePct);
         const confidence = weatherConfidence(
           points.map((p) => p.weatherCode),
           points.map((p) => p.precipitationProbability),
@@ -132,21 +200,24 @@ export function useSmartEnergy() {
 
         return {
           date,
-          label: dayLabel(dayIndex),
+          label: dayLabel(dayIndex, date),
           weatherCode: daily.weather_code?.[dayIndex] ?? 0,
           tempMax: daily.temperature_2m_max?.[dayIndex] ?? 0,
           tempMin: daily.temperature_2m_min?.[dayIndex] ?? 0,
-          sunrise: daily.sunrise?.[dayIndex] ?? "",
-          sunset: daily.sunset?.[dayIndex] ?? "",
-          productionKWh: Math.round(productionKWh * 10) / 10,
-          batteryPct: split.batteryPct,
-          homePct: split.homePct,
-          surplusPct: split.surplusPct,
-          surplusKWh: Math.round(split.surplus * 10) / 10,
+          sunrise,
+          sunset,
+          productionKWh: Math.round(points.reduce((sum, point) => sum + point.solarKWh, 0) * 10) / 10,
+          batteryPct,
+          homePct,
+          surplusPct,
+          batteryKWh: Math.round(batteryChargeKWh * 10) / 10,
+          homeKWh: Math.round(directHomeKWh * 10) / 10,
+          surplusKWh: Math.round(surplusKWh * 10) / 10,
           confidence,
           hourly: points,
-          chargeAtSunsetPct: Math.round(Math.min(100, batterySoc + (split.battery / Math.max(batteryCapacityWh / 1000, 0.001)) * 100)),
-          fullChargeTime: points.find((point) => point.time <= (daily.sunset?.[dayIndex] ?? "") && point.irradianceWm2 > 200)?.time ?? null,
+          chargeAtSunsetPct: Math.round(clamp(sunsetSoc, 0, 100)),
+          chargeAtSunrisePct: Math.round(clamp(sunriseSoc, 0, 100)),
+          fullChargeTime,
         };
       });
 
