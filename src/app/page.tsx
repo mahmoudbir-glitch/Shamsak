@@ -1,124 +1,110 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { SolarHero } from '@/components/solar-hero';
+import { demoSnapshot, type EnergySnapshot } from '@/lib/energy';
 import { supabase } from '@/lib/supabaseClient';
 
-// تعريف البنية الدقيقة للبيانات لمنع أخطاء التايب سكريبت
-interface InverterData {
-  solar_kw: number;
-  home_kw: number;
-  battery_kw: number;
-  battery_soc: number;
-  grid_kw: number;
-  battery_voltage: number;
+function toFiniteNumber(value: unknown, fallback = 0) {
+  const number = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function snapshotFromRow(row: Record<string, unknown>): EnergySnapshot {
+  return {
+    timestamp: typeof row.created_at === 'string' ? row.created_at : new Date().toISOString(),
+    solarPowerW: Math.max(0, toFiniteNumber(row.solar_kw) * 1000),
+    homePowerW: Math.max(0, toFiniteNumber(row.home_kw) * 1000),
+    gridPowerW: toFiniteNumber(row.grid_kw) * 1000,
+    batteryPowerW: toFiniteNumber(row.battery_kw) * 1000,
+    batterySoc: Math.min(100, Math.max(0, toFiniteNumber(row.battery_soc))),
+    batteryVoltage: Math.max(0, toFiniteNumber(row.battery_voltage)),
+    batteryCurrent: row.battery_current == null ? undefined : toFiniteNumber(row.battery_current),
+    batteryTemperature: row.battery_temperature == null ? undefined : toFiniteNumber(row.battery_temperature),
+    gridConnected: row.grid_connected !== false,
+    source: 'live',
+  };
 }
 
 export default function HomeDashboard() {
-  const [energyData, setEnergyData] = useState<InverterData>({
-    solar_kw: 0.00,
-    home_kw: 0.00,
-    battery_kw: 0.00,
-    battery_soc: 0,
-    grid_kw: 0.00,
-    battery_voltage: 0.0
-  });
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<EnergySnapshot | null>(null);
 
   useEffect(() => {
-    const fetchLatestReading = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('inverter_readings')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(1);
+    let mounted = true;
 
-        if (data && data.length > 0) {
-          setEnergyData(data[0] as InverterData);
-        }
-      } catch (err) {
-        console.error("خطأ أثناء جلب القراءات الأولية:", err);
-      } finally {
-        setLoading(false);
+    async function loadLatest() {
+      const { data: rows, error } = await supabase
+        .from('inverter_readings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (!mounted) return;
+
+      if (!error && rows?.[0]) {
+        setData(snapshotFromRow(rows[0] as Record<string, unknown>));
+      } else {
+        // Demo is explicit; it is never presented as a live device connection.
+        setData({ ...demoSnapshot, timestamp: new Date().toISOString(), source: 'demo' });
       }
-    };
+    }
 
-    fetchLatestReading();
+    void loadLatest();
 
-    // ربط البث اللحظي مع تحديد نوع الـ payload لتفادي خطأ typescript بالكامل
     const channel = supabase
       .channel('live-inverter-data')
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'inverter_readings' }, 
-        (payload: { new: Record<string, any> }) => {
-          if (payload.new) {
-            setEnergyData({
-              solar_kw: Number(payload.new.solar_kw || 0),
-              home_kw: Number(payload.new.home_kw || 0),
-              battery_kw: Number(payload.new.battery_kw || 0),
-              battery_soc: Number(payload.new.battery_soc || 0),
-              grid_kw: Number(payload.new.grid_kw || 0),
-              battery_voltage: Number(payload.new.battery_voltage || 0),
-            });
-          }
-        }
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'inverter_readings' },
+        (payload) => {
+          if (!mounted || !payload.new) return;
+          setData(snapshotFromRow(payload.new as Record<string, unknown>));
+        },
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      mounted = false;
+      void supabase.removeChannel(channel);
     };
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-slate-50 text-slate-700">
-        <p className="text-xl font-bold animate-pulse">جاري الاتصال بمنظومة شمسك الحية...</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white text-slate-800 p-6 flex flex-col items-center">
-      <header className="w-full max-w-md flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-black text-blue-600">شمسك ☀️</h1>
-        <div className="flex items-center space-x-2">
-          <span className="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full font-bold">● حي الآن</span>
-        </div>
-      </header>
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <main className="mx-auto w-full max-w-6xl space-y-5 p-3 pb-28 sm:p-6">
+        <header className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold text-slate-400">لوحة الطاقة المنزلية</p>
+            <h1 className="text-2xl font-black text-blue-600">شمسك ☀️</h1>
+          </div>
+          {data && (
+            <span className={`rounded-full border px-3 py-1.5 text-xs font-black ${
+              data.source === 'live'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                : 'border-amber-200 bg-amber-50 text-amber-700'
+            }`}>
+              {data.source === 'live' ? 'LIVE' : 'DEMO'}
+            </span>
+          )}
+        </header>
 
-      <main className="w-full max-w-md space-y-6">
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col items-center justify-center">
-          <span className="text-sm font-medium text-slate-500 mb-1">حالة مخزون الطاقة</span>
-          <div className="text-6xl font-black text-slate-800 tracking-tight mb-2">
-            {energyData.battery_soc}%
-          </div>
-          <div className="text-sm text-blue-600 font-bold bg-blue-50 px-4 py-1 rounded-full">
-            {energyData.battery_voltage} فولت
-          </div>
-        </div>
+        <SolarHero data={data} />
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-            <div className="text-xs font-semibold text-slate-400 mb-1">إنتاج الخلايا الشمسية</div>
-            <div className="text-2xl font-black text-amber-500">{energyData.solar_kw} kW</div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-            <div className="text-xs font-semibold text-slate-400 mb-1">حمولة المنزل الحالية</div>
-            <div className="text-2xl font-black text-red-500">{energyData.home_kw} kW</div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-            <div className="text-xs font-semibold text-slate-400 mb-1">قدرة شحن البطارية</div>
-            <div className="text-2xl font-black text-blue-500">{energyData.battery_kw} kW</div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-            <div className="text-xs font-semibold text-slate-400 mb-1">الشبكة العامة</div>
-            <div className="text-2xl font-black text-teal-600">{energyData.grid_kw} kW</div>
-          </div>
-        </div>
+        {data && (
+          <section className="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="ملخص الطاقة">
+            {[
+              ['الشمس', `${(data.solarPowerW / 1000).toFixed(2)} kW`],
+              ['المنزل', `${(data.homePowerW / 1000).toFixed(2)} kW`],
+              ['البطارية', `${Math.round(data.batterySoc)}%`],
+              ['الجهد', data.batteryVoltage == null ? '—' : `${data.batteryVoltage.toFixed(1)} V`],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                <p className="text-xs font-bold text-slate-400">{label}</p>
+                <p className="mt-1 text-xl font-black text-slate-800">{value}</p>
+              </div>
+            ))}
+          </section>
+        )}
       </main>
     </div>
   );
