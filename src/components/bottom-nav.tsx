@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, House, BatteryCharging, Sun, WalletCards, Settings } from 'lucide-react';
+import { Home, House, BatteryCharging, Sun, WalletCards } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 const items = [
@@ -10,7 +10,6 @@ const items = [
   { href: '/battery', label: 'البطارية', Icon: BatteryCharging },
   { href: '/energy-forecast', label: 'الطاقة', Icon: Sun },
   { href: '/savings', label: 'المال', Icon: WalletCards },
-  { href: '/settings', label: 'الإعدادات', Icon: Settings },
 ];
 
 export function BottomNav() {
@@ -23,7 +22,7 @@ export function BottomNav() {
       aria-label="التنقل السفلي"
       className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden"
     >
-      <div className="mx-auto grid max-w-lg grid-cols-6 gap-1">
+      <div className="mx-auto grid max-w-lg grid-cols-5 gap-1">
         {items.map(({ href, label, Icon }) => {
           const aliases: Record<string, string[]> = {
             "/home-consumption": ["/home-consumption", "/home"],
