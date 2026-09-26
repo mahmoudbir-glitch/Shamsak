@@ -25,6 +25,38 @@ export function SurplusRecommendations() {
   if (current) windows.push(current);
 
   const best = windows.sort((a, b) => b.kwh - a.kwh)[0];
+  const recommendations = [
+    {
+      id: "washing_machine",
+      title: "تشغيل الغسالة",
+      description: "يفضل تشغيله خلال نافذة الفائض.",
+      minSurplusKwh: 0.5,
+    },
+    {
+      id: "water_pump",
+      title: "تشغيل مضخة المياه",
+      description: "يفضل تشغيله خلال نافذة الفائض.",
+      minSurplusKwh: 0.8,
+    },
+    {
+      id: "water_heater",
+      title: "تشغيل سخان الماء",
+      description: "يفضل تشغيله خلال نافذة الفائض.",
+      minSurplusKwh: 1.5,
+    },
+    {
+      id: "air_conditioner",
+      title: "تشغيل المكيف",
+      description: "يفضل تشغيله خلال نافذة الفائض.",
+      minSurplusKwh: 1.0,
+    },
+    {
+      id: "ev_charger",
+      title: "شحن السيارة الكهربائية",
+      description: "يفضل تشغيله خلال نافذة الفائض.",
+      minSurplusKwh: 3.0,
+    },
+  ];
 
   return (
     <section dir="rtl" className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
