@@ -35,14 +35,19 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   isLive = false,
   lastUpdated,
 }) => {
-  const solarActive = solarKw > FLOW_THRESHOLD;
-  const homeActive = homeKw > FLOW_THRESHOLD;
-  const batteryCharging = batteryKw > FLOW_THRESHOLD;
-  const batteryDischarging = batteryKw < -FLOW_THRESHOLD;
-  const gridImporting = gridConnected && gridKw > FLOW_THRESHOLD;
-  const gridExporting = gridConnected && gridKw < -FLOW_THRESHOLD;
+  const measuredPowers = [solarKw, homeKw, gridKw, batteryKw];
+  const hasNonZeroLiveReading = measuredPowers.every(Number.isFinite) && measuredPowers.some((value) => Math.abs(value) > FLOW_THRESHOLD);
+  const liveFlowActive = isLive && hasNonZeroLiveReading;
+
+  const solarActive = liveFlowActive && solarKw > FLOW_THRESHOLD;
+  const homeActive = liveFlowActive && homeKw > FLOW_THRESHOLD;
+  const batteryCharging = liveFlowActive && batteryKw > FLOW_THRESHOLD;
+  const batteryDischarging = liveFlowActive && batteryKw < -FLOW_THRESHOLD;
+  const gridImporting = liveFlowActive && gridConnected && gridKw > FLOW_THRESHOLD;
+  const gridExporting = liveFlowActive && gridConnected && gridKw < -FLOW_THRESHOLD;
 
   const solarToHome = solarActive && homeActive;
+  const activeFlowClass = 'energy-flow-path energy-flow-active';
   const solarToBattery = solarActive && batteryCharging;
   const solarToGrid = solarActive && gridExporting;
   const batteryToHome = batteryDischarging && homeActive;
@@ -71,12 +76,14 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           </span>
           <div className="flex items-center gap-2">
             <span className={isLive ? 'rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-700' : 'rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700'}>
-              {isLive ? '● مباشر' : 'غير متصل'}
+              {liveFlowActive ? '● مباشر' : isLive ? '● متصل بلا قراءة' : 'غير متصل'}
             </span>
             <InfoTip label="شرح حالة اتصال الإنفرتر" title="حالة الاتصال">
-              {isLive
-                ? 'مباشر: آخر قراءة وصلت من قناة telemetry الحية.'
-                : 'غير متصل: لا توجد قراءة حية مؤكدة الآن.'}
+              {liveFlowActive
+                ? 'مباشر: توجد قراءة telemetry حية غير صفرية، لذلك يظهر تدفق الطاقة المتحرك.'
+                : isLive
+                  ? 'متصل، لكن قراءات الطاقة الحالية صفرية أو غير صالحة، لذلك تم إيقاف الحركة.'
+                  : 'غير متصل: لا توجد قراءة حية مؤكدة الآن.'}
             </InfoTip>
           </div>
         </div>
@@ -89,12 +96,12 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#3B82F6" /></marker>
             <marker id="arrow-orange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#F59E0B" /></marker>
           </defs>
-          <path d={solarHomePath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={solarToHome ? 1 : 0.18} markerEnd="url(#arrow-green)" className={solarToHome ? 'energy-flow-path' : ''} />
-          <path d={solarBatteryPath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={solarToBattery ? 1 : 0.18} markerEnd="url(#arrow-green)" className={solarToBattery ? 'energy-flow-path' : ''} />
-          <path d={solarGridPath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={solarToGrid ? 1 : 0.18} markerEnd="url(#arrow-green)" className={solarToGrid ? 'energy-flow-path' : ''} />
-          <path d={batteryHomePath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={batteryToHome ? 1 : 0.18} markerEnd="url(#arrow-green)" className={batteryToHome ? 'energy-flow-path' : ''} />
-          <path d={gridHomePath} pathLength="100" stroke="#F59E0B" strokeWidth="3.5" strokeLinecap="round" opacity={gridConnected && (gridImporting || gridExporting) ? 1 : 0.12} markerEnd="url(#arrow-orange)" className={gridConnected && (gridImporting || gridExporting) ? 'energy-flow-path' : ''} />
-          <path d="M 220 200 C 246 200 276 200 306 200" pathLength="100" stroke="#3B82F6" strokeWidth="3.5" strokeLinecap="round" opacity={homeActive ? 1 : 0.18} markerEnd="url(#arrow-blue)" className={homeActive ? 'energy-flow-path' : ''} />
+          <path d={solarHomePath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={solarToHome ? 1 : 0.18} markerEnd="url(#arrow-green)" className={solarToHome ? activeFlowClass : ''} />
+          <path d={solarBatteryPath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={solarToBattery ? 1 : 0.18} markerEnd="url(#arrow-green)" className={solarToBattery ? activeFlowClass : ''} />
+          <path d={solarGridPath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={solarToGrid ? 1 : 0.18} markerEnd="url(#arrow-green)" className={solarToGrid ? activeFlowClass : ''} />
+          <path d={batteryHomePath} pathLength="100" stroke="#10B981" strokeWidth="3.5" strokeLinecap="round" opacity={batteryToHome ? 1 : 0.18} markerEnd="url(#arrow-green)" className={batteryToHome ? activeFlowClass : ''} />
+          <path d={gridHomePath} pathLength="100" stroke="#F59E0B" strokeWidth="3.5" strokeLinecap="round" opacity={gridConnected && (gridImporting || gridExporting) ? 1 : 0.12} markerEnd="url(#arrow-orange)" className={gridConnected && (gridImporting || gridExporting) ? activeFlowClass : ''} />
+          <path d="M 220 200 C 246 200 276 200 306 200" pathLength="100" stroke="#3B82F6" strokeWidth="3.5" strokeLinecap="round" opacity={homeActive ? 1 : 0.18} markerEnd="url(#arrow-blue)" className={homeActive ? activeFlowClass : ''} />
           <circle cx="200" cy="200" r="28" fill="white" stroke="#E2E8F0" strokeWidth="1.5" />
           <circle cx="200" cy="200" r="20" fill="#FFFBEB" />
         </svg>
@@ -116,7 +123,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           <div className={gridConnected ? "text-sm font-black text-emerald-600 sm:text-base" : "text-sm font-black text-slate-500 sm:text-base"}>
             {gridConnected ? "متصلة" : "مقطوعة"}
           </div>
-          <div className="text-[10px] font-bold text-slate-500">{gridConnected ? (gridExporting ? "تصدير" : gridImporting ? "سحب" : "متوازنة") : "لا يوجد تدفق"}</div>
+          <div className="text-[10px] font-bold text-slate-500">{liveFlowActive && gridConnected ? (gridExporting ? "تصدير" : gridImporting ? "سحب" : "متوازنة") : "لا يوجد تدفق"}</div>
         </div>
 
         <div className="absolute right-[3%] top-1/2 z-10 w-[27%] min-w-[88px] -translate-y-1/2 text-center">
@@ -147,7 +154,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
         </div>
       </div>
 
-      {!isLive && <div className="mx-4 mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-center text-xs font-bold text-amber-800 sm:mx-6">⚠️ لا توجد قراءة حية متاحة حاليًا. تحقّق من اتصال الإنفرتر وإرسال بيانات القياس.</div>}
+      {!liveFlowActive && <div className="mx-4 mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-center text-xs font-bold text-amber-800 sm:mx-6">⚠️ لا توجد قراءة حية متاحة حاليًا. تحقّق من اتصال الإنفرتر وإرسال بيانات القياس.</div>}
 
       <div className="border-t border-slate-100 bg-slate-50/70 px-3 py-4 sm:px-5">
         <div className="grid grid-cols-3 divide-x divide-x-reverse divide-slate-200 text-center">
