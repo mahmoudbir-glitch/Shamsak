@@ -53,13 +53,17 @@ export function useSmartEnergy() {
   const [weather, setWeather] = useState<WeatherResponse | null>(null);
   const [forecasts, setForecasts] = useState<DayForecast[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (mode: "initial" | "refresh" = "refresh"): Promise<boolean> => {
+    if (mode === "initial") setLoading(true);
+    else setIsRefreshing(true);
+
     try {
       const panelCapacityKw = readNumber("shamsak_panel_capacity", 6);
       const batteryCapacityWh = readNumber("shamsak_battery_capacity", 4800);
+
       const telemetryPromise = fetch("/api/telemetry", { cache: "no-store" });
       const weatherUrl = new URL("https://api.open-meteo.com/v1/forecast");
       weatherUrl.searchParams.set("latitude", String(DEFAULT_LAT));
@@ -70,21 +74,30 @@ export function useSmartEnergy() {
       weatherUrl.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset");
       weatherUrl.searchParams.set("hourly", "temperature_2m,precipitation_probability,precipitation,cloud_cover,weather_code,shortwave_radiation");
 
-      const [telemetryResponse, weatherResponse] = await Promise.all([telemetryPromise, fetch(weatherUrl.toString(), { cache: "no-store" })]);
-      let nextSnapshot: EnergySnapshot | null = null;
+      const [telemetryResponse, weatherResponse] = await Promise.all([
+        telemetryPromise,
+        fetch(weatherUrl.toString(), { cache: "no-store" }),
+      ]);
+
+      let nextSnapshot: EnergySnapshot | null = snapshot;
       if (telemetryResponse.ok) {
         const data = (await telemetryResponse.json()) as EnergySnapshot;
         if (data.source === "live") nextSnapshot = data;
       }
+
       if (!weatherResponse.ok) throw new Error("weather_unavailable");
+
       const nextWeather = (await weatherResponse.json()) as WeatherResponse;
       const hourly = nextWeather.hourly;
       const daily = nextWeather.daily;
-      if (!hourly?.time?.length || !daily?.time?.length) throw new Error("forecast_empty");
 
-      const currentLoadW = Math.max(0, nextSnapshot?.homePowerW ?? 1200);
+      if (!hourly?.time?.length || !daily?.time?.length) {
+        throw new Error("forecast_empty");
+      }
+
+      const currentLoadW = Math.max(0, nextSnapshot?.homePowerW ?? snapshot?.homePowerW ?? 1200);
       const dailyHomeKWh = (currentLoadW / 1000) * 24;
-      const batterySoc = nextSnapshot?.batterySoc ?? 50;
+      const batterySoc = nextSnapshot?.batterySoc ?? snapshot?.batterySoc ?? 50;
 
       const nextForecasts = daily.time.slice(0, 3).map((date, dayIndex) => {
         const indexes = hourly.time!.map((time, i) => ({ time, i })).filter(({ time }) => time.startsWith(date));
@@ -92,10 +105,12 @@ export function useSmartEnergy() {
           const irradiance = hourly.shortwave_radiation?.[i] ?? 0;
           const solarKWh = estimateSolarKWh(irradiance, panelCapacityKw);
           return {
-            time, irradianceWm2: irradiance,
+            time,
+            irradianceWm2: irradiance,
             weatherCode: hourly.weather_code?.[i] ?? 0,
             precipitationProbability: hourly.precipitation_probability?.[i] ?? 0,
-            solarKWh, surplusKWh: Math.max(0, solarKWh - currentLoadW / 1000),
+            solarKWh,
+            surplusKWh: Math.max(0, solarKWh - currentLoadW / 1000),
           };
         });
 
@@ -103,19 +118,26 @@ export function useSmartEnergy() {
         const maxBatteryCharge = Math.max(0, (100 - batterySoc) / 100 * batteryCapacityWh / 1000);
         const homeKWh = Math.min(dailyHomeKWh, productionKWh);
         const split = splitEnergy(productionKWh, homeKWh, Math.min(maxBatteryCharge, productionKWh));
-        const confidence = weatherConfidence(points.map((p) => p.weatherCode), points.map((p) => p.precipitationProbability));
+        const confidence = weatherConfidence(
+          points.map((p) => p.weatherCode),
+          points.map((p) => p.precipitationProbability),
+        );
 
         return {
-          date, label: dayLabel(dayIndex),
+          date,
+          label: dayLabel(dayIndex),
           weatherCode: daily.weather_code?.[dayIndex] ?? 0,
           tempMax: daily.temperature_2m_max?.[dayIndex] ?? 0,
           tempMin: daily.temperature_2m_min?.[dayIndex] ?? 0,
           sunrise: daily.sunrise?.[dayIndex] ?? "",
           sunset: daily.sunset?.[dayIndex] ?? "",
           productionKWh: Math.round(productionKWh * 10) / 10,
-          batteryPct: split.batteryPct, homePct: split.homePct, surplusPct: split.surplusPct,
+          batteryPct: split.batteryPct,
+          homePct: split.homePct,
+          surplusPct: split.surplusPct,
           surplusKWh: Math.round(split.surplus * 10) / 10,
-          confidence, hourly: points,
+          confidence,
+          hourly: points,
         };
       });
 
@@ -123,18 +145,29 @@ export function useSmartEnergy() {
       setWeather(nextWeather);
       setForecasts(nextForecasts);
       setError(null);
+      return true;
     } catch {
       setError("تعذر تحديث بيانات الطقس والتنبؤ");
+      return false;
     } finally {
-      setLoading(false);
+      if (mode === "initial") setLoading(false);
+      else setIsRefreshing(false);
     }
-  }, []);
+  }, [snapshot]);
 
   useEffect(() => {
-    void load();
-    const timer = window.setInterval(() => void load(), 15 * 60 * 1000);
+    void load("initial");
+    const timer = window.setInterval(() => void load("refresh"), 15 * 60 * 1000);
     return () => window.clearInterval(timer);
   }, [load]);
 
-  return { snapshot, weather, forecasts, loading, error, refresh: load };
+  return {
+    snapshot,
+    weather,
+    forecasts,
+    loading,
+    isRefreshing,
+    error,
+    refresh: () => load("refresh"),
+  };
 }
