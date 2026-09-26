@@ -1,98 +1,111 @@
 "use client";
 
-import React, { useState } from 'react';
+import { useEffect, useMemo, useState } from "react";
+
+type FinanceData = {
+  periodDays: number;
+  totals: {
+    solarKWh: number;
+    homeKWh: number;
+    batteryDischargeKWh: number;
+    gridImportKWh: number;
+    gridExportKWh: number;
+  };
+  sources: {
+    solarPct: number;
+    batteryPct: number;
+    gridPct: number;
+    solarKWh: number;
+    batteryKWh: number;
+    gridKWh: number;
+  };
+};
 
 export default function MoneyDashboard() {
-  // إحصاءات مالية تقديرية مبنية على قيم قراءات واجهة "شمسك" الدائرية
-  const [totalSaved] = useState<number>(6209);       // المبالغ التي وفرها النظام بالليرة (ل.س)
-  const [gridPaid] = useState<number>(221.2);          // المبالغ المدفوعة للشبكة
-  const [estimatedCost] = useState<number>(6430.2); // التكلفة التقديرية التوتال لولا وجود النظام
-  
-  // نسب مصادر الطاقة التقديرية للشهر الحالي الموحدة مع لوحة التحكم
-  const energySources = [
-    { name: "من الشمس مباشرة", percentage: 49, amount: "227.5 ك.و.س", color: "bg-amber-500" },
-    { name: "من البطارية (توليد شمسي مخزن)", percentage: 49, amount: "224.9 ك.و.س", color: "bg-emerald-500" },
-    { name: "من الشبكة الرسمية", percentage: 2, amount: "7.0 ك.و.س", color: "bg-purple-500" }
-  ];
+  const [data, setData] = useState<FinanceData | null>(null);
+  const [tariff, setTariff] = useState(0);
+  const [exportTariff, setExportTariff] = useState(0);
+  const [currency, setCurrency] = useState("ل.س");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setTariff(Number(localStorage.getItem("shamsak_grid_tariff") || 0));
+    setExportTariff(Number(localStorage.getItem("shamsak_export_tariff") || 0));
+    setCurrency(localStorage.getItem("shamsak_currency") || "ل.س");
+    fetch("/api/finance", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("finance_unavailable")))
+      .then((value) => setData(value as FinanceData))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const saved = useMemo(() => {
+    if (!data) return 0;
+    return data.sources.solarKWh * tariff + data.sources.batteryKWh * tariff + data.totals.gridExportKWh * exportTariff;
+  }, [data, tariff, exportTariff]);
+
+  const gridCost = data ? data.totals.gridImportKWh * tariff : 0;
+  const hypotheticalCost = data ? (data.sources.solarKWh + data.sources.batteryKWh + data.totals.gridImportKWh) * tariff : 0;
+
+  const sourceRows = data ? [
+    { name: "من الشمس مباشرة", pct: data.sources.solarPct, kwh: data.sources.solarKWh, color: "bg-amber-500" },
+    { name: "من البطارية", pct: data.sources.batteryPct, kwh: data.sources.batteryKWh, color: "bg-emerald-500" },
+    { name: "من الشبكة", pct: data.sources.gridPct, kwh: data.sources.gridKWh, color: "bg-purple-500" },
+  ] : [];
 
   return (
-    <div className="w-full text-right" dir="rtl">
-      
-      {/* الهيدر العلوي لتبويب المال */}
-      <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm mb-5 border border-slate-100">
-        <h1 className="text-2xl font-extrabold text-slate-800 flex items-center gap-1">
-          ⚡ الطاقة والمال
-        </h1>
-        <div className="text-base bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full font-semibold">
-          تغطية ونسب مستقرة
-        </div>
+    <div className="w-full space-y-5 text-right" dir="rtl">
+      <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+        <h1 className="text-2xl font-black text-slate-900">💰 التحليل المالي ومصادر الكهرباء</h1>
+        <p className="mt-2 text-base font-semibold text-slate-500">بيانات آخر {data?.periodDays ?? 30} يوماً المسجلة في النظام.</p>
       </div>
 
-      {/* الفلتر الزمني السفلي للهيدر */}
-      <div className="grid grid-cols-3 gap-2 bg-slate-200 bg-opacity-60 p-1 rounded-xl mb-6 text-center text-base font-semibold text-slate-600">
-        <div className="py-2 rounded-lg">يوم</div>
-        <div className="py-2 rounded-lg">أسبوع</div>
-        <div className="bg-slate-900 text-white py-2 rounded-lg shadow-sm">شهر</div>
-      </div>
-
-      {/* القسم 1: من أين تأتي كهرباء منزلك؟ */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-4">
-        <h3 className="font-bold text-xl font-black text-slate-700 mb-3 flex items-center gap-1">
-          <span>ℹ️</span> من أين تأتي كهرباء منزلك هذا الشهر؟
-        </h3>
-        
-        {/* شريط النسب المتراكم التفاعلي الملون */}
-        <div className="w-full h-3 rounded-full bg-slate-100 flex overflow-hidden mb-4">
-          <div className="bg-amber-500 h-full" style={{ width: '49%' }}></div>
-          <div className="bg-emerald-500 h-full" style={{ width: '49%' }}></div>
-          <div className="bg-purple-500 h-full" style={{ width: '2%' }}></div>
-        </div>
-
-        {/* تفاصيل مصادر التغذية بالألوان */}
-        <div className="space-y-3">
-          {energySources.map((source, index) => (
-            <div key={index} className="flex justify-between items-center text-xs">
-              <div className="flex items-center gap-2">
-                <span className={`w-3 h-3 rounded-full ${source.color}`}></span>
-                <span className="text-slate-600 font-medium">{source.name}</span>
-              </div>
-              <div className="text-slate-900 font-bold">
-                {source.percentage}% <span className="text-slate-400 font-normal mr-1">({source.amount})</span>
-              </div>
+      <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+        <h2 className="text-xl font-black text-slate-900">⚡ من أين تأتي كهرباء منزلك؟</h2>
+        {loading ? <p className="mt-4 text-base font-bold text-slate-500">جاري تحميل التحليل…</p> : !data ? (
+          <p className="mt-4 rounded-xl bg-slate-50 p-4 text-base font-semibold text-slate-600">لا توجد ملخصات طاقة مسجلة بعد.</p>
+        ) : (
+          <>
+            <div className="mt-5 flex h-5 overflow-hidden rounded-full bg-slate-100">
+              {sourceRows.map((row) => <div key={row.name} className={row.color} style={{ width: String(row.pct) + "%" }} />)}
             </div>
-          ))}
-        </div>
-      </div>
+            <div className="mt-5 space-y-3">
+              {sourceRows.map((row) => (
+                <div key={row.name} className="flex items-center justify-between rounded-xl bg-slate-50 p-4">
+                  <div className="flex items-center gap-3">
+                    <span className={"h-4 w-4 rounded-full " + row.color} />
+                    <span className="text-base font-semibold text-slate-700">{row.name}</span>
+                  </div>
+                  <strong className="text-lg font-extrabold text-slate-900">{row.pct}% • {row.kwh.toFixed(1)} ك.و.س</strong>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
 
-      {/* القسم 2: تفصيل الفاتورة والتوفير المالي للمنظومة */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6">
-        <h3 className="font-bold text-sm text-slate-700 mb-1 flex items-center gap-1">
-          <span>🪙</span> التحليل المالي التقديري
-        </h3>
-        <p className="text-base font-semibold text-slate-500 mb-4 leading-relaxed">
-          لولا نظامك الشمسي المطور لدفعت <span className="font-bold text-slate-700">{estimatedCost.toLocaleString()} ل.س</span> للشبكة.
-        </p>
-
-        <div className="grid grid-cols-2 gap-3">
-          {/* صندوق وفرت بنظامك الأخضر */}
-          <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-xl shadow-inner text-center">
-            <span className="text-xs text-emerald-700 block mb-1">وفرت بنظامك</span>
-            <span className="text-base font-black text-emerald-600">{totalSaved.toLocaleString()} ل.س</span>
+      <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+        <h2 className="text-xl font-black text-slate-900">🪙 حاسبة الوفر المالي</h2>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="rounded-xl bg-slate-50 p-4">
+            <span className="text-base font-semibold text-slate-500">سعر الكيلوواط من الشبكة</span>
+            <strong className="mt-1 block text-xl font-extrabold text-slate-900">{tariff.toLocaleString()} {currency}</strong>
           </div>
-
-          {/* صندوق دفعت للشبكة الأصفر */}
-          <div className="bg-amber-50 border border-amber-100 p-3 rounded-xl shadow-inner text-center">
-            <span className="text-xs text-amber-700 block mb-1">دفعت للشبكة</span>
-            <span className="text-base font-black text-amber-700">{gridPaid.toLocaleString()} ل.س</span>
+          <div className="rounded-xl bg-slate-50 p-4">
+            <span className="text-base font-semibold text-slate-500">تكلفة الشبكة الفعلية</span>
+            <strong className="mt-1 block text-xl font-extrabold text-purple-700">{gridCost.toLocaleString()} {currency}</strong>
+          </div>
+          <div className="rounded-xl bg-emerald-50 p-4">
+            <span className="text-base font-semibold text-emerald-700">وفرت بنظامك</span>
+            <strong className="mt-1 block text-2xl font-black text-emerald-700">{saved.toLocaleString()} {currency}</strong>
+          </div>
+          <div className="rounded-xl bg-amber-50 p-4">
+            <span className="text-base font-semibold text-amber-700">تكلفة افتراضية بلا الشمس</span>
+            <strong className="mt-1 block text-2xl font-black text-amber-700">{hypotheticalCost.toLocaleString()} {currency}</strong>
           </div>
         </div>
-
-        <p className="text-[10px] text-slate-400 mt-4 text-center">
-          حالة الفاتورة محدثة بناءً على كفاءة التوليد الجارية لـ شمسك.
-        </p>
-      </div>
-
-      {/* شريط القائمة السفلي الموحد الفاتح للتنقل السريع */}
+        <p className="mt-4 text-sm font-semibold text-slate-500">الحساب تقديري ويعتمد على سعر الكيلوواط الذي تضبطه في الإعدادات وعلى الطاقة المسجلة فعلياً.</p>
+      </section>
     </div>
   );
 }
