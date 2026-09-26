@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { InfoTip } from "@/components/info-tip";
 
 type InverterModel = "Deye" | "Voltronic" | "Growatt" | "Felicity" | "غير ذلك";
 type Protocol = "Modbus RTU" | "Modbus TCP" | "Wi-Fi Datalogger";
@@ -20,6 +21,7 @@ export default function SettingsPage() {
   const [wifiPassword, setWifiPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [networkStatus, setNetworkStatus] = useState<"idle" | "testing" | "success" | "error">("idle");
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     const saved = {
@@ -33,6 +35,8 @@ export default function SettingsPage() {
       address: localStorage.getItem("shamsak_inverter_address"),
       ssid: localStorage.getItem("shamsak_wifi_ssid"),
       password: localStorage.getItem("shamsak_wifi_password"),
+      notifySurplus: localStorage.getItem("shamsak_notify_surplus"),
+      notifyLowBattery: localStorage.getItem("shamsak_notify_low_battery"),
     };
     if (saved.panels) setPanelCapacity(Number(saved.panels));
     if (saved.battery) setBatteryCapacity(Number(saved.battery));
@@ -44,6 +48,8 @@ export default function SettingsPage() {
     if (saved.address) setInverterAddress(saved.address);
     if (saved.ssid) setWifiSsid(saved.ssid);
     if (saved.password) setWifiPassword(saved.password);
+    if (saved.notifySurplus !== null) setNotifySurplus(saved.notifySurplus !== "false");
+    if (saved.notifyLowBattery !== null) setNotifyLowBattery(saved.notifyLowBattery !== "false");
   }, []);
 
   const handleSaveSettings = () => {
@@ -128,12 +134,12 @@ export default function SettingsPage() {
           <label className="text-base font-semibold text-slate-700">كلمة مرور الشبكة (Password)</label>
           <div className="relative">
             <input type={showPassword ? "text" : "password"} value={wifiPassword} onChange={(e) => setWifiPassword(e.target.value)} placeholder="••••••••" className={inputClass + " pl-20"} dir="ltr" />
-            <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute left-2 top-1/2 -translate-y-1/2 rounded-lg px-3 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50">
+            <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute left-2 top-1/2 -translate-y-1/2 rounded-lg px-3 py-2 text-sm font-bold text-blue-600 transition active:scale-95 hover:bg-blue-50">
               {showPassword ? "إخفاء" : "إظهار"}
             </button>
           </div>
         </div>
-        <button type="button" onClick={() => void testNetwork()} disabled={networkStatus === "testing"} className="min-h-14 w-full rounded-xl bg-blue-50 px-4 text-lg font-bold text-blue-700 transition hover:bg-blue-100 disabled:opacity-60">
+        <div className="flex items-center justify-between gap-3"><span className="text-base font-black text-slate-800">فحص قناة البيانات</span><InfoTip label="شرح حالة اتصال الإنفرتر" title="حالة اتصال الإنفرتر"><span>هذا الفحص يتحقق من وصول واجهة شمسك إلى قناة بيانات الإنفرتر. لا يعني نجاحه وحده أن Modbus RTU متصل كهربائيًا بالإنفرتر.</span></InfoTip></div>\n        <button type="button" onClick={() => void testNetwork()} disabled={networkStatus === "testing"} className="min-h-14 w-full rounded-xl bg-blue-50 px-4 text-lg font-bold text-blue-700 transition active:scale-95 hover:bg-blue-100 disabled:opacity-60">
           {networkStatus === "testing" ? "جاري اختبار الاتصال…" : "اختبار الاتصال بالشبكة"}
         </button>
         {networkStatus === "success" && <p className="rounded-xl bg-emerald-50 p-3 text-base font-bold text-emerald-700">✓ تم الوصول إلى قناة البيانات الحية.</p>}
@@ -170,7 +176,7 @@ export default function SettingsPage() {
         </label>
       </div>
 
-      <button onClick={handleSaveSettings} className="mb-4 min-h-16 w-full rounded-2xl bg-slate-900 px-5 py-4 text-lg font-bold text-white shadow-md transition active:bg-slate-800">
+      {saved && <div role="status" className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center text-base font-black text-emerald-700">✓ تم حفظ إعدادات شمسك بنجاح</div>}\n\n      <button type="button" onClick={handleSaveSettings} className="mb-4 min-h-16 w-full rounded-2xl bg-slate-900 px-5 py-4 text-lg font-bold text-white shadow-md transition active:scale-95 active:bg-slate-800">
         حفظ وتثبيت الإعدادات في ذاكرة الهاتف
       </button>
     </div>
