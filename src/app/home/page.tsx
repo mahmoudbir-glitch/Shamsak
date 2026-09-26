@@ -1,60 +1,80 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from "react";
+import { Home, Loader2 } from "lucide-react";
+import type { EnergySnapshot } from "@/lib/energy";
+
+const REFRESH_MS = 15_000;
 
 export default function HomeConsumptionPage() {
-  // توحيد قراءة السحب اللحظي لتطابق تماماً قيمة 1.30 kW المعروضة في الدائرة الرئيسية
-  const [homeConsumption] = useState<number>(1300); 
-  
-  // قائمة تفصيلية تفاعلية بالأحمال المنزلية النشطة الآن
-  const appliances = [
-    { name: "الإنارة والأحمال الأساسية الثابتة", power: 350, icon: "💡", status: "نشط" },
-    { name: "الأجهزة الكهربائية (براد وتبريد خفيف)", power: 950, icon: "🔌", status: "نشط" },
-  ];
+  const [snapshot, setSnapshot] = useState<EnergySnapshot | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    try {
+      const response = await fetch("/api/telemetry", { cache: "no-store" });
+      if (!response.ok) throw new Error("telemetry_unavailable");
+      const data = (await response.json()) as EnergySnapshot;
+      if (data.source !== "live") throw new Error("not_live");
+      setSnapshot(data);
+    } catch {
+      // Keep the last valid reading visible instead of replacing it with demo values.
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+    const timer = window.setInterval(() => void load(), REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, [load]);
+
+  const homeW = Math.max(0, snapshot?.homePowerW ?? 0);
+  const homeKw = homeW / 1000;
 
   return (
-    <div className="w-full text-right" dir="rtl">
-      
-      {/* الهيدر العلوي الأبيض النظيف لتبويب المنزل */}
-      <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm mb-5 border border-slate-100">
-        <h1 className="text-2xl font-extrabold text-blue-600 flex items-center gap-1.5">
-          🏠 استهلاك أحمال المنزل
+    <div className="w-full space-y-5 text-right" dir="rtl">
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+        <h1 className="flex items-center gap-2 text-2xl font-extrabold text-blue-600">
+          <Home size={28} aria-hidden="true" />
+          استهلاك أحمال المنزل
         </h1>
-        <div className="text-base font-semibold text-slate-500">قراءة حية موحدة</div>
+        <span className="rounded-full bg-slate-50 px-3 py-2 text-sm font-bold text-slate-500">
+          {snapshot?.source === "live" ? "مباشر" : "بانتظار قراءة حية"}
+        </span>
       </div>
 
-      {/* بطاقة السحب الإجمالي للمنزل بالواط (1300 واط تعادل 1.30 kW) */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-4 text-center">
-        <span className="text-base font-semibold text-slate-400 block mb-1">إجمالي سحب المنزل الآن</span>
-        <span className="text-5xl font-black text-blue-600 block mt-2">{(homeConsumption).toLocaleString()} واط</span>
-        <span className="text-[10px] text-slate-400 font-semibold block mt-1">kW 1.30</span>
+      <div className="rounded-2xl border border-slate-100 bg-white p-6 text-center shadow-sm">
+        <span className="block text-base font-semibold text-slate-400">إجمالي سحب المنزل الآن</span>
+        {loading && !snapshot ? (
+          <Loader2 className="mx-auto mt-5 h-10 w-10 animate-spin text-blue-500" aria-label="جاري تحميل القراءة" />
+        ) : (
+          <>
+            <span className="mt-2 block text-5xl font-black text-blue-600">{homeW.toLocaleString("ar-LB")} واط</span>
+            <span className="mt-1 block text-sm font-bold text-slate-400">{homeKw.toFixed(2)} kW</span>
+          </>
+        )}
       </div>
 
-      {/* تفصيل توزيع الأحمال المنزلية الحالية */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-4">
-        <h3 className="font-bold text-xl font-black text-slate-700 mb-3">📋 تفصيل توزيع الأحمال</h3>
-        <div className="space-y-3">
-          {appliances.map((app, index) => (
-            <div key={index} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100 text-base">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{app.icon}</span>
-                <span className="text-slate-700 font-medium">{app.name}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-slate-900 font-bold">{app.power} واط</span>
-                <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold text-[10px]">{app.status}</span>
-              </div>
-            </div>
-          ))}
+      <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+        <h2 className="text-xl font-black text-slate-800">📋 حالة الأحمال</h2>
+        <div className="mt-4 rounded-xl bg-slate-50 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-base font-semibold text-slate-600">إجمالي استهلاك المنزل</span>
+            <strong className="text-lg font-black text-blue-700">{homeKw.toFixed(2)} kW</strong>
+          </div>
+          <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+            لا يتم اختلاق استهلاك منفصل للثلاجة أو الإنارة أو أي جهاز. التفصيل الفردي يحتاج حساسات أحمال مستقلة.
+          </p>
         </div>
-      </div>
+      </section>
 
-      {/* بطاقة التوجيه والتحليل الذكية للأحمال المستوحاة من المنظومة الحقيقية */}
-      <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-950 leading-relaxed shadow-sm">
-        💡 **حالة الأحمال المنزلية:** معدل استهلاك منزلك الحالي متزن ومثالي جداً. التوليد الشمسي الحالي (5.83 kW) يغطي كافة احتياجات الأجهزة المنزلية بكفاءة عالية جداً، ويتم توجيه فائض ضخم مستقر لشحن البطاريات دون الحاجة للسحب منها.
-      </div>
-
-      {/* شريط القائمة السفلي الموحد الفاتح للتنقل السريع */}
+      {!snapshot && !loading && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-base font-bold text-amber-800">
+          ⚠️ لا توجد قراءة حية متاحة حاليًا.
+        </div>
+      )}
     </div>
   );
 }
