@@ -23,7 +23,14 @@ export function BottomNav() {
     >
       <div className="mx-auto grid max-w-lg grid-cols-6 gap-1">
         {items.map(({ href, label, Icon }) => {
-          const active = href === "/" ? path === "/" : path === href || path.startsWith(href + "/");
+          const aliases: Record<string, string[]> = {
+            "/home-consumption": ["/home-consumption", "/home"],
+            "/energy-forecast": ["/energy-forecast", "/energy", "/forecast"],
+            "/savings": ["/savings", "/money"],
+          };
+          const active = href === "/"
+            ? path === "/"
+            : (aliases[href] ?? [href]).some((route) => path === route || path.startsWith(route + "/"));
 
           return (
             <Link
