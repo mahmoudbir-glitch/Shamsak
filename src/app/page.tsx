@@ -1,37 +1,72 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { EnergyFlow } from '@/components/energy-flow';
+import type { EnergySnapshot } from '@/lib/energy';
+
+const REFRESH_MS = 15_000;
+
+function formatUpdated(timestamp?: string) {
+  if (!timestamp) return undefined;
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date.toLocaleTimeString('ar-LB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
 
 export default function SolarDashboard() {
-  const [solarProduction] = useState<number>(5830);
-  const [homeConsumption] = useState<number>(1300);
-  const [batteryLevel] = useState<number>(78);
-  const [batteryPower] = useState<number>(4980);
-  const [gridPower] = useState<number>(450);
+  const [snapshot, setSnapshot] = useState<EnergySnapshot | null>(null);
+  const [isLive, setIsLive] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadTelemetry = useCallback(async () => {
+    try {
+      const response = await fetch('/api/telemetry', { cache: 'no-store' });
+      if (!response.ok) throw new Error('telemetry_unavailable');
+
+      const data = (await response.json()) as EnergySnapshot;
+      if (data.source !== 'live') throw new Error('telemetry_not_live');
+
+      setSnapshot(data);
+      setIsLive(true);
+      setError(null);
+    } catch {
+      setIsLive(false);
+      setError('تعذر الوصول إلى بيانات الإنفرتر الحية');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadTelemetry();
+    const timer = window.setInterval(() => void loadTelemetry(), REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, [loadTelemetry]);
+
+  const solarKw = (snapshot?.solarPowerW ?? 0) / 1000;
+  const homeKw = (snapshot?.homePowerW ?? 0) / 1000;
+  const gridKw = (snapshot?.gridPowerW ?? 0) / 1000;
+  const batteryKw = (snapshot?.batteryPowerW ?? 0) / 1000;
+  const batteryPercentage = snapshot?.batterySoc ?? 0;
 
   const SAFETY_RESERVE = 10;
-  const usableSoc = Math.max(0, batteryLevel - SAFETY_RESERVE);
+  const usableSoc = Math.max(0, batteryPercentage - SAFETY_RESERVE);
   const availableWh = 4800 * (usableSoc / 100);
-  const currentConsumption = homeConsumption > 0 ? homeConsumption : 150;
-  const hoursRemaining = Math.round((availableWh / currentConsumption) * 10) / 10;
-  const estimatedSocAtSunrise = Math.max(
-    SAFETY_RESERVE,
-    Math.round(((4800 * (batteryLevel / 100) - currentConsumption * 10) / 4800) * 100),
-  );
+  const currentConsumption = snapshot?.homePowerW && snapshot.homePowerW > 0 ? snapshot.homePowerW : 0;
+  const hoursRemaining = currentConsumption > 0
+    ? Math.round((availableWh / currentConsumption) * 10) / 10
+    : 0;
+  const estimatedSocAtSunrise = currentConsumption > 0
+    ? Math.max(
+        SAFETY_RESERVE,
+        Math.round(((4800 * (batteryPercentage / 100) - currentConsumption * 10) / 4800) * 100),
+      )
+    : batteryPercentage;
   const isBatteryEnough = hoursRemaining >= 8;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 p-4 pb-24 text-right relative overflow-x-hidden" dir="rtl">
-      <style>{`
-        @keyframes strokeAnimation {
-          to { stroke-dashoffset: -20; }
-        }
-        .flow-arc-active {
-          stroke-dasharray: 6, 4;
-          animation: strokeAnimation 1.5s linear infinite;
-        }
-      `}</style>
-
       <div className="flex justify-between items-center bg-white border border-slate-100 p-4 rounded-2xl shadow-sm mb-4 relative z-20">
         <h1 className="text-base font-black text-amber-500">شمسك ☀️</h1>
         <button
@@ -42,100 +77,77 @@ export default function SolarDashboard() {
         </button>
       </div>
 
-      <div className="bg-white border border-slate-100 rounded-3xl p-4 shadow-sm mb-4 relative min-h-[440px] flex flex-col justify-between">
-        <div className="flex justify-between items-center relative z-20">
-          <span className="text-[10px] bg-orange-100 text-orange-700 px-2.5 py-0.5 rounded-full font-black">DEMO</span>
-          <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">● حالة النظام الآن</span>
-        </div>
-
-        <div className="absolute inset-0 z-0 pointer-events-none flex items-center justify-center p-4">
-          <svg className="w-full h-full max-h-[380px]" viewBox="0 0 400 380" fill="none" xmlns="http://www.w3.org">
-            <path d="M 230 90 A 110 110 0 0 1 310 190" stroke="#ea580c" strokeWidth="2.5" className="flow-arc-active" />
-            <path d="M 310 230 A 110 110 0 0 1 230 310" stroke="#059669" strokeWidth="2" className="flow-arc-active" />
-            <path d="M 170 310 A 110 110 0 0 1 90 230" stroke="#7c3aed" strokeWidth="2.5" className="flow-arc-active" style={{ animationDirection: 'reverse' }} />
-            <path d="M 90 190 A 110 110 0 0 1 170 90" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="4 4" />
-          </svg>
-        </div>
-
-        <div className="relative z-10 h-full flex flex-col justify-between space-y-4 my-auto">
-          <div className="flex flex-col items-center">
-            <div className="w-12 h-12 rounded-full border border-amber-200 bg-amber-50 flex items-center justify-center mb-1 shadow-sm">
-              <span className="text-amber-500 text-xl">☀️</span>
-            </div>
-            <span className="text-[10px] text-slate-400 font-black tracking-wider">SOLAR</span>
-            <span className="text-base font-black text-amber-600">kW {(solarProduction / 1000).toFixed(2)}</span>
-            <span className="text-[9px] text-slate-400 font-medium">إنتاج حالي</span>
-          </div>
-
-          <div className="flex justify-between items-center px-2">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-11 h-11 rounded-xl border border-purple-100 bg-purple-50 flex items-center justify-center mb-1 shadow-sm">
-                <span className="text-purple-500 text-lg">🛜</span>
-              </div>
-              <span className="text-[9px] text-slate-400 font-black tracking-wider">GRID STATUS</span>
-              <span className="text-sm font-black text-purple-600">kW {(gridPower / 1000).toFixed(2)}</span>
-              <span className="text-[8px] text-purple-400 font-medium">تصدير إلى الشبكة</span>
-            </div>
-
-            <div
-              className="relative w-10 h-10 rounded-full border border-slate-100 bg-white flex items-center justify-center text-amber-500 shadow-md font-bold text-sm"
-              aria-label="مركز تدفق الطاقة"
-            >
-              <span
-                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-                aria-hidden="true"
-              >
-                ⚡
-              </span>
-            </div>
-
-            <div className="flex flex-col items-center text-center">
-              <div className="w-11 h-11 rounded-xl border border-blue-100 bg-blue-50 flex items-center justify-center mb-1 shadow-sm">
-                <span className="text-blue-500 text-lg">🏠</span>
-              </div>
-              <span className="text-[9px] text-slate-400 font-black tracking-wider">HOME CONSUMPTION</span>
-              <span className="text-sm font-black text-blue-600">kW {(homeConsumption / 1000).toFixed(2)}</span>
-              <span className="text-[8px] text-slate-400 font-medium">استهلاك حالي</span>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center">
-            <div className="w-14 h-14 rounded-full border-4 border-emerald-400 flex items-center justify-center bg-white shadow-sm mb-1 border-t-transparent">
-              <span className="text-sm font-black text-slate-800">{batteryLevel}%</span>
-            </div>
-            <span className="text-[9px] text-slate-400 font-black tracking-wider">BATTERY STATUS</span>
-            <span className="text-base font-black text-emerald-600">kW {(batteryPower / 1000).toFixed(2)}</span>
-            <span className="text-[9px] text-emerald-500 font-medium">تشحن</span>
-          </div>
-        </div>
+      <div className="mb-4">
+        <EnergyFlow
+          solarKw={solarKw}
+          homeKw={homeKw}
+          gridKw={gridKw}
+          batteryKw={batteryKw}
+          batteryPercentage={batteryPercentage}
+          isLive={isLive}
+          lastUpdated={snapshot ? formatUpdated(snapshot.timestamp) : undefined}
+        />
       </div>
+
+      <div className="flex items-center justify-between bg-white border border-slate-100 rounded-2xl px-4 py-3 mb-4 shadow-sm text-xs">
+        <div className={isLive ? "text-emerald-600 font-bold" : "text-amber-600 font-bold"}>
+          {isLive ? '● البيانات الحية متصلة' : '● غير متصل بالبيانات الحية'}
+        </div>
+        <button
+          onClick={() => void loadTelemetry()}
+          disabled={loading}
+          className="text-blue-600 font-bold disabled:opacity-50"
+        >
+          {loading ? 'جاري التحديث…' : 'تحديث الآن'}
+        </button>
+      </div>
+
+      {error && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4 text-xs font-bold text-amber-800">
+          ⚠️ {error}. لا يتم عرض أرقام DEMO على أنها بيانات حقيقية.
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-2 bg-white border border-slate-100 rounded-2xl p-3 mb-4 text-center shadow-sm text-[9px] font-bold text-slate-400">
         <div>
           <span className="block mb-1 text-slate-400">DAY'S PRODUCTION</span>
-          <span className="text-xs font-black text-amber-600">31.4 kWh</span>
+          <span className="text-xs font-black text-amber-600">
+            {snapshot?.todayProductionKWh !== undefined ? `${snapshot.todayProductionKWh.toFixed(1)} kWh` : '—'}
+          </span>
         </div>
         <div className="border-x border-slate-100">
           <span className="block mb-1 text-slate-400">HOME USAGE</span>
-          <span className="text-xs font-black text-blue-600">18.2 kWh</span>
+          <span className="text-xs font-black text-blue-600">
+            {snapshot?.todayHomeUsageKWh !== undefined ? `${snapshot.todayHomeUsageKWh.toFixed(1)} kWh` : '—'}
+          </span>
         </div>
         <div>
           <span className="block mb-1 text-slate-400">GRID SAVINGS</span>
-          <span className="text-xs font-black text-emerald-600">$4.15</span>
+          <span className="text-xs font-black text-emerald-600">
+            {snapshot?.todayGridSavings !== undefined ? `$${snapshot.todayGridSavings.toFixed(2)}` : '—'}
+          </span>
         </div>
       </div>
 
       <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
         <h3 className="font-bold text-slate-700 text-xs mb-2">🌙 صمود البطارية الجاري ليلاً</h3>
-        {isBatteryEnough ? (
+        {!snapshot ? (
+          <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl text-xs font-bold text-slate-500">
+            بانتظار أول قراءة حية…
+          </div>
+        ) : isBatteryEnough ? (
           <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-xl text-xs font-bold text-emerald-800">
             ✓ تكفي حتى الصباح • صباحاً نحو {estimatedSocAtSunrise}%
-            <p className="text-[10px] font-normal text-slate-500 mt-1">متبقي في مخزون البطارية حوالي {hoursRemaining} ساعة</p>
+            <p className="text-[10px] font-normal text-slate-500 mt-1">
+              متبقي في مخزون البطارية حوالي {hoursRemaining} ساعة
+            </p>
           </div>
         ) : (
           <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-xs font-bold text-amber-800">
             ⚠️ قد لا تكفي حتى الصباح بناءً على الاستهلاك الحالي
-            <p className="text-[10px] font-normal text-slate-500 mt-1">متبقي في مخزون البطارية حوالي {hoursRemaining} ساعة فقط قبل حد الأمان</p>
+            <p className="text-[10px] font-normal text-slate-500 mt-1">
+              متبقي في مخزون البطارية حوالي {hoursRemaining} ساعة فقط قبل حد الأمان
+            </p>
           </div>
         )}
       </div>
