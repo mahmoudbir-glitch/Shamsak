@@ -2,7 +2,7 @@
 
 import { useSmartEnergy } from "@/hooks/use-smart-energy";
 
-interface RecommendationItem {
+export interface RecommendationItem {
   id: string;
   title: string;
   description: string;
