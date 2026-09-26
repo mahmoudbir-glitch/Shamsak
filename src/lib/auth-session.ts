@@ -14,6 +14,9 @@ function unb64(value: string) {
   const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
   return new TextDecoder().decode(bytes);
 }
+function getSessionSecret() {
+  return process.env.AUTH_SECRET || process.env.SHAMSAK_PASSWORD || "";
+}
 async function sign(value: string, secret: string) {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), {name:"HMAC",hash:"SHA-256"}, false, ["sign"]);
   const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value)));
@@ -31,14 +34,14 @@ async function safeEqual(a: string, b: string) {
 export type SessionPayload = { sub:string; username:string; exp:number };
 
 export async function createSessionToken(username:string) {
-  const secret=process.env.AUTH_SECRET;
-  if(!secret) throw new Error("AUTH_SECRET is not configured");
+  const secret=getSessionSecret();
+  if(!secret) throw new Error("SHAMSAK_PASSWORD or AUTH_SECRET is not configured");
   const payload={sub:username,username,exp:Math.floor(Date.now()/1000)+SESSION_TTL_SECONDS};
   const encoded=b64(JSON.stringify(payload));
   return encoded+"."+await sign(encoded,secret);
 }
 export async function verifySessionToken(token:string|null|undefined):Promise<SessionPayload|null>{
-  const secret=process.env.AUTH_SECRET;
+  const secret=getSessionSecret();
   if(!secret||!token) return null;
   const i=token.lastIndexOf(".");
   if(i<=0) return null;
