@@ -132,10 +132,10 @@ export function SolarConnection() {
       </div>
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        <button type="button" onClick={testConnection} disabled={status === "testing"} className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-bold text-white disabled:opacity-60">
+        <button type="button" onClick={testConnection} disabled={status === "testing"} className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-bold text-white transition active:scale-95 disabled:opacity-60">
           <Wifi size={17} /> اختبار الاتصال
         </button>
-        <button type="button" onClick={save} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-800">
+        <button type="button" onClick={save} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-800 transition active:scale-95">
           <Save size={17} /> حفظ إعدادات الربط
         </button>
       </div>
