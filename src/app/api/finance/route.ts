@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  if (!process.env.DATABASE_URL) {
+  if (!(process.env.DATABASE_URL || process.env.PRISMA_DATABASE_URL || process.env.POSTGRES_URL)) {
     return NextResponse.json({ error: "database_not_configured" }, { status: 503 });
   }
 
