@@ -1,163 +1,117 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from "react";
+
+type Weather = {
+  current?: { temperature_2m?: number; weather_code?: number };
+  daily?: { sunrise?: string[]; sunset?: string[] };
+};
+
+const LATITUDE = 33.8938;
+const LONGITUDE = 35.5018;
+
+function interpretWeatherCode(code: number): string {
+  if (code === 0) return "مشمس صافٍ";
+  if (code <= 3) return "غائم جزئيًا";
+  if (code <= 67) return "رذاذ أو أمطار خفيفة";
+  if (code <= 86) return "ثلوج محتملة";
+  return "أمطار وعواصف";
+}
+
+function formatTime(value?: string): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("ar-LB", { hour: "2-digit", minute: "2-digit" }).format(date);
+}
 
 export default function EnergyPage() {
-  const [loading, setLoading] = useState<boolean>(true);
-  const [weatherData, setWeatherData] = useState<any>(null);
-
-  // إحداثيات مدينة بيروت لجلب الطقس الدقيق والحي لها
-  const LATITUDE = 33.8938;
-  const LONGITUDE = 35.5018;
-
-  // قراءات المنظومة الحية الموحدة المتوافقة مع واجهتك الرئيسية
-  const batteryLevel = 78;        // نسبة البطارية الموحدة 78%
-  const batteryCapacityWh = 4800; // سعة البطارية الكلية بالواط ساعي
-  const chargePowerW = 4980;      // قوة الشحن بالواط (4.98 kW)
+  const [weather, setWeather] = useState<Weather | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [weatherError, setWeatherError] = useState(false);
 
   useEffect(() => {
-    async function fetchLiveWeather() {
+    const controller = new AbortController();
+
+    async function fetchWeather() {
       try {
-        const response = await fetch(
-          `https://open-meteo.com{LATITUDE}&longitude=${LONGITUDE}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`
-        );
-        const data = await response.json();
-        setWeatherData(data);
-        setLoading(false);
+        const url = new URL("https://api.open-meteo.com/v1/forecast");
+        url.searchParams.set("latitude", String(LATITUDE));
+        url.searchParams.set("longitude", String(LONGITUDE));
+        url.searchParams.set("current", "temperature_2m,weather_code");
+        url.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset");
+        url.searchParams.set("timezone", "Asia/Beirut");
+
+        const response = await fetch(url.toString(), { signal: controller.signal, cache: "no-store" });
+        if (!response.ok) throw new Error("Weather request failed: " + response.status);
+
+        const result = (await response.json()) as Weather;
+        setWeather(result);
+        setWeatherError(false);
       } catch (error) {
-        console.error("فشل جلب بيانات الطقس الحية:", error);
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          console.error("فشل جلب بيانات الطقس:", error);
+          setWeatherError(true);
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
-    fetchLiveWeather();
+
+    void fetchWeather();
+    return () => controller.abort();
   }, []);
 
-  // دالة تحويل أكواد الطقس العالمية إلى كلمات عربية مألوفة
-  const interpretWeatherCode = (code: number) => {
-    if (code === 0) return "مشمس صافي";
-    if (code >= 1 && code <= 3) return "غائم جزئياً";
-    if (code >= 51 && code <= 67) return "رذاذ خفيف";
-    if (code >= 71 && code <= 86) return "احتمال ثلوج";
-    return "أمطار وعواصف";
-  };
-
-  // 1. حساب وقت امتلاء البطارية ديناميكياً بدلاً من علامة "—" الفارغة
-  const remainingPercent = 100 - batteryLevel; // النسبة المتبقية للامتلاء (22%)
-  const neededEnergyWh = batteryCapacityWh * (remainingPercent / 100); // الطاقة المطلوبة بالواط ساعي
-  const timeToFullHours = neededEnergyWh / chargePowerW; // الوقت بالساعات
-  const timeToFullMinutes = Math.round(timeToFullHours * 60); // تحويل الوقت لدقائق
-
-  const timeToFullString = timeToFullMinutes > 0 
-    ? `خلال ${timeToFullMinutes} دقيقة` 
-    : "ممتلئة الآن";
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500 font-bold" dir="rtl">
-        جاري تحديث توقعات الطقس والتحليلات الحية لبيروت... ✨
-      </div>
-    );
-  }
-
-  const currentTemp = weatherData?.current?.temperature_2m || 25;
-  const currentStatus = interpretWeatherCode(weatherData?.current?.weather_code || 0);
-
-  // 2. مصفوفة بيانات جدول الساعات التقديري المفقود (توزيع الكيلوواط الساعي على مدار اليوم)
-  const hourlyData = [
-    { time: "٠٣:٠٠ ص", solar: "0.00 kWh", usage: "0.75 kWh" },
-    { time: "٠٤:٠٠ ص", solar: "0.00 kWh", usage: "0.75 kWh" },
-    { time: "٠٥:٠٠ ص", solar: "0.00 kWh", usage: "0.75 kWh" },
-    { time: "٠٦:٠٠ ص", solar: "0.00 kWh", usage: "0.75 kWh" },
-    { time: "٠٧:٠٠ ص", solar: "0.00 kWh", usage: "1.15 kWh" },
-    { time: "٠٨:٠٠ ص", solar: "1.20 kWh", usage: "1.30 kWh" },
-    { time: "٠٩:٠٠ ص", solar: "2.80 kWh", usage: "1.30 kWh" },
-  ];
+  const temperature = weather?.current?.temperature_2m;
+  const status = weather?.current?.weather_code == null ? null : interpretWeatherCode(weather.current.weather_code);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 pb-24 text-right" dir="rtl">
-      
-      {/* هيدر التبويب */}
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm mb-4 border border-slate-100">
-        <h1 className="text-xl font-bold text-amber-600">☀️ الطاقة والتوقعات</h1>
-        <div className="text-xs text-slate-400">Open-Meteo • حي</div>
-      </div>
-
-      {/* بطاقة الطقس الحالية المتصلة بالـ API */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-4 flex justify-between items-center">
+    <div className="min-h-screen bg-slate-50 p-3 pb-28 text-right sm:p-6" dir="rtl">
+      <header className="mb-4 flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
         <div>
-          <span className="text-xs font-bold text-slate-400 block mb-1">بيروت الآن</span>
-          <span className="text-lg font-black text-slate-800">{currentStatus}</span>
+          <h1 className="text-xl font-black text-amber-600">الطاقة والتوقعات</h1>
+          <p className="mt-1 text-xs text-slate-400">توقعات الطقس من Open-Meteo</p>
         </div>
-        <span className="text-3xl font-black text-amber-500">{Math.round(currentTemp)}°م</span>
-      </div>
+        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500">
+          {loading ? "جارٍ التحديث" : weatherError ? "غير متاح" : "حي"}
+        </span>
+      </header>
 
-      {/* توقع التوليد الإجمالي والفائض */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-4 space-y-3">
-        <h3 className="font-bold text-sm text-slate-700">📊 توقعات التوليد التقديرية</h3>
-        <div className="flex justify-between text-xs bg-slate-50 p-2.5 rounded-xl">
-          <span className="text-slate-500">إنتاج متوقع إجمالي</span>
-          <span className="font-black text-slate-800">31.9 kWh</span>
-        </div>
-        <div className="flex justify-between text-xs bg-slate-50 p-2.5 rounded-xl">
-          <span className="text-slate-500">موجّه إلى البطارية</span>
-          <span className="font-black text-emerald-600">11.1 kWh</span>
-        </div>
-        <div className="flex justify-between text-xs bg-slate-50 p-2.5 rounded-xl">
-          <span className="text-slate-500">فائض متوقع غير مستغل</span>
-          <span className="font-black text-amber-600">10.1 kWh</span>
-        </div>
-      </div>
+      <section className="mb-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm" aria-label="الطقس الحالي">
+        {weatherError ? (
+          <p className="font-bold text-slate-600">لا تتوفر بيانات الطقس حاليًا.</p>
+        ) : loading ? (
+          <p className="animate-pulse font-bold text-slate-500">جارٍ تحميل بيانات الطقس…</p>
+        ) : (
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <span className="text-xs font-bold text-slate-400">بيروت الآن</span>
+              <p className="mt-1 text-lg font-black text-slate-800">{status ?? "—"}</p>
+            </div>
+            <span className="text-3xl font-black text-amber-500">
+              {typeof temperature === "number" ? Math.round(temperature) + "°م" : "—"}
+            </span>
+          </div>
+        )}
+      </section>
 
-      {/* بطاقات المؤشرات الزمنية مع حقن وقت الامتلاء المحسوب ديناميكياً */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-4 space-y-3 text-xs">
-        <div className="flex justify-between items-center border-b border-slate-50 pb-2">
-          <span className="text-slate-500">🌅 الشروق</span>
-          <span className="font-bold text-slate-700">٠٨:٤٨ ص</span>
+      <section className="mb-4 grid grid-cols-2 gap-3">
+        <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <span className="text-xs font-bold text-slate-400">الشروق</span>
+          <p className="mt-2 font-black text-slate-800">{formatTime(weather?.daily?.sunrise?.[0])}</p>
         </div>
-        <div className="flex justify-between items-center border-b border-slate-50 pb-2">
-          <span className="text-slate-500">🔋 امتلاء البطارية التقديري</span>
-          <span className="font-bold text-emerald-600">{timeToFullString}</span>
+        <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <span className="text-xs font-bold text-slate-400">الغروب</span>
+          <p className="mt-2 font-black text-slate-800">{formatTime(weather?.daily?.sunset?.[0])}</p>
         </div>
-        <div className="flex justify-between items-center">
-          <span className="text-slate-500">🌇 الغروب</span>
-          <span className="font-bold text-slate-700">٠٨:٥٤ م</span>
-        </div>
-      </div>
+      </section>
 
-      {/* ميزة جدول تفصيل الساعات التقديري المفقود (مطابق لتطبيق شمس) */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6">
-        <h3 className="font-bold text-sm text-slate-700 mb-3">📋 تفصيل الساعات المتوقع</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-center text-xs">
-            <thead>
-              <tr className="text-slate-400 border-b border-slate-100">
-                <th className="pb-2 text-right">الوقت</th>
-                <th className="pb-2">الشمس</th>
-                <th className="pb-2 text-left">الاستهلاك</th>
-              </tr>
-            </thead>
-            <tbody className="text-slate-700 font-medium">
-              {hourlyData.map((row, i) => (
-                <tr key={i} className="border-b border-slate-50 last:border-0">
-                  <td className="py-2.5 text-right font-bold text-slate-500">{row.time}</td>
-                  <td className="py-2.5 text-amber-600 font-bold">{row.solar}</td>
-                  <td className="py-2.5 text-blue-600 font-bold text-left">{row.usage}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* شريط القائمة السفلي للتنقل السريع الموحد الفاتح */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around py-3 text-[10px] text-slate-400 z-50 rounded-t-2xl shadow-md">
-        <div className="opacity-60 flex flex-col items-center">📊 الرئيسية</div>
-        <div className="opacity-60 flex flex-col items-center">🏠 المنزل</div>
-        <div className="opacity-60 flex flex-col items-center">🔋 البطارية</div>
-        <div className="text-amber-500 font-bold flex flex-col items-center">☀️ الطاقة</div>
-        <div className="opacity-60 flex flex-col items-center">💰 المال</div>
-      </div>
-
+      <section className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+        <h2 className="mb-3 text-sm font-black text-slate-700">توقعات التوليد</h2>
+        <p className="text-sm leading-7 text-slate-500">
+          سيتم حساب توقع إنتاج الشمس والفائض من بيانات النظام والطقس المتاح. لا يتم عرض أرقام تقديرية على أنها بيانات حقيقية.
+        </p>
+      </section>
     </div>
   );
 }
