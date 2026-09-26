@@ -136,3 +136,20 @@ model AuditLog {
   timestamp DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+
+model InverterConnection {
+  id                 String   @id @default("default")
+  systemName         String   @default("منظومة شمسك")
+  inverterModel      String   @default("Felicity")
+  protocol           String   @default("Wi-Fi Datalogger")
+  inverterAddress    String?
+  inverterUsername   String?
+  inverterLinkCode   String?
+  wifiSsid           String?
+  wifiPasswordCipher String?
+  enabled            Boolean  @default(true)
+  lastStatus         String   @default("disconnected")
+  lastSeenAt         DateTime?
+  updatedAt          DateTime @updatedAt
+}
