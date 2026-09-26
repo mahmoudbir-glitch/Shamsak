@@ -1,11 +1,11 @@
-export function getAuthConfig(){
+export function getAuthConfig() {
   const username = (process.env.SHAMSAK_USER || process.env.SHAMSAK_USERNAME || "").trim();
   // Passwords are secrets: never trim or otherwise transform them.
   const password = process.env.SHAMSAK_PASSWORD || "";
   const passwordHash = process.env.SHAMSAK_PASSWORD_HASH || "";
-  // AUTH_SECRET remains supported, but SHAMSAK_PASSWORD is the fallback secret
-  // so SHAMSAK_USER + SHAMSAK_PASSWORD is sufficient for a deployment.
-  const secret = process.env.AUTH_SECRET || password;
+  // A dedicated AUTH_SECRET is preferred. The password/hash remains a fallback
+  // only so a deployment with the documented Shamsak variables can initialize.
+  const secret = process.env.AUTH_SECRET || password || passwordHash;
 
   return {
     username,
