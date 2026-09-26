@@ -8,16 +8,16 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   verify:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    # CI uses non-production placeholders. Never commit real credentials here.
+    # CI-only placeholders. Never commit real credentials here.
     env:
       DATABASE_URL: "postgresql://ci:ci@127.0.0.1:5432/shamsak_ci?schema=public"
-      SHAMSAK_USER: "ci-user"
+      SHAMSAK_USERNAME: "ci-user"
       SHAMSAK_PASSWORD: "ci-password-only"
       AUTH_SECRET: "ci-only-secret-not-used-in-production"
       TELEMETRY_INGEST_TOKEN: "ci-telemetry-token"
@@ -33,21 +33,6 @@ jobs:
         with:
           node-version: 20.x
           cache: npm
-
-      - name: Sync package lock
-        run: npm install --package-lock-only --include=optional
-
-      - name: Commit package lock when changed
-        run: |
-          if git diff --quiet -- package-lock.json; then
-            echo "package-lock.json is already synchronized."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          git commit -m "chore: sync package lock"
-          git push
 
       - name: Install dependencies from lockfile
         run: npm ci
