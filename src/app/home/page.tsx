@@ -2,7 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { Home, Loader2 } from "lucide-react";
-import type { EnergySnapshot } from "@/lib/energy";\nimport { loadTone, semanticBg, semanticBorder, semanticIcon, semanticText } from "@/lib/energy";
+import type { EnergySnapshot } from "@/lib/energy";
+import { loadTone, semanticBg, semanticBorder, semanticIcon, semanticText } from "@/lib/energy";
 
 const REFRESH_MS = 15_000;
 
@@ -31,7 +32,12 @@ export default function HomeConsumptionPage() {
   }, [load]);
 
   const homeW = Math.max(0, snapshot?.homePowerW ?? 0);
-  const homeKw = homeW / 1000;\n  const tone = loadTone(homeKw);\n  const toneText = semanticText[tone];\n  const toneIcon = semanticIcon[tone];\n  const toneBg = semanticBg[tone];\n  const toneBorder = semanticBorder[tone];
+  const homeKw = homeW / 1000;
+  const tone = loadTone(homeKw);
+  const toneText = semanticText[tone];
+  const toneIcon = semanticIcon[tone];
+  const toneBg = semanticBg[tone];
+  const toneBorder = semanticBorder[tone];
 
   return (
     <div className="w-full space-y-4 rounded-[2rem] bg-gradient-to-b from-sky-50/80 via-white/40 to-white/20 p-2 text-right sm:p-3" dir="rtl">
