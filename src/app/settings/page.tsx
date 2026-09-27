@@ -177,8 +177,8 @@ export default function SettingsPage() {
           </select>
         </div>
         <div className="space-y-2">
-          <label className="text-base font-semibold text-slate-700">عنوان IP أو الرقم التسلسلي</label>
-          <input type="text" value={inverterAddress} onChange={(e) => setInverterAddress(e.target.value)} placeholder="192.168.1.50 أو الرقم التسلسلي" className={inputClass} dir="ltr" />
+          <label className="text-base font-semibold text-slate-700">{protocol === "Modbus TCP" ? "عنوان IP للإنفرتر" : protocol === "Modbus RTU" ? "عنوان / منفذ الاتصال التسلسلي" : "عنوان جهاز الـDatalogger (إن وُجد)"}</label>
+          <input type="text" value={inverterAddress} onChange={(e) => setInverterAddress(e.target.value)} placeholder={protocol === "Modbus TCP" ? "مثال: 192.168.1.50" : protocol === "Modbus RTU" ? "مثال: COM3 أو /dev/ttyUSB0" : "مثال: عنوان الجهاز أو الرقم التسلسلي"} className={inputClass} dir="ltr" />
         </div>
       </div>
 
