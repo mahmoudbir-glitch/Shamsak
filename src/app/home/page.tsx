@@ -34,7 +34,7 @@ export default function HomeConsumptionPage() {
   const homeKw = homeW / 1000;
 
   return (
-    <div className="w-full space-y-4 text-right" dir="rtl">
+    <div className="w-full space-y-4 rounded-[2rem] bg-gradient-to-b from-sky-50/80 via-white/40 to-white/20 p-2 text-right sm:p-3" dir="rtl">
       <div className="flex items-center justify-between gap-3 energy-card p-5">
         <h1 className="flex items-center gap-2 text-2xl font-black text-slate-950">
           <Home size={28} aria-hidden="true" />
@@ -59,7 +59,7 @@ export default function HomeConsumptionPage() {
 
       <section className="energy-card p-5">
         <h2 className="text-lg font-black text-slate-950">📋 حالة الأحمال</h2>
-        <div className="mt-4 rounded-xl bg-slate-50 p-4">
+        <div className="mt-4 rounded-xl bg-sky-50/70 p-4">
           <div className="flex items-center justify-between gap-3">
             <span className="text-base font-semibold text-slate-600">إجمالي استهلاك المنزل</span>
             <strong className="text-lg font-black text-blue-700">{homeKw.toFixed(2)} kW</strong>
