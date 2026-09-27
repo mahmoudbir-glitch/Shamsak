@@ -37,7 +37,7 @@ export default function BatteryPage() {
   const state = batteryState(powerW);
 
   return (
-    <div className="w-full space-y-4 text-right" dir="rtl">
+    <div className="w-full space-y-4 rounded-[2rem] bg-gradient-to-b from-emerald-50/70 via-white/40 to-white/20 p-2 text-right sm:p-3" dir="rtl">
       <div className="flex items-center justify-between gap-3 energy-card p-5">
         <h1 className="flex items-center gap-2 text-2xl font-black text-slate-950">
           <BatteryCharging size={28} aria-hidden="true" />
@@ -55,7 +55,7 @@ export default function BatteryPage() {
         ) : (
           <>
             <span className="mb-4 mt-1 block text-4xl font-black tracking-tight text-emerald-600 sm:text-5xl">{Math.round(soc)}%</span>
-            <div className="mb-2 h-4 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className="mb-2 h-4 w-full overflow-hidden rounded-full bg-emerald-50/80">
               <div className="h-full rounded-full bg-emerald-500 transition-all duration-500" style={{ width: soc + "%" }} />
             </div>
           </>
