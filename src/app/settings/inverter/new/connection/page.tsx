@@ -10,6 +10,7 @@ export default function InverterConnectionPage() {
   const router = useRouter();
   const [protocol, setProtocol] = useState<Protocol>("Modbus RTU");
   const [address, setAddress] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const saved = sessionStorage.getItem("shamsak_new_inverter_step2");
@@ -69,7 +70,6 @@ export default function InverterConnectionPage() {
 
   const inputClass =
     "w-full min-h-14 rounded-xl border border-slate-200 bg-slate-50 px-4 text-lg font-bold text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
-  const [error, setError] = useState("");
 
   return (
     <main className="min-h-screen bg-slate-50 p-4 pb-28 text-right" dir="rtl">
