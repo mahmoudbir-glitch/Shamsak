@@ -45,7 +45,7 @@ export default function SolarDashboardClient() {
   }, [loadTelemetry]);
 
   return (
-    <div className="w-full overflow-x-hidden text-right text-slate-800" dir="rtl">
+    <div className="w-full overflow-x-hidden rounded-[2rem] bg-gradient-to-b from-sky-50/70 via-white/40 to-amber-50/20 p-2 text-right text-slate-800 sm:p-3" dir="rtl">
       <EnergyFlow
         solarKw={(snapshot?.solarPowerW ?? 0) / 1000}
         homeKw={(snapshot?.homePowerW ?? 0) / 1000}
@@ -60,7 +60,7 @@ export default function SolarDashboardClient() {
         lastUpdated={snapshot ? formatUpdated(snapshot.timestamp) : undefined}
       />
 
-      <div className="mx-auto mt-5 flex max-w-lg items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white px-4 py-4 shadow-sm">
+      <div className="mx-auto mt-5 flex max-w-lg items-center justify-between gap-3 rounded-2xl border border-sky-100/80 bg-white/95 px-4 py-4 shadow-sm">
         <div className={isLive ? "text-sm font-extrabold text-emerald-600" : "text-sm font-extrabold text-amber-600"}>
           {isLive ? '● البيانات الحية متصلة' : '● غير متصل بالبيانات الحية'}
         </div>
