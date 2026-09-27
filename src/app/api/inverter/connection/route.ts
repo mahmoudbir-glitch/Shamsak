@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
   const text = (value: unknown, max = 200) => typeof value === "string" ? value.trim().slice(0, max) : "";
   const wifiPassword = typeof input.wifiPassword === "string" ? input.wifiPassword : "";
 
-  if (!text(input.systemName) || !text(input.wifiSsid)) {
+  if (!text(input.systemName)) {
     return NextResponse.json({ error: "missing_connection_fields" }, { status: 400 });
   }
 
