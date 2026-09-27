@@ -74,7 +74,7 @@ export function BottomNav() {
       className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200/70 bg-white/96 px-2 pt-2 shadow-[0_-10px_35px_rgba(15,23,42,0.10)] backdrop-blur-xl md:hidden"
     >
       <div className="mx-auto grid max-w-lg grid-cols-6 gap-1">
-        {navItems.map(({ href, label, Icon }) => {
+        {navItems.map(({ href, label, Icon, tone }) => {
           const active = isNavActive(path, href);
           return (
             <Link
@@ -84,14 +84,7 @@ export function BottomNav() {
               className={
                 'group flex min-h-16 flex-col items-center justify-center gap-1 rounded-2xl px-1 text-[10px] font-extrabold transition-all active:scale-95 ' +
                 (active
-                  ? ({
-                      blue: 'bg-blue-50 text-blue-700 ring-blue-100',
-                      violet: 'bg-violet-50 text-violet-700 ring-violet-100',
-                      emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
-                      amber: 'bg-amber-50 text-amber-700 ring-amber-100',
-                      cyan: 'bg-cyan-50 text-cyan-700 ring-cyan-100',
-                      indigo: 'bg-indigo-50 text-indigo-700 ring-indigo-100',
-                    }[tone] + ' shadow-sm ring-1')
+                  ? (activeToneClasses[tone] + ' shadow-sm ring-1')
                   : 'text-slate-500 hover:bg-slate-50')
               }
             >
