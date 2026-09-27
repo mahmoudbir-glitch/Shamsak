@@ -74,13 +74,13 @@ export default function MoneyDashboard() {
   const selectClass = inputClass + " appearance-auto";
 
   return (
-    <div className="w-full space-y-5 text-right" dir="rtl">
-      <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-        <h1 className="text-2xl font-black text-slate-900">💰 التحليل المالي ومصادر الكهرباء</h1>
+    <div className="w-full space-y-4 text-right" dir="rtl">
+      <div className="energy-card p-5">
+        <h1 className="text-2xl font-black text-slate-950">💰 التحليل المالي ومصادر الكهرباء</h1>
         <p className="mt-2 text-base font-semibold text-slate-500">بيانات آخر {data?.periodDays ?? 30} يوماً المسجلة في النظام.</p>
       </div>
 
-      <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+      <section className="energy-card p-5">
         <h2 className="text-xl font-black text-slate-900">⚡ من أين تأتي كهرباء منزلك؟</h2>
         {loading ? <p className="mt-4 text-base font-bold text-slate-500">جاري تحميل التحليل…</p> : !data ? (
           <p className="mt-4 rounded-xl bg-slate-50 p-4 text-base font-semibold text-slate-600">لا توجد ملخصات طاقة مسجلة بعد.</p>
@@ -127,7 +127,7 @@ export default function MoneyDashboard() {
         <p className="mt-4 text-sm font-semibold text-slate-500">الحساب تقديري ويعتمد على سعر الكيلوواط الذي تضبطه في الإعدادات وعلى الطاقة المسجلة فعلياً.</p>
       </section>
 
-      <section className="space-y-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+      <section className="energy-card space-y-4 p-5">
         <h2 className="border-b border-slate-100 pb-3 text-xl font-black text-slate-900">💰 التفضيلات المالية</h2>
         <div className="space-y-2">
           <label className="text-base font-semibold text-slate-700">العملة المحلية لحساب التوفير</label>
@@ -145,7 +145,7 @@ export default function MoneyDashboard() {
         </div>
       </section>
 
-      <section className="space-y-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+      <section className="energy-card space-y-4 p-5">
         <h2 className="border-b border-slate-100 pb-3 text-xl font-black text-slate-900">🔔 التنبيهات</h2>
         <label className="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3 text-base font-semibold text-slate-700">
           <span>تنبيهي عند وجود فائض طاقة غير مستغل</span>
