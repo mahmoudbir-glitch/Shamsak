@@ -13,10 +13,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen w-full bg-slate-50">
-      <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 shadow-[0_4px_20px_rgba(15,23,42,0.04)] backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/92 shadow-[0_4px_20px_rgba(15,23,42,0.04)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-2.5" aria-label="شمسك">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-orange-50 text-xl shadow-sm ring-1 ring-amber-200/70">☀️</span>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-300 via-yellow-200 to-orange-300 text-xl shadow-md shadow-amber-200/40 ring-1 ring-amber-300/80">☀️</span>
             <div className="min-w-0">
               <div className="truncate text-xl font-black tracking-tight text-slate-950 sm:text-2xl">شمسك</div>
               <div className="hidden text-[10px] font-bold text-slate-400 sm:block">إدارة الطاقة بذكاء</div>
