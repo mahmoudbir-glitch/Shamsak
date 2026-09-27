@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { Home, Loader2 } from "lucide-react";
-import type { EnergySnapshot } from "@/lib/energy";
+import type { EnergySnapshot } from "@/lib/energy";\nimport { loadTone, semanticBg, semanticBorder, semanticIcon, semanticText } from "@/lib/energy";
 
 const REFRESH_MS = 15_000;
 
@@ -31,16 +31,16 @@ export default function HomeConsumptionPage() {
   }, [load]);
 
   const homeW = Math.max(0, snapshot?.homePowerW ?? 0);
-  const homeKw = homeW / 1000;
+  const homeKw = homeW / 1000;\n  const tone = loadTone(homeKw);\n  const toneText = semanticText[tone];\n  const toneIcon = semanticIcon[tone];\n  const toneBg = semanticBg[tone];\n  const toneBorder = semanticBorder[tone];
 
   return (
     <div className="w-full space-y-4 rounded-[2rem] bg-gradient-to-b from-sky-50/80 via-white/40 to-white/20 p-2 text-right sm:p-3" dir="rtl">
       <div className="flex items-center justify-between gap-3 energy-card p-5">
         <h1 className="flex items-center gap-2 text-2xl font-black text-slate-950">
-          <Home size={28} aria-hidden="true" />
+          <Home size={28} className={toneIcon} aria-hidden="true" />
           استهلاك أحمال المنزل
         </h1>
-        <span className="rounded-full border border-sky-100 bg-sky-50 px-3 py-2 text-xs font-black text-sky-700">
+        <span className={"rounded-full border px-3 py-2 text-xs font-black " + toneBorder + " " + toneBg + " " + toneText}>
           {snapshot?.source === "live" ? "مباشر" : "بانتظار قراءة حية"}
         </span>
       </div>
@@ -51,8 +51,8 @@ export default function HomeConsumptionPage() {
           <Loader2 className="mx-auto mt-5 h-10 w-10 animate-spin text-blue-500" aria-label="جاري تحميل القراءة" />
         ) : (
           <>
-            <span className="mt-2 block text-4xl font-black tracking-tight text-blue-600 sm:text-5xl">{homeW.toLocaleString("ar-LB")} واط</span>
-            <span className="mt-1 block text-sm font-bold text-slate-400">{homeKw.toFixed(2)} kW</span>
+            <span className={"mt-2 block text-4xl font-black tracking-tight sm:text-5xl " + toneText}>{homeW.toLocaleString("ar-LB")} واط</span>
+            <span className={"mt-1 block text-sm font-bold " + toneText}>{homeKw.toFixed(2)} kW</span>
           </>
         )}
       </div>
@@ -62,7 +62,7 @@ export default function HomeConsumptionPage() {
         <div className="mt-4 rounded-xl bg-sky-50/70 p-4">
           <div className="flex items-center justify-between gap-3">
             <span className="text-base font-semibold text-slate-600">إجمالي استهلاك المنزل</span>
-            <strong className="text-lg font-black text-blue-700">{homeKw.toFixed(2)} kW</strong>
+            <strong className={"text-lg font-black " + toneText}>{homeKw.toFixed(2)} kW</strong>
           </div>
           <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
             لا يتم اختلاق استهلاك منفصل للثلاجة أو الإنارة أو أي جهاز. التفصيل الفردي يحتاج حساسات أحمال مستقلة.
