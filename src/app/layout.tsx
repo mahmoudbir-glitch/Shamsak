@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import React from "react";
 import "./globals.css";
 import { BottomNav } from "@/components/bottom-nav";
+import LogoutButton from "@/components/logout-button";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://shamsak-nine.vercel.app"),
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 ☀️
               </span>
             </div>
+            <LogoutButton />
           </header>
 
           <main className="min-h-screen w-full max-w-2xl mx-auto px-4 py-5 safe-bottom flex-1">{children}</main>
