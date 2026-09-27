@@ -39,7 +39,13 @@ export function SurplusRecommendations() {
             <p className="mt-2 text-base font-semibold text-slate-600">فائض قابل للاستفادة: نحو {Math.round(best.kwh * 10) / 10} ك.و.س</p>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            {["تشغيل الغسالة", "تشغيل مضخة المياه", "شحن السيارة الكهربائية"].map((item) => (
+            {[
+              "تشغيل الغسالة",
+              "تشغيل مضخة المياه",
+              "شحن السيارة الكهربائية",
+              "تشغيل المكيف",
+              "تشغيل سخان الماء",
+            ].map((item) => (
               <div key={item} className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
                 <strong className="text-lg font-extrabold text-emerald-800">{item}</strong>
                 <p className="mt-1 text-sm font-semibold text-emerald-700">يفضل تشغيله خلال نافذة الفائض.</p>
