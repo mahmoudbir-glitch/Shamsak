@@ -4,24 +4,13 @@ import Link from 'next/link';
 import { LayoutDashboard, House, BatteryCharging, Sun, WalletCards, Settings } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
-type NavTone = 'blue' | 'violet' | 'emerald' | 'sky' | 'cyan' | 'indigo';
-
-const activeToneClasses: Record<NavTone, string> = {
-  blue: 'bg-blue-50 text-blue-700 ring-blue-100',
-  violet: 'bg-violet-50 text-violet-700 ring-violet-100',
-  emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
-  sky: 'bg-sky-50 text-sky-700 ring-sky-100',
-  cyan: 'bg-cyan-50 text-cyan-700 ring-cyan-100',
-  indigo: 'bg-indigo-50 text-indigo-700 ring-indigo-100',
-};
-
 export const navItems: { href: string; label: string; Icon: typeof LayoutDashboard; tone: NavTone }[] = [
-  { href: '/', label: 'الرئيسية', Icon: LayoutDashboard, tone: 'blue' },
-  { href: '/home-consumption', label: 'المنزل', Icon: House, tone: 'violet' },
-  { href: '/battery', label: 'البطارية', Icon: BatteryCharging, tone: 'emerald' },
-  { href: '/energy', label: 'الطاقة', Icon: Sun, tone: 'sky' },
-  { href: '/money', label: 'المال', Icon: WalletCards, tone: 'cyan' },
-  { href: '/settings', label: 'الإعدادات', Icon: Settings, tone: 'indigo' },
+  { href: '/', label: 'الرئيسية', Icon: LayoutDashboard },
+  { href: '/home-consumption', label: 'المنزل', Icon: House },
+  { href: '/battery', label: 'البطارية', Icon: BatteryCharging },
+  { href: '/energy', label: 'الطاقة', Icon: Sun },
+  { href: '/money', label: 'المال', Icon: WalletCards },
+  { href: '/settings', label: 'الإعدادات', Icon: Settings },
 ];
 
 export function isNavActive(path: string, href: string) {
@@ -42,7 +31,7 @@ export function DesktopNav() {
   return (
     <nav aria-label="التنقل الرئيسي" className="hidden md:block">
       <div className="mx-auto flex max-w-3xl items-center gap-1 rounded-2xl border border-slate-200/70 bg-white/80 p-1.5 shadow-sm backdrop-blur">
-        {navItems.map(({ href, label, Icon, tone }) => {
+        {navItems.map(({ href, label, Icon }) => {
           const active = isNavActive(path, href);
           return (
             <Link
@@ -52,7 +41,7 @@ export function DesktopNav() {
               className={
                 'flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl px-3 text-sm font-extrabold transition-all ' +
                 (active
-                  ? (activeToneClasses[tone] + ' shadow-sm ring-1')
+                  ? 'bg-white text-slate-800 shadow-sm ring-1 ring-slate-200'
                   : 'text-slate-500 hover:bg-white/80 hover:text-slate-800')
               }
             >
@@ -86,7 +75,7 @@ export function BottomNav() {
               className={
                 'group flex min-h-16 flex-col items-center justify-center gap-1 rounded-2xl px-1 text-[10px] font-extrabold transition-all active:scale-95 ' +
                 (active
-                  ? (activeToneClasses[tone] + ' shadow-sm ring-1')
+                  ? 'bg-white text-slate-800 shadow-sm ring-1 ring-slate-200'
                   : 'text-slate-500 hover:bg-slate-50')
               }
             >
