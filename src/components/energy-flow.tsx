@@ -93,114 +93,129 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
     : 'M 65 200 A 135 135 0 0 1 200 65';
 
   return (
-    <section className="w-full max-w-lg mx-auto overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.09)]" aria-label="مخطط تدفق الطاقة">
-      <div className="px-4 pt-4 sm:px-6 sm:pt-5">
+    <section className="relative mx-auto w-full max-w-lg overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.09)]" aria-label="مخطط تدفق الطاقة">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(251,191,36,0.10),transparent_32%),radial-gradient(circle_at_15%_50%,rgba(56,189,248,0.08),transparent_28%),radial-gradient(circle_at_85%_50%,rgba(59,130,246,0.08),transparent_28%)]" />
+
+      <div className="relative px-4 pt-4 sm:px-6 sm:pt-5">
         <div className="flex items-center justify-between gap-3">
           <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-extrabold text-emerald-700">
             <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
             تدفق الطاقة الآن
           </span>
-          <div className="flex items-center gap-2">
-            <span className={liveFlowActive ? 'rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-700' : isLive ? 'rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-black text-sky-700' : 'rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700'}>
-              {liveFlowActive ? '● مباشر' : isLive ? '● متصل بلا قراءة' : 'غير متصل'}
-            </span>
-            <span className={`rounded-full border px-3 py-1.5 text-xs font-black ${operatingMode.className}`}>
-              وضع التشغيل: {operatingMode.label}
-            </span>
-            <InfoTip label="شرح حالة اتصال الإنفرتر" title="حالة الاتصال">
-              {liveFlowActive
-                ? 'مباشر: توجد قراءة telemetry حية غير صفرية، لذلك يظهر تدفق الطاقة المتحرك.'
-                : isLive
-                  ? 'متصل، لكن قراءات الطاقة الحالية صفرية أو غير صالحة، لذلك تم إيقاف الحركة.'
-                  : 'غير متصل: لا توجد قراءة حية مؤكدة الآن.'}
-            </InfoTip>
-          </div>
+          <span className={liveFlowActive ? "rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-700" : isLive ? "rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-black text-sky-700" : "rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700"}>
+            {liveFlowActive ? "● مباشر" : isLive ? "● متصل بلا قراءة" : "غير متصل"}
+          </span>
         </div>
       </div>
 
-      <div className="relative mx-auto mt-2 aspect-square w-full max-w-lg p-2 sm:p-4">
+      <div className="relative mx-auto mt-1 aspect-square w-full max-w-lg p-2 sm:p-4">
         <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 400 400" fill="none" aria-hidden="true">
           <defs>
-            <marker id="arrow-flow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" markerUnits="strokeWidth" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" /></marker>
+            <linearGradient id="energy-ring" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#F59E0B" />
+              <stop offset="50%" stopColor="#10B981" />
+              <stop offset="100%" stopColor="#3B82F6" />
+            </linearGradient>
+            <filter id="energy-glow"><feGaussianBlur stdDeviation="5" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+            <marker id="arrow-flow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" markerUnits="strokeWidth" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+            </marker>
           </defs>
-          <path d={solarHomePath} pathLength="100" stroke={solarToHome ? '#10B981' : '#CBD5E1'} strokeWidth="3.5" strokeLinecap="round" opacity={solarToHome ? 1 : 0.18} markerEnd={solarToHome ? 'url(#arrow-flow)' : undefined} className={solarToHome ? activeFlowClass : dashedFlowClass} />
-          <path d={homeBatteryPath} pathLength="100" stroke={batteryDischarging ? '#10B981' : homeToBattery ? '#F59E0B' : '#CBD5E1'} strokeWidth="3.5" strokeLinecap="round" opacity={batteryDischarging || homeToBattery ? 1 : 0.18} markerEnd={batteryDischarging || homeToBattery ? 'url(#arrow-flow)' : undefined} className={batteryDischarging || homeToBattery ? activeFlowClass : dashedFlowClass} />
-          <path d={batteryGridPath} pathLength="100" stroke={batteryToGrid ? '#8B5CF6' : gridToBattery ? '#F59E0B' : '#CBD5E1'} strokeWidth="3.5" strokeLinecap="round" opacity={batteryToGrid || gridToBattery ? 1 : 0.18} markerEnd={batteryToGrid || gridToBattery ? 'url(#arrow-flow)' : undefined} className={batteryToGrid || gridToBattery ? activeFlowClass : dashedFlowClass} />
-          <path d={gridSolarPath} pathLength="100" stroke={solarToGrid ? '#10B981' : gridToSolar ? '#F59E0B' : '#CBD5E1'} strokeWidth="3.5" strokeLinecap="round" opacity={solarToGrid || gridToSolar ? 1 : 0.18} markerEnd={solarToGrid || gridToSolar ? 'url(#arrow-flow)' : undefined} className={solarToGrid || gridToSolar ? activeFlowClass : dashedFlowClass} />
-          <circle cx="200" cy="200" r="28" fill="white" stroke="#E2E8F0" strokeWidth="1.5" />
-          <circle cx="200" cy="200" r="20" fill="#FFFBEB" />
+
+          <circle cx="200" cy="200" r="150" stroke="url(#energy-ring)" strokeWidth="1.5" opacity="0.14" strokeDasharray="4 9" />
+          <path d={solarHomePath} pathLength="100" stroke={solarToHome ? "#10B981" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={solarToHome ? 0.95 : 0.16} markerEnd={solarToHome ? "url(#arrow-flow)" : undefined} className={solarToHome ? activeFlowClass : dashedFlowClass} />
+          <path d={homeBatteryPath} pathLength="100" stroke={batteryDischarging ? "#10B981" : homeToBattery ? "#F59E0B" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={batteryDischarging || homeToBattery ? 0.95 : 0.16} markerEnd={batteryDischarging || homeToBattery ? "url(#arrow-flow)" : undefined} className={batteryDischarging || homeToBattery ? activeFlowClass : dashedFlowClass} />
+          <path d={batteryGridPath} pathLength="100" stroke={batteryToGrid ? "#8B5CF6" : gridToBattery ? "#F59E0B" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={batteryToGrid || gridToBattery ? 0.95 : 0.16} markerEnd={batteryToGrid || gridToBattery ? "url(#arrow-flow)" : undefined} className={batteryToGrid || gridToBattery ? activeFlowClass : dashedFlowClass} />
+          <path d={gridSolarPath} pathLength="100" stroke={solarToGrid ? "#10B981" : gridToSolar ? "#F59E0B" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={solarToGrid || gridToSolar ? 0.95 : 0.16} markerEnd={solarToGrid || gridToSolar ? "url(#arrow-flow)" : undefined} className={solarToGrid || gridToSolar ? activeFlowClass : dashedFlowClass} />
+
+          <circle cx="200" cy="200" r="38" fill="white" stroke="#FDE68A" strokeWidth="1.5" opacity="0.95" />
+          <circle cx="200" cy="200" r="30" fill="#FFFBEB" stroke="#F59E0B" strokeWidth="1.5" filter="url(#energy-glow)" />
+          <circle cx="200" cy="200" r="22" fill="white" />
         </svg>
 
-        <button type="button" onClick={() => setActiveNode('solar')} aria-label="عرض تفاصيل الطاقة الشمسية" className="absolute left-1/2 top-[8%] z-10 w-[30%] min-w-[96px] -translate-x-1/2 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 shadow-[0_8px_22px_rgba(245,158,11,0.16)] sm:h-[4.5rem] sm:w-[4.5rem]"><Sun className="h-9 w-9 text-amber-500" strokeWidth={2.2} /></div>
-          <div className="mt-1.5 text-[11px] font-black tracking-widest text-slate-400">SOLAR</div>
-          <div className="text-sm font-black text-emerald-600 sm:text-base">{formatKw(solarKw)}</div>
-          <div className="text-[10px] font-bold text-slate-500">إنتاج حالي</div>
-        </button>
-
-        <button type="button" onClick={() => setActiveNode('grid')} aria-label="عرض تفاصيل الشبكة" className="absolute left-[2.5%] top-1/2 z-10 w-[27%] min-w-[88px] -translate-y-1/2 text-center">
-          <div className={gridConnected ? "mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 shadow-sm sm:h-16 sm:w-16" : "mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-100 shadow-sm sm:h-16 sm:w-16"}><RadioTower className={gridConnected ? "h-8 w-8 text-emerald-500" : "h-8 w-8 text-slate-400"} strokeWidth={2.1} /></div>
-          <div className="mt-1.5 text-[10px] font-black tracking-wide text-slate-400">GRID</div>
-          <div className={gridConnected ? "text-sm font-black text-emerald-600 sm:text-base" : "text-sm font-black text-slate-500 sm:text-base"}>{gridConnected ? "متصلة" : "مقطوعة"}</div>
-          <div className="text-[10px] font-bold text-slate-500">{liveFlowActive && gridConnected ? (gridExporting ? "تصدير" : gridImporting ? "سحب" : "متوازنة") : "لا يوجد تدفق"}</div>
-        </button>
-
-        <button type="button" onClick={() => setActiveNode('home')} aria-label="عرض تفاصيل المنزل" className="absolute right-[2.5%] top-1/2 z-10 w-[27%] min-w-[88px] -translate-y-1/2 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-200 bg-blue-50 shadow-sm sm:h-16 sm:w-16"><Home className="h-8 w-8 text-blue-500" strokeWidth={2.1} /></div>
-          <div className="mt-1.5 text-[10px] font-black tracking-wide text-slate-400">HOME</div>
-          <div className="text-sm font-black text-blue-600 sm:text-base">{formatKw(homeKw)}</div>
-          <div className="text-[10px] font-bold text-slate-500">استهلاك حالي</div>
-        </button>
-
-        <button type="button" onClick={() => setActiveNode('battery')} aria-label="عرض تفاصيل البطارية" className="absolute bottom-[8%] left-1/2 z-10 w-[32%] min-w-[106px] -translate-x-1/2 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-300 bg-white shadow-[0_8px_22px_rgba(16,185,129,0.14)] sm:h-[4.5rem] sm:w-[4.5rem]">
-            <div className="relative flex h-12 w-12 items-center justify-center rounded-full border-[5px] border-emerald-400"><BatteryCharging className="absolute h-5 w-5 -translate-y-3 text-emerald-500" strokeWidth={2.3} /><span className="mt-2 text-sm font-black text-slate-800">{batteryPercentage.toFixed(0)}%</span></div>
+        <button type="button" onClick={() => setActiveNode("solar")} aria-label="عرض تفاصيل الطاقة الشمسية" className="absolute left-1/2 top-[6%] z-10 w-[32%] min-w-[100px] -translate-x-1/2 text-center transition-transform active:scale-95">
+          <div className="relative mx-auto flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.35rem] border border-amber-200 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-100 shadow-[0_10px_28px_rgba(245,158,11,0.20)]">
+            <span className={solarActive ? "absolute inset-1 rounded-[1rem] border border-amber-300/50 animate-pulse" : "hidden"} />
+            <Sun className="h-9 w-9 text-amber-500" strokeWidth={2.2} />
           </div>
-          <div className="mt-1.5 text-[10px] font-black tracking-wide text-slate-400">BATTERY</div>
-          <div className="text-sm font-black text-emerald-600 sm:text-base">{formatKw(batteryKw)}</div>
-          <div className="text-[10px] font-bold text-slate-500">{batteryCharging ? 'تشحن' : batteryDischarging ? 'تفرغ' : 'ثابتة'}</div>
+          <div className="mt-1.5 text-xs font-black text-slate-700">الطاقة الشمسية</div>
+          <div className="text-base font-black text-emerald-600">{formatKw(solarKw)}</div>
+          <div className="text-[10px] font-bold text-slate-500">{solarActive ? "إنتاج الآن" : "لا يوجد توليد"}</div>
+        </button>
+
+        <button type="button" onClick={() => setActiveNode("grid")} aria-label="عرض تفاصيل الشبكة" className="absolute left-[1%] top-1/2 z-10 w-[29%] min-w-[94px] -translate-y-1/2 text-center transition-transform active:scale-95">
+          <div className={gridConnected ? "mx-auto flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-violet-200 bg-gradient-to-br from-violet-50 to-blue-50 shadow-[0_10px_24px_rgba(139,92,246,0.16)]" : "mx-auto flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-slate-200 bg-slate-100 shadow-sm"}>
+            <RadioTower className={gridConnected ? "h-8 w-8 text-violet-500" : "h-8 w-8 text-slate-400"} strokeWidth={2.1} />
+          </div>
+          <div className="mt-1.5 text-xs font-black text-slate-700">الشبكة</div>
+          <div className={gridConnected ? "text-sm font-black text-violet-600" : "text-sm font-black text-slate-500"}>{gridConnected ? "متصلة" : "مقطوعة"}</div>
+          <div className="text-[10px] font-bold text-slate-500">{liveFlowActive && gridConnected ? (gridExporting ? "تصدير الفائض" : gridImporting ? "سحب الطاقة" : "متوازنة") : "لا يوجد تدفق"}</div>
+        </button>
+
+        <button type="button" onClick={() => setActiveNode("home")} aria-label="عرض تفاصيل المنزل" className="absolute right-[1%] top-1/2 z-10 w-[29%] min-w-[94px] -translate-y-1/2 text-center transition-transform active:scale-95">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-100 shadow-[0_10px_24px_rgba(14,165,233,0.16)]">
+            <Home className="h-8 w-8 text-sky-500" strokeWidth={2.1} />
+          </div>
+          <div className="mt-1.5 text-xs font-black text-slate-700">المنزل</div>
+          <div className="text-sm font-black text-blue-600">{formatKw(homeKw)}</div>
+          <div className="text-[10px] font-bold text-slate-500">{homeActive ? "استهلاك الآن" : "لا توجد قراءة"}</div>
+        </button>
+
+        <button type="button" onClick={() => setActiveNode("battery")} aria-label="عرض تفاصيل البطارية" className="absolute bottom-[6%] left-1/2 z-10 w-[34%] min-w-[110px] -translate-x-1/2 text-center transition-transform active:scale-95">
+          <div className="relative mx-auto flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.35rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-100 shadow-[0_10px_28px_rgba(16,185,129,0.18)]">
+            <div className="relative flex h-12 w-12 items-center justify-center rounded-full border-[5px] border-emerald-400 bg-white/80">
+              <BatteryCharging className="absolute h-5 w-5 -translate-y-3 text-emerald-500" strokeWidth={2.3} />
+              <span className="mt-2 text-sm font-black text-slate-800">{batteryPercentage.toFixed(0)}%</span>
+            </div>
+          </div>
+          <div className="mt-1.5 text-xs font-black text-slate-700">البطارية</div>
+          <div className="text-sm font-black text-emerald-600">{formatKw(batteryKw)}</div>
+          <div className="text-[10px] font-bold text-slate-500">{batteryCharging ? "تشحن الآن" : batteryDischarging ? "تفرغ الآن" : "ثابتة"}</div>
         </button>
 
         <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-amber-200 bg-white shadow-md sm:h-12 sm:w-12"><Zap className="h-5 w-5 text-amber-500 sm:h-6 sm:w-6" fill="currentColor" strokeWidth={1.8} /></div>
+          <div className="relative flex h-14 w-14 items-center justify-center rounded-full border border-amber-200 bg-white shadow-[0_8px_28px_rgba(245,158,11,0.22)]">
+            <span className="absolute inset-1 rounded-full border border-amber-300/40" />
+            <Zap className="h-6 w-6 text-amber-500" fill="currentColor" strokeWidth={1.8} />
+          </div>
         </div>
       </div>
 
-      <div className="mt-3 px-4 sm:px-6">
+      <div className="relative mt-2 px-4 sm:px-6">
         {activeNode ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" role="status">
+          <div className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur" role="status">
             <div className="flex items-center justify-between gap-3">
               <div className="text-sm font-black text-slate-900">
-                {activeNode === 'solar' && 'تفاصيل الألواح الشمسية'}
-                {activeNode === 'battery' && 'تفاصيل البطارية'}
-                {activeNode === 'home' && 'تفاصيل المنزل'}
-                {activeNode === 'grid' && 'تفاصيل الشبكة'}
+                {activeNode === "solar" && "تفاصيل الطاقة الشمسية"}
+                {activeNode === "battery" && "تفاصيل البطارية"}
+                {activeNode === "home" && "تفاصيل المنزل"}
+                {activeNode === "grid" && "تفاصيل الشبكة"}
               </div>
               <button type="button" onClick={() => setActiveNode(null)} className="rounded-lg px-2 py-1 text-xs font-black text-slate-500 hover:bg-slate-100">إغلاق</button>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-              {activeNode === 'solar' && (
+              {activeNode === "solar" && (
                 <>
                   <div className="rounded-xl bg-amber-50 p-3"><div className="font-bold text-slate-500">الإنتاج الآن</div><div className="mt-1 font-black text-amber-700">{formatKw(solarKw)}</div></div>
-                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الحالة</div><div className="mt-1 font-black text-slate-800">{solarActive ? 'يولّد طاقة' : 'لا يوجد توليد مؤكد'}</div></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الحالة</div><div className="mt-1 font-black text-slate-800">{solarActive ? "يولّد طاقة" : "لا يوجد توليد مؤكد"}</div></div>
                 </>
               )}
-              {activeNode === 'battery' && (
+              {activeNode === "battery" && (
                 <>
                   <div className="rounded-xl bg-emerald-50 p-3"><div className="font-bold text-slate-500">حالة الشحن</div><div className="mt-1 font-black text-emerald-700">{batteryPercentage.toFixed(0)}%</div></div>
                   <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">القدرة</div><div className="mt-1 font-black text-slate-800">{formatKw(batteryKw)}</div></div>
                 </>
               )}
-              {activeNode === 'home' && (
+              {activeNode === "home" && (
                 <>
                   <div className="rounded-xl bg-blue-50 p-3"><div className="font-bold text-slate-500">الاستهلاك الآن</div><div className="mt-1 font-black text-blue-700">{formatKw(homeKw)}</div></div>
-                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الحمل</div><div className="mt-1 font-black text-slate-800">{homeActive ? 'نشط' : 'لا توجد قراءة حية مؤكدة'}</div></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الحمل</div><div className="mt-1 font-black text-slate-800">{homeActive ? "نشط" : "لا توجد قراءة حية مؤكدة"}</div></div>
                 </>
               )}
-              {activeNode === 'grid' && (
+              {activeNode === "grid" && (
                 <>
-                  <div className="rounded-xl bg-sky-50 p-3"><div className="font-bold text-slate-500">الحالة</div><div className="mt-1 font-black text-sky-700">{gridConnected ? 'متصلة' : 'مقطوعة'}</div></div>
-                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">التدفق</div><div className="mt-1 font-black text-slate-800">{gridExporting ? 'تصدير' : gridImporting ? 'سحب' : 'متوازن / لا يوجد تدفق'}</div></div>
+                  <div className="rounded-xl bg-sky-50 p-3"><div className="font-bold text-slate-500">الحالة</div><div className="mt-1 font-black text-sky-700">{gridConnected ? "متصلة" : "مقطوعة"}</div></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">التدفق</div><div className="mt-1 font-black text-slate-800">{gridExporting ? "تصدير" : gridImporting ? "سحب" : "متوازن / لا يوجد تدفق"}</div></div>
                 </>
               )}
             </div>
@@ -209,17 +224,17 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
         ) : null}
       </div>
 
-      {!liveFlowActive && <div className="mx-4 mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-center text-xs font-bold text-amber-800 sm:mx-6">⚠️ لا توجد قراءة حية متاحة حاليًا. تحقّق من اتصال الإنفرتر وإرسال بيانات القياس.</div>}
+      {!liveFlowActive && <div className="relative mx-4 mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-center text-xs font-bold text-amber-800 sm:mx-6">⚠️ لا توجد قراءة حية متاحة حاليًا. تحقّق من اتصال الإنفرتر وإرسال بيانات القياس.</div>}
 
-      <div className="border-t border-slate-100 bg-slate-50/70 px-3 py-4 sm:px-5">
+      <div className="relative border-t border-slate-100 bg-slate-50/70 px-3 py-4 sm:px-5">
         <div className="grid grid-cols-3 divide-x divide-x-reverse divide-slate-200 text-center">
           <div className="px-2"><div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">TODAY'S PRODUCTION</div><div className="mt-1 text-base font-black text-emerald-600 sm:text-lg">{formatKwh(todayProductionKWh)}</div><div className="text-[10px] font-bold text-slate-500">إنتاج اليوم</div></div>
           <div className="px-2"><div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">HOME USAGE</div><div className="mt-1 text-base font-black text-blue-600 sm:text-lg">{formatKwh(todayHomeUsageKWh)}</div><div className="text-[10px] font-bold text-slate-500">استهلاك المنزل</div></div>
-          <div className="px-2"><div className="px-2"><div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">GRID SAVINGS</div><div className="mt-1 text-base font-black text-amber-500 sm:text-lg">{formatSavings(todayGridSavings)}</div><div className="text-[10px] font-bold text-slate-500">التوفير</div></div></div>
+          <div className="px-2"><div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">GRID SAVINGS</div><div className="mt-1 text-base font-black text-amber-500 sm:text-lg">{formatSavings(todayGridSavings)}</div><div className="text-[10px] font-bold text-slate-500">التوفير</div></div>
         </div>
       </div>
 
-      {lastUpdated && <div className="border-t border-slate-100 px-4 py-2 text-center text-[10px] font-semibold text-slate-400">آخر قراءة: {lastUpdated}</div>}
+      {lastUpdated && <div className="relative border-t border-slate-100 px-4 py-2 text-center text-[10px] font-semibold text-slate-400">آخر قراءة: {lastUpdated}</div>}
     </section>
   );
 };
