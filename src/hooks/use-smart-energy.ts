@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { EnergySnapshot } from "@/lib/energy";
-import { estimateSolarKWh, weatherConfidence, type DayForecast, type HourlySolarPoint } from "@/lib/smart-forecast";
+import { calculateLoadStability, estimateSolarKWh, weatherConfidence, type DayForecast, type HourlySolarPoint, type LoadStabilityResult } from "@/lib/smart-forecast";
 
 type WeatherResponse = {
   hourly?: {
@@ -40,6 +40,40 @@ const DEFAULT_LAT = 33.8938;
 const DEFAULT_LON = 35.5018;
 const DEFAULT_TIMEZONE = "Asia/Beirut";
 const SAFETY_RESERVE = 10;
+const LOAD_HISTORY_KEY = "shamsak_home_load_history_v1";
+const LOAD_HISTORY_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+type LoadSample = { timestamp: string; homePowerW: number };
+
+function beirutHour(timestamp: string) {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: DEFAULT_TIMEZONE, hour: "2-digit", hour12: false }).formatToParts(new Date(timestamp));
+  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? 0);
+  return hour === 24 ? 0 : hour;
+}
+
+function updateNightLoadHistory(snapshot: EnergySnapshot | null): LoadStabilityResult {
+  if (typeof window === "undefined" || !snapshot || snapshot.source !== "live" || !Number.isFinite(snapshot.homePowerW)) {
+    return { averageW: null, coefficientOfVariation: null, confidence: "غير كافية", sampleCount: 0 };
+  }
+  const now = Date.now();
+  let samples: LoadSample[] = [];
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LOAD_HISTORY_KEY) || "[]") as LoadSample[];
+    samples = Array.isArray(parsed) ? parsed.filter((item) => Number.isFinite(new Date(item.timestamp).getTime()) && Number.isFinite(item.homePowerW)) : [];
+  } catch {
+    samples = [];
+  }
+  samples = samples.filter((item) => now - new Date(item.timestamp).getTime() <= LOAD_HISTORY_MAX_AGE_MS);
+  const last = samples[samples.length - 1];
+  if (!last || new Date(snapshot.timestamp).getTime() - new Date(last.timestamp).getTime() >= 60_000) {
+    samples.push({ timestamp: snapshot.timestamp, homePowerW: Math.max(0, snapshot.homePowerW) });
+  }
+  localStorage.setItem(LOAD_HISTORY_KEY, JSON.stringify(samples.slice(-700)));
+  const nightSamples = samples.filter((item) => {
+    const hour = beirutHour(item.timestamp);
+    return hour >= 18 || hour < 7;
+  });
+  return calculateLoadStability(nightSamples.map((item) => item.homePowerW));
+}
 
 function readNumber(key: string, fallback: number) {
   if (typeof window === "undefined") return fallback;
@@ -71,6 +105,7 @@ export function useSmartEnergy() {
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nightLoadStats, setNightLoadStats] = useState<LoadStabilityResult>({ averageW: null, coefficientOfVariation: null, confidence: "غير كافية", sampleCount: 0 });
 
   const load = useCallback(async (mode: "initial" | "refresh" = "refresh"): Promise<boolean> => {
     if (mode === "initial") setLoading(true);
@@ -223,6 +258,7 @@ export function useSmartEnergy() {
 
       snapshotRef.current = nextSnapshot;
       setSnapshot(nextSnapshot);
+      setNightLoadStats(updateNightLoadHistory(nextSnapshot));
       setWeather(nextWeather);
       setForecasts(nextForecasts);
       setError(null);
@@ -249,6 +285,7 @@ export function useSmartEnergy() {
     loading,
     isRefreshing,
     error,
+    nightLoadStats,
     refresh: () => load("refresh"),
   };
 }

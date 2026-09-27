@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowDownToLine, BatteryCharging, CheckCircle2, Clock3, CloudSun, Loader2, MoonStar, RefreshCw, SunMedium, Zap } from "lucide-react";
 import { useSmartEnergy } from "@/hooks/use-smart-energy";
-import { calculateAutonomy, weatherIcon, weatherLabel, type DayForecast } from "@/lib/smart-forecast";
+import { calculateAutonomy, weatherIcon, weatherLabel, type DayForecast, type LoadStability } from "@/lib/smart-forecast";
 import { InfoTip } from "@/components/info-tip";
 
 function formatHour(iso?: string | null) {
@@ -44,16 +44,23 @@ function NightCard({
   startSoc,
   hours,
   loadW,
+  averageNightLoadW,
+  confidence,
+  sampleCount,
 }: {
   title: string;
   startSoc: number;
   hours: number;
   loadW: number;
+  averageNightLoadW: number | null;
+  confidence: LoadStability;
+  sampleCount: number;
 }) {
   const capacityWh = typeof window !== "undefined"
     ? Number(localStorage.getItem("shamsak_battery_capacity") || 4800)
     : 4800;
-  const result = calculateAutonomy(startSoc, capacityWh, loadW, hours);
+  const effectiveLoadW = averageNightLoadW ?? loadW;
+  const result = calculateAutonomy(startSoc, capacityWh, effectiveLoadW, hours);
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
@@ -78,15 +85,20 @@ function NightCard({
           <strong className="mt-1 block text-2xl font-black text-sky-700">{result.expectedSocAtSunrise}%</strong>
         </div>
       </div>
-      <p className="mt-3 text-sm font-semibold text-slate-500">
-        تغطية تقديرية {result.hoursCovered} ساعة عند حمل حالي {Math.round(loadW).toLocaleString("ar-LB")} واط.
-      </p>
+      <div className="mt-3 space-y-2 text-sm font-semibold text-slate-500">
+        <p>تغطية تقديرية {result.hoursCovered} ساعة عند متوسط استهلاك ليلي {Math.round(effectiveLoadW).toLocaleString("ar-LB")} واط.</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={confidence === "عالية" ? "rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700" : confidence === "متوسطة" ? "rounded-full bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-700" : confidence === "منخفضة" ? "rounded-full bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700" : "rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600"}>ثقة استقرار الاستهلاك: {confidence}</span>
+          <span className="text-xs">عينات ليلية: {sampleCount}</span>
+        </div>
+        {averageNightLoadW === null && <p className="text-xs text-amber-700">لا توجد بيانات تاريخية ليلية كافية بعد؛ استُخدمت القراءة الحالية مؤقتًا.</p>}
+      </div>
     </div>
   );
 }
 
 export function SmartForecast() {
-  const { forecasts, weather, snapshot, loading, isRefreshing, error, refresh } = useSmartEnergy();
+  const { forecasts, weather, snapshot, loading, isRefreshing, error, nightLoadStats, refresh } = useSmartEnergy();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -255,8 +267,8 @@ export function SmartForecast() {
               </InfoTip>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {currentNight && <NightCard title="الليلة الحالية" startSoc={currentNight.startSoc} hours={currentNight.hours} loadW={loadW} />}
-              {tomorrowNight && <NightCard title="ليلة الغد" startSoc={tomorrowNight.startSoc} hours={tomorrowNight.hours} loadW={loadW} />}
+              {currentNight && <NightCard title="الليلة الحالية" startSoc={currentNight.startSoc} hours={currentNight.hours} loadW={loadW} averageNightLoadW={nightLoadStats.averageW} confidence={nightLoadStats.confidence} sampleCount={nightLoadStats.sampleCount} />}
+              {tomorrowNight && <NightCard title="ليلة الغد" startSoc={tomorrowNight.startSoc} hours={tomorrowNight.hours} loadW={loadW} averageNightLoadW={nightLoadStats.averageW} confidence={nightLoadStats.confidence} sampleCount={nightLoadStats.sampleCount} />}
             </div>
           </section>
 

@@ -31,6 +31,28 @@ export type DayForecast = {
   fullChargeTime: string | null;
 };
 
+export type LoadStability = "عالية" | "متوسطة" | "منخفضة" | "غير كافية";
+
+export type LoadStabilityResult = {
+  averageW: number | null;
+  coefficientOfVariation: number | null;
+  confidence: LoadStability;
+  sampleCount: number;
+};
+
+export function calculateLoadStability(samplesW: number[]): LoadStabilityResult {
+  const samples = samplesW.filter((value) => Number.isFinite(value) && value >= 0);
+  if (samples.length < 8) {
+    return { averageW: samples.length ? Math.round(samples.reduce((sum, value) => sum + value, 0) / samples.length) : null, coefficientOfVariation: null, confidence: "غير كافية", sampleCount: samples.length };
+  }
+  const averageW = samples.reduce((sum, value) => sum + value, 0) / samples.length;
+  if (averageW <= 1) return { averageW: 0, coefficientOfVariation: 0, confidence: "عالية", sampleCount: samples.length };
+  const variance = samples.reduce((sum, value) => sum + Math.pow(value - averageW, 2), 0) / samples.length;
+  const coefficientOfVariation = Math.sqrt(variance) / averageW;
+  const confidence = coefficientOfVariation <= 0.2 ? "عالية" : coefficientOfVariation <= 0.4 ? "متوسطة" : "منخفضة";
+  return { averageW: Math.round(averageW), coefficientOfVariation: Math.round(coefficientOfVariation * 100) / 100, confidence, sampleCount: samples.length };
+}
+
 export type AutonomyResult = {
   expectedSocAtSunrise: number;
   hoursCovered: number;
