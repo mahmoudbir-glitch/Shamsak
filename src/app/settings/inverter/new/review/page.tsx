@@ -82,32 +82,32 @@ export default function InverterReviewPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 pb-28 text-right" dir="rtl">
-      <div className="mx-auto max-w-2xl">
+    <main className="w-full space-y-4 pb-28 text-right" dir="rtl">
+      <div className="mx-auto w-full max-w-2xl">
         <button
           type="button"
           onClick={() => router.back()}
-          className="mb-4 text-sm font-bold text-slate-500"
+          className="mb-2 inline-flex min-h-10 items-center rounded-xl px-2 text-sm font-bold text-slate-500 transition hover:bg-slate-100"
         >
           ← العودة
         </button>
 
-        <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+        <section className="energy-card border-blue-100 p-4 sm:p-5">
           <div className="mb-5">
             <p className="text-sm font-black text-blue-600">
               إضافة إنفرتر جديد · الخطوة 4 من 4
             </p>
-            <h1 className="mt-2 text-2xl font-black text-slate-900">
+            <h1 className="mt-2 text-xl font-black text-slate-900 sm:text-2xl">
               مراجعة الإعدادات
             </h1>
-            <p className="mt-2 text-base font-medium leading-7 text-slate-500">
+            <p className="mt-2 text-sm font-medium leading-6 text-slate-500 sm:text-base sm:leading-7">
               راجع البيانات التي أدخلتها قبل الحفظ.
             </p>
           </div>
 
-          <div className="mb-6 grid grid-cols-4 gap-2" aria-label="خطوات إضافة الإنفرتر">
+          <div className="mb-5 grid grid-cols-4 gap-2" aria-label="خطوات إضافة الإنفرتر">
             {[1, 2, 3, 4].map((step) => (
-              <div key={step} className="h-2 rounded-full bg-blue-600" />
+              <div key={step} className="h-1.5 rounded-full bg-blue-600" />
             ))}
           </div>
 
@@ -136,7 +136,7 @@ export default function InverterReviewPage() {
             type="button"
             onClick={handleSave}
             disabled={saving || saved}
-            className="mt-5 min-h-14 w-full rounded-xl bg-blue-600 px-4 text-lg font-bold text-white shadow-sm transition active:scale-95 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-5 min-h-12 w-full rounded-xl bg-blue-600 px-4 text-base font-bold text-white shadow-sm transition active:scale-95 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? "جارٍ الحفظ..." : saved ? "تم الحفظ ✓" : "حفظ وتثبيت الإنفرتر"}
           </button>
@@ -144,7 +144,7 @@ export default function InverterReviewPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="mt-3 min-h-14 w-full rounded-xl border border-slate-200 bg-white px-4 text-lg font-bold text-slate-700 shadow-sm"
+            className="mt-3 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-base font-bold text-slate-700 shadow-sm"
           >
             تعديل البيانات
           </button>
