@@ -117,6 +117,7 @@ function NightCard({
 export function SmartForecast() {
   const { forecasts, weather, snapshot, loading, isRefreshing, error, nightLoadStats, refresh } = useSmartEnergy();
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [showHourlyDetails, setShowHourlyDetails] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -311,9 +312,15 @@ export function SmartForecast() {
                     </div>
                   </div>
                   <p className="mt-3 text-sm font-semibold text-slate-700">النافذة تُحسب عندما يتجاوز الإنتاج الشمسي استهلاك المنزل وما يمكن للبطارية استيعابه؛ لا تُعرض كتوصية تشغيل ثابتة.</p>
-                  <a href="#hourly-details" className="mt-4 inline-flex items-center gap-2 text-sm font-black text-amber-800 underline underline-offset-4">
-                    تفصيل الساعات <ArrowDownToLine size={16} />
-                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setShowHourlyDetails((value) => !value)}
+                    className="mt-4 inline-flex items-center gap-2 text-sm font-black text-amber-800 underline underline-offset-4"
+                    aria-expanded={showHourlyDetails}
+                    aria-controls="hourly-details"
+                  >
+                    {showHourlyDetails ? "إخفاء تفصيل الساعات" : "عرض تفصيل الساعات"} <ArrowDownToLine size={16} />
+                  </button>
                 </div>
               </div>
             </section>
@@ -347,6 +354,7 @@ export function SmartForecast() {
             </div>
           </section>
 
+          {showHourlyDetails && (
           <section id="hourly-details" className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-black text-slate-900">تفصيل الساعات</h2>
@@ -368,6 +376,7 @@ export function SmartForecast() {
               ))}
             </div>
           </section>
+          )}}
         </>
       )}
 
