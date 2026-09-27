@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, House, BatteryCharging, Sun, WalletCards, Settings } from 'lucide-react';
+import { LayoutDashboard, House, BatteryCharging, Sun, WalletCards, Settings } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 type NavTone = 'blue' | 'violet' | 'emerald' | 'sky' | 'cyan' | 'indigo';
@@ -15,8 +15,8 @@ const activeToneClasses: Record<NavTone, string> = {
   indigo: 'bg-indigo-50 text-indigo-700 ring-indigo-100',
 };
 
-export const navItems: { href: string; label: string; Icon: typeof Home; tone: NavTone }[] = [
-  { href: '/', label: 'الرئيسية', Icon: Home, tone: 'blue' },
+export const navItems: { href: string; label: string; Icon: typeof LayoutDashboard; tone: NavTone }[] = [
+  { href: '/', label: 'الرئيسية', Icon: LayoutDashboard, tone: 'blue' },
   { href: '/home-consumption', label: 'المنزل', Icon: House, tone: 'violet' },
   { href: '/battery', label: 'البطارية', Icon: BatteryCharging, tone: 'emerald' },
   { href: '/energy', label: 'الطاقة', Icon: Sun, tone: 'sky' },
@@ -56,7 +56,7 @@ export function DesktopNav() {
                   : 'text-slate-500 hover:bg-white/80 hover:text-slate-800')
               }
             >
-              <Icon size={21} strokeWidth={2.4} aria-hidden="true" />
+              <Icon size={21} strokeWidth={active ? 2.7 : 2.2} aria-hidden="true" />
               <span>{label}</span>
             </Link>
           );
@@ -90,7 +90,13 @@ export function BottomNav() {
                   : 'text-slate-500 hover:bg-slate-50')
               }
             >
-              <span className={active ? 'flex h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-sm' : 'flex h-10 w-10 items-center justify-center rounded-2xl'}>
+              <span
+                className={
+                  active
+                    ? 'flex h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-sm'
+                    : 'flex h-10 w-10 items-center justify-center rounded-2xl'
+                }
+              >
                 <Icon size={23} strokeWidth={active ? 2.7 : 2.2} aria-hidden="true" />
               </span>
               <span className="leading-none">{label}</span>
