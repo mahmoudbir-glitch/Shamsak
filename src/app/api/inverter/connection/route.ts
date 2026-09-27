@@ -45,41 +45,87 @@ export async function POST(request: NextRequest) {
   const input = body as Record<string, unknown>;
   const text = (value: unknown, max = 200) => typeof value === "string" ? value.trim().slice(0, max) : "";
   const wifiPassword = typeof input.wifiPassword === "string" ? input.wifiPassword : "";
+  const panelCapacityKw = typeof input.panelCapacityKw === "number" ? input.panelCapacityKw : Number(input.panelCapacityKw);
+  const batteryCapacityWh = typeof input.batteryCapacityWh === "number" ? input.batteryCapacityWh : Number(input.batteryCapacityWh);
 
   if (!text(input.systemName)) {
     return NextResponse.json({ error: "missing_connection_fields" }, { status: 400 });
   }
 
+  if (
+    input.panelCapacityKw !== undefined &&
+    (!Number.isFinite(panelCapacityKw) || panelCapacityKw <= 0) 
+  ) {
+    return NextResponse.json({ error: "invalid_panel_capacity" }, { status: 422 });
+  }
+
+  if (
+    input.batteryCapacityWh !== undefined &&
+    (!Number.isFinite(batteryCapacityWh) || batteryCapacityWh <= 0)
+  ) {
+    return NextResponse.json({ error: "invalid_battery_capacity" }, { status: 422 });
+  }
+
   try {
-    const existing = await prisma.inverterConnection.findUnique({ where: { id: "default" } });
-    const row = await prisma.inverterConnection.upsert({
-      where: { id: "default" },
-      create: {
-        id: "default",
-        systemName: text(input.systemName),
-        inverterModel: text(input.inverterModel) || "Felicity",
-        manufacturer: text(input.manufacturer) || null,
-        protocol: text(input.protocol) || "Wi-Fi Datalogger",
-        inverterAddress: text(input.inverterAddress) || null,
-        inverterUsername: text(input.inverterUsername) || null,
-        inverterLinkCode: text(input.inverterLinkCode) || null,
-        wifiSsid: text(input.wifiSsid),
-        wifiPasswordCipher: wifiPassword ? encryptSecret(wifiPassword) : null,
-      },
-      update: {
-        systemName: text(input.systemName),
-        inverterModel: text(input.inverterModel) || "Felicity",
-        manufacturer: text(input.manufacturer) || null,
-        protocol: text(input.protocol) || "Wi-Fi Datalogger",
-        inverterAddress: text(input.inverterAddress) || null,
-        inverterUsername: text(input.inverterUsername) || null,
-        inverterLinkCode: text(input.inverterLinkCode) || null,
-        wifiSsid: text(input.wifiSsid),
-        ...(wifiPassword ? { wifiPasswordCipher: encryptSecret(wifiPassword) } : {}),
-      },
+    const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.inverterConnection.findUnique({ where: { id: "default" } });
+      const row = await tx.inverterConnection.upsert({
+        where: { id: "default" },
+        create: {
+          id: "default",
+          systemName: text(input.systemName),
+          inverterModel: text(input.inverterModel) || "Felicity",
+          manufacturer: text(input.manufacturer) || null,
+          protocol: text(input.protocol) || "Wi-Fi Datalogger",
+          inverterAddress: text(input.inverterAddress) || null,
+          inverterUsername: text(input.inverterUsername) || null,
+          inverterLinkCode: text(input.inverterLinkCode) || null,
+          wifiSsid: text(input.wifiSsid),
+          wifiPasswordCipher: wifiPassword ? encryptSecret(wifiPassword) : null,
+        },
+        update: {
+          systemName: text(input.systemName),
+          inverterModel: text(input.inverterModel) || "Felicity",
+          manufacturer: text(input.manufacturer) || null,
+          protocol: text(input.protocol) || "Wi-Fi Datalogger",
+          inverterAddress: text(input.inverterAddress) || null,
+          inverterUsername: text(input.inverterUsername) || null,
+          inverterLinkCode: text(input.inverterLinkCode) || null,
+          wifiSsid: text(input.wifiSsid),
+          ...(wifiPassword ? { wifiPasswordCipher: encryptSecret(wifiPassword) } : {}),
+        },
+      });
+
+      if (input.panelCapacityKw !== undefined || input.batteryCapacityWh !== undefined) {
+        const current = await tx.energySettings.findUnique({ where: { id: "default" } });
+        await tx.energySettings.upsert({
+          where: { id: "default" },
+          create: {
+            id: "default",
+            panelPowerW: panelCapacityKw * 1000,
+            batteryCapacityWh,
+          },
+          update: {
+            ...(input.panelCapacityKw !== undefined ? { panelPowerW: panelCapacityKw * 1000 } : {}),
+            ...(input.batteryCapacityWh !== undefined ? { batteryCapacityWh } : {}),
+          },
+        });
+        void current;
+      }
+
+      return {
+        row,
+        preservedPassword: Boolean(existing?.wifiPasswordCipher && !wifiPassword),
+      };
     });
-    return NextResponse.json({ saved: true, hasWifiPassword: Boolean(row.wifiPasswordCipher), preservedPassword: Boolean(existing?.wifiPasswordCipher && !wifiPassword) });
-  } catch {
+
+    return NextResponse.json({
+      saved: true,
+      hasWifiPassword: Boolean(result.row.wifiPasswordCipher),
+      preservedPassword: result.preservedPassword,
+    });
+  } catch (error) {
+    console.error("inverter_config_write_failed", error);
     return NextResponse.json({ error: "inverter_config_write_failed" }, { status: 503 });
   }
 }
