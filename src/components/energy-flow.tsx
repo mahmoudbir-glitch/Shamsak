@@ -63,6 +63,20 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   const formatKwh = (value?: number) => value === undefined ? '—' : value.toFixed(1) + ' kWh';
   const formatSavings = (value?: number) => value === undefined ? '—' : savingsCurrency + value.toFixed(2);
 
+  const operatingMode = !isLive
+    ? { label: 'بانتظار البيانات الحية', className: 'border-slate-200 bg-slate-50 text-slate-600' }
+    : gridImporting && !solarActive && batteryDischarging
+      ? { label: 'البطارية أولًا', className: 'border-violet-200 bg-violet-50 text-violet-700' }
+      : gridImporting
+        ? { label: 'الشبكة تغطي الحمل', className: 'border-sky-200 bg-sky-50 text-sky-700' }
+        : solarActive && gridExporting
+          ? { label: 'الشمس أولًا • تصدير الفائض', className: 'border-amber-200 bg-amber-50 text-amber-700' }
+          : solarActive
+            ? { label: 'الشمس أولًا', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' }
+            : batteryDischarging
+              ? { label: 'البطارية تغطي الحمل', className: 'border-violet-200 bg-violet-50 text-violet-700' }
+              : { label: 'الوضع الحالي غير محدد', className: 'border-slate-200 bg-slate-50 text-slate-600' };
+
   // The four icon centers sit on one imaginary circle:
   // top (200,65) -> right (335,200) -> bottom (200,335) -> left (65,200).
   // Each route is a true quarter-circle arc with the same radius (135).
@@ -90,6 +104,9 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           <div className="flex items-center gap-2">
             <span className={liveFlowActive ? 'rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-700' : isLive ? 'rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-black text-sky-700' : 'rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700'}>
               {liveFlowActive ? '● مباشر' : isLive ? '● متصل بلا قراءة' : 'غير متصل'}
+            </span>
+            <span className={`rounded-full border px-3 py-1.5 text-xs font-black ${operatingMode.className}`}>
+              وضع التشغيل: {operatingMode.label}
             </span>
             <InfoTip label="شرح حالة اتصال الإنفرتر" title="حالة الاتصال">
               {liveFlowActive
