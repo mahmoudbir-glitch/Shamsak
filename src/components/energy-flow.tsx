@@ -171,43 +171,43 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
         <button type="button" onClick={() => setActiveNode('solar')} aria-label="عرض تفاصيل الطاقة الشمسية" className="absolute left-1/2 top-[8%] z-10 w-[30%] min-w-[96px] -translate-x-1/2 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 shadow-[0_8px_22px_rgba(245,158,11,0.16)] sm:h-[4.5rem] sm:w-[4.5rem]">
             <Sun className="h-9 w-9 text-amber-500" strokeWidth={2.2} />
-          </button>
+          </div>
           <div className="mt-1.5 text-[11px] font-black tracking-widest text-slate-400">SOLAR</div>
           <div className="text-sm font-black text-emerald-600 sm:text-base">{formatKw(solarKw)}</div>
           <div className="text-[10px] font-bold text-slate-500">إنتاج حالي</div>
-        </div>
+        </button>
 
         <button type="button" onClick={() => setActiveNode('grid')} aria-label="عرض تفاصيل الشبكة" className="absolute left-[2.5%] top-1/2 z-10 w-[27%] min-w-[88px] -translate-y-1/2 text-center">
           <div className={gridConnected ? "mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 shadow-sm sm:h-16 sm:w-16" : "mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-100 shadow-sm sm:h-16 sm:w-16"}>
             <RadioTower className={gridConnected ? "h-8 w-8 text-emerald-500" : "h-8 w-8 text-slate-400"} strokeWidth={2.1} />
-          </button>
+          </div>
           <div className="mt-1.5 text-[10px] font-black tracking-wide text-slate-400">GRID</div>
           <div className={gridConnected ? "text-sm font-black text-emerald-600 sm:text-base" : "text-sm font-black text-slate-500 sm:text-base"}>
             {gridConnected ? "متصلة" : "مقطوعة"}
           </div>
           <div className="text-[10px] font-bold text-slate-500">{liveFlowActive && gridConnected ? (gridExporting ? "تصدير" : gridImporting ? "سحب" : "متوازنة") : "لا يوجد تدفق"}</div>
-        </div>
+        </button>
 
         <button type="button" onClick={() => setActiveNode('home')} aria-label="عرض تفاصيل المنزل" className="absolute right-[2.5%] top-1/2 z-10 w-[27%] min-w-[88px] -translate-y-1/2 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-200 bg-blue-50 shadow-sm sm:h-16 sm:w-16">
             <Home className="h-8 w-8 text-blue-500" strokeWidth={2.1} />
-          </button>
+          </div>
           <div className="mt-1.5 text-[10px] font-black tracking-wide text-slate-400">HOME</div>
           <div className="text-sm font-black text-blue-600 sm:text-base">{formatKw(homeKw)}</div>
           <div className="text-[10px] font-bold text-slate-500">استهلاك حالي</div>
-        </div>
+        </button>
 
         <button type="button" onClick={() => setActiveNode('battery')} aria-label="عرض تفاصيل البطارية" className="absolute bottom-[8%] left-1/2 z-10 w-[32%] min-w-[106px] -translate-x-1/2 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-300 bg-white shadow-[0_8px_22px_rgba(16,185,129,0.14)] sm:h-[4.5rem] sm:w-[4.5rem]">
             <div className="relative flex h-12 w-12 items-center justify-center rounded-full border-[5px] border-emerald-400">
               <BatteryCharging className="absolute h-5 w-5 -translate-y-3 text-emerald-500" strokeWidth={2.3} />
               <span className="mt-2 text-sm font-black text-slate-800">{batteryPercentage.toFixed(0)}%</span>
-            </button>
+            </div>
           </div>
           <div className="mt-1.5 text-[10px] font-black tracking-wide text-slate-400">BATTERY</div>
           <div className="text-sm font-black text-emerald-600 sm:text-base">{formatKw(batteryKw)}</div>
           <div className="text-[10px] font-bold text-slate-500">{batteryCharging ? 'تشحن' : batteryDischarging ? 'تفرغ' : 'ثابتة'}</div>
-        </div>
+        </button>
 
         <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
           <div className="flex h-10 w-10 items-center justify-center rounded-full border border-amber-200 bg-white shadow-md sm:h-12 sm:w-12">
