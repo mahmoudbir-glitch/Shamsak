@@ -48,12 +48,14 @@ export default function InverterReviewPage() {
           protocol: setup.protocol,
           inverterAddress: setup.inverterAddress,
           wifiSsid: "",
+          panelCapacityKw: Number(setup.panelCapacity || 0),
+          batteryCapacityWh: Number(setup.batteryCapacity || 0),
         }),
       });
       if (!response.ok) throw new Error("save_failed");
 
       localStorage.setItem("shamsak_new_inverter", JSON.stringify(setup));
-      localStorage.setItem("shamsak_panel_capacity_kw", String(Number(setup.panelCapacity || 0) / (Number(setup.panelCapacity || 0) > 100 ? 1000 : 1)));
+      localStorage.setItem("shamsak_panel_capacity_kw", String(Number(setup.panelCapacity || 0)));
       localStorage.setItem("shamsak_battery_capacity_wh", String(Number(setup.batteryCapacity || 0)));
       setMessage("✓ تم حفظ إعدادات الإنفرتر بنجاح.");
       sessionStorage.removeItem("shamsak_new_inverter_step1");
