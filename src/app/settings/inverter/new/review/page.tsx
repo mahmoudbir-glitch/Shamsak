@@ -17,6 +17,7 @@ export default function InverterReviewPage() {
   const router = useRouter();
   const [setup, setSetup] = useState<Setup | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export default function InverterReviewPage() {
 
   const handleSave = async () => {
     setSaving(true);
+    setSaved(false);
     setMessage("");
     try {
       const response = await fetch("/api/inverter/connection", {
@@ -57,7 +59,8 @@ export default function InverterReviewPage() {
       localStorage.setItem("shamsak_new_inverter", JSON.stringify(setup));
       localStorage.setItem("shamsak_panel_capacity_kw", String(Number(setup.panelCapacity || 0)));
       localStorage.setItem("shamsak_battery_capacity_wh", String(Number(setup.batteryCapacity || 0)));
-      setMessage("✓ تم حفظ إعدادات الإنفرتر بنجاح.");
+      setSaved(true);
+      setMessage("✓ تم حفظ إعدادات الإنفرتر والطاقة بنجاح.");
       sessionStorage.removeItem("shamsak_new_inverter_step1");
       sessionStorage.removeItem("shamsak_new_inverter_step2");
       sessionStorage.removeItem("shamsak_new_inverter_step3");
@@ -118,7 +121,9 @@ export default function InverterReviewPage() {
           </div>
 
           <div className="mt-6 rounded-xl bg-blue-50 p-4 text-sm font-bold leading-6 text-blue-800">
-            هذه الشاشة للمراجعة فقط. لم يتم حفظ الإعدادات نهائيًا بعد.
+            {saved
+              ? "تم تثبيت الإعدادات في الخادم. يمكنك العودة إلى الإعدادات لمراجعتها."
+              : "هذه الشاشة للمراجعة فقط. لم يتم حفظ الإعدادات نهائيًا بعد."}
           </div>
 
           {message && (
@@ -130,10 +135,10 @@ export default function InverterReviewPage() {
           <button
             type="button"
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || saved}
             className="mt-5 min-h-14 w-full rounded-xl bg-blue-600 px-4 text-lg font-bold text-white shadow-sm transition active:scale-95 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {saving ? "جارٍ الحفظ..." : "حفظ وتثبيت الإنفرتر"}
+            {saving ? "جارٍ الحفظ..." : saved ? "تم الحفظ ✓" : "حفظ وتثبيت الإنفرتر"}
           </button>
 
           <button
