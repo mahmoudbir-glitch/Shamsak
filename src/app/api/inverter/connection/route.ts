@@ -97,20 +97,18 @@ export async function POST(request: NextRequest) {
       });
 
       if (input.panelCapacityKw !== undefined || input.batteryCapacityWh !== undefined) {
-        const current = await tx.energySettings.findUnique({ where: { id: "default" } });
         await tx.energySettings.upsert({
           where: { id: "default" },
           create: {
             id: "default",
-            panelPowerW: panelCapacityKw * 1000,
-            batteryCapacityWh,
+            ...(input.panelCapacityKw !== undefined ? { panelPowerW: panelCapacityKw * 1000 } : {}),
+            ...(input.batteryCapacityWh !== undefined ? { batteryCapacityWh } : {}),
           },
           update: {
             ...(input.panelCapacityKw !== undefined ? { panelPowerW: panelCapacityKw * 1000 } : {}),
             ...(input.batteryCapacityWh !== undefined ? { batteryCapacityWh } : {}),
           },
         });
-        void current;
       }
 
       return {
