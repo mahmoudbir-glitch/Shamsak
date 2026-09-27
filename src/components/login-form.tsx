@@ -69,9 +69,9 @@ export default function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} dir="rtl" className="w-full space-y-4" noValidate={false}>
+    <form onSubmit={handleSubmit} dir="rtl" className="w-full space-y-3.5" noValidate={false}>
       <div className="relative">
-        <User size={20} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <User size={20} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
         <input
           name="username"
           type="text"
@@ -81,7 +81,7 @@ export default function LoginForm() {
           spellCheck={false}
           required
           disabled={loading}
-          className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-12 pr-11 text-right outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+          className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3 pl-12 pr-11 text-right font-semibold text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100/70 disabled:opacity-60"
         />
       </div>
 
@@ -101,14 +101,14 @@ export default function LoginForm() {
           onClick={() => setShowPassword((value) => !value)}
           disabled={loading}
           aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-400 transition hover:bg-slate-200 hover:text-slate-600 disabled:opacity-50"
         >
           {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
         </button>
       </div>
 
       {error && (
-        <div role="alert" aria-live="polite" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold leading-6 text-red-700">
+        <div role="alert" aria-live="polite" className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold leading-6 text-red-700">
           {error}
         </div>
       )}
@@ -116,7 +116,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-xl bg-blue-600 py-3 font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+        className="h-12 w-full rounded-2xl bg-gradient-to-l from-blue-700 to-blue-600 py-3 font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:from-blue-800 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
       </button>
