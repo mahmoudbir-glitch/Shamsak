@@ -124,28 +124,28 @@ export default function SettingsPage() {
     );
   };
 
-  const inputClass = "w-full min-h-14 rounded-xl border border-slate-200 bg-slate-50 px-4 text-lg font-bold text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
+  const inputClass = "w-full min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-base font-bold text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
   const selectClass = inputClass + " appearance-auto";
 
   return (
-    <div className="w-full space-y-4 pb-4 text-right" dir="rtl">
-      <div className="energy-card border-blue-100 p-5">
+    <div className="w-full space-y-5 pb-4 text-right" dir="rtl">
+      <div className="energy-card border-blue-100 p-4 sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-black text-slate-950">🔌 إضافة إنفرتر جديد</h2>
             <p className="mt-1 text-sm font-medium text-slate-500">ابدأ إعداد الجهاز خطوة بخطوة.</p>
           </div>
-          <button type="button" onClick={() => { window.location.href = "/settings/inverter/new"; }} className="min-h-12 rounded-xl bg-blue-600 px-5 font-bold text-white shadow-sm transition active:scale-95 hover:bg-blue-700">إضافة إنفرتر</button>
+          <button type="button" onClick={() => { window.location.href = "/settings/inverter/new"; }} className="min-h-11 rounded-xl bg-blue-600 px-5 font-bold text-white shadow-sm transition active:scale-95 hover:bg-blue-700">إضافة إنفرتر</button>
         </div>
       </div>
 
-      <div className="energy-card p-5">
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900">⚙️ إعدادات منظومة شمسك</h1>
+      <div className="energy-card p-4 sm:p-5">
+        <h1 className="flex items-center gap-2 text-xl font-black sm:text-2xl text-slate-900">⚙️ إعدادات منظومة شمسك</h1>
         <p className="mt-2 text-base font-medium text-slate-500">تهيئة المنظومة والاتصال والذاكرة</p>
       </div>
 
-      <div className="energy-card mb-4 space-y-4 p-5">
-        <h2 className="border-b border-slate-100 pb-3 text-xl font-bold text-slate-900">📊 مواصفات العتاد (Hardware)</h2>
+      <div className="energy-card space-y-4 p-4 sm:p-5">
+        <h2 className="border-b border-slate-100 pb-3 text-lg font-black text-slate-900 sm:text-xl font-bold">📊 مواصفات العتاد (Hardware)</h2>
         <div className="space-y-2">
           <label className="text-base font-semibold text-slate-700">إجمالي قدرة الألواح الموصولة</label>
           <div className="flex items-center gap-2">
@@ -183,7 +183,7 @@ export default function SettingsPage() {
       </div>
 
       {protocol === "Wi-Fi Datalogger" && (
-        <div className="energy-card mb-4 space-y-5 border-blue-100 p-5">
+        <div className="energy-card space-y-5 border-blue-100 p-4 sm:p-5">
           <div>
             <h2 className="border-b border-slate-100 pb-3 text-xl font-bold text-slate-900">📶 ربط الإنفرتر عبر Wi‑Fi</h2>
             <p className="mt-2 text-sm font-medium leading-6 text-slate-500">أدخل بيانات الشبكة وكلمة مرور Wi‑Fi. تُستخدم هذه الإعدادات كملف ربط للبوابة أو الدونغل الذي يرسل القراءات إلى شمسك.</p>
