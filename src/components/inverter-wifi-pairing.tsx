@@ -35,7 +35,6 @@ export function InverterWifiPairing({
   onComplete,
 }: Props) {
   const [step, setStep] = useState<"connect" | "networks" | "details" | "linking" | "done">("connect");
-  const [baseUrl, setBaseUrl] = useState(deviceBaseUrl);
   const [networks, setNetworks] = useState<WifiNetwork[]>([]);
   const [selectedSsid, setSelectedSsid] = useState("");
   const [manualSsid, setManualSsid] = useState("");
@@ -43,7 +42,7 @@ export function InverterWifiPairing({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const normalizedBaseUrl = baseUrl.trim().replace(/\/$/, "");
+  const normalizedBaseUrl = deviceBaseUrl.trim().replace(/\/$/, "");
 
   const fetchNetworks = useCallback(async () => {
     setLoading(true);
@@ -75,7 +74,7 @@ export function InverterWifiPairing({
       setNetworks(list);
       setStep("networks");
     } catch {
-      setError("تعذر قراءة الشبكات من وحدة الإنفرتر. تأكد أن الهاتف متصل بنقطة اتصال الإنفرتر وأن عنوان الوحدة صحيح.");
+      setError("تعذر قراءة الشبكات من وحدة الإنفرتر. تأكد أن الهاتف متصل بنقطة اتصال الإنفرتر وأن الوحدة متاحة.");
     } finally {
       setLoading(false);
     }
@@ -127,16 +126,6 @@ export function InverterWifiPairing({
             <br />
             2. ابقَ متصلًا بهذه الشبكة أثناء خطوة الفحص.
           </div>
-          <label className="block space-y-2">
-            <span className="text-sm font-bold text-slate-700">عنوان الوحدة المحلية</span>
-            <input
-              value={baseUrl}
-              onChange={(event) => setBaseUrl(event.target.value)}
-              className="w-full min-h-12 rounded-xl border border-slate-200 bg-white px-3 text-left font-mono text-sm"
-              dir="ltr"
-              inputMode="url"
-            />
-          </label>
           <button
             type="button"
             onClick={() => void fetchNetworks()}
@@ -248,10 +237,6 @@ export function InverterWifiPairing({
       {error && step === "connect" && (
         <p className="rounded-xl bg-amber-50 p-3 text-sm font-bold leading-6 text-amber-800">{error}</p>
       )}
-
-      <p className="text-xs font-medium leading-5 text-slate-500">
-        المسارات الافتراضية: <span dir="ltr">{scanPath}</span> و <span dir="ltr">{configurePath}</span>. إذا كانت وحدة Felicity تستخدم مسارات مختلفة، غيّرها هنا في الكود قبل الاختبار الفعلي.
-      </p>
     </section>
   );
 }
