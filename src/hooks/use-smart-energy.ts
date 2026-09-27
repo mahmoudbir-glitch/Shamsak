@@ -88,8 +88,6 @@ function dayLabel(index: number, date: string) {
   return new Intl.DateTimeFormat("ar-LB", {
     timeZone: DEFAULT_TIMEZONE,
     weekday: "long",
-    day: "numeric",
-    month: "short",
   }).format(new Date(date + "T12:00:00"));
 }
 
