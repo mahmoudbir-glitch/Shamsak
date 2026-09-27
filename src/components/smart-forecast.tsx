@@ -32,10 +32,16 @@ function findSurplusWindow(day?: DayForecast) {
   if (!day) return null;
   const points = day.hourly.filter((point) => point.surplusKWh >= 0.3);
   if (!points.length) return null;
+  const durationHours = points.length;
+  const totalKWh = points.reduce((sum, point) => sum + point.surplusKWh, 0);
+  const peakKw = Math.max(...points.map((point) => point.surplusKWh));
   return {
     start: points[0].time,
     end: addHour(points[points.length - 1].time),
-    kwh: Math.round(points.reduce((sum, point) => sum + point.surplusKWh, 0) * 10) / 10,
+    kwh: Math.round(totalKWh * 10) / 10,
+    averageKw: Math.round((totalKWh / Math.max(1, durationHours)) * 10) / 10,
+    peakKw: Math.round(peakKw * 10) / 10,
+    durationHours,
   };
 }
 
@@ -282,13 +288,18 @@ export function SmartForecast() {
                     <CheckCircle2 size={18} className="text-emerald-600" />
                   </div>
                   <strong className="mt-1 block text-3xl font-black text-amber-800">{surplus.kwh} ك.و.س</strong>
-                  <p className="mt-1 text-sm font-bold text-amber-900/70">خلال {formatHour(surplus.start)} — {formatHour(surplus.end)}</p>
-                  <p className="mt-3 text-sm font-semibold text-slate-700">يمكن استغلال هذه النافذة لتشغيل الغسالة أو مضخة المياه إذا كانت الأحمال الفعلية مناسبة.</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {["الغسالة", "مضخة المياه", "شحن جهاز/سيارة"].map((item) => (
-                      <span key={item} className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-emerald-700 shadow-sm">{item}</span>
-                    ))}
+                  <p className="mt-1 text-sm font-bold text-amber-900/70">خلال {formatHour(surplus.start)} — {formatHour(surplus.end)} • مدة تقريبية {surplus.durationHours} ساعة</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <div className="rounded-xl bg-white/80 p-3">
+                      <span className="block text-[11px] font-bold text-slate-500">متوسط الفائض</span>
+                      <strong className="mt-1 block text-lg font-black text-amber-800">{surplus.averageKw} kW</strong>
+                    </div>
+                    <div className="rounded-xl bg-white/80 p-3">
+                      <span className="block text-[11px] font-bold text-slate-500">ذروة الفائض</span>
+                      <strong className="mt-1 block text-lg font-black text-amber-800">{surplus.peakKw} kW</strong>
+                    </div>
                   </div>
+                  <p className="mt-3 text-sm font-semibold text-slate-700">النافذة تُحسب عندما يتجاوز الإنتاج الشمسي استهلاك المنزل وما يمكن للبطارية استيعابه؛ لا تُعرض كتوصية تشغيل ثابتة.</p>
                   <a href="#hourly-details" className="mt-4 inline-flex items-center gap-2 text-sm font-black text-amber-800 underline underline-offset-4">
                     تفصيل الساعات <ArrowDownToLine size={16} />
                   </a>
