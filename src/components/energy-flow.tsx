@@ -2,7 +2,7 @@
 
 import React, { useId, useState } from 'react';
 import { BatteryCharging, Home, RadioTower, Sun, Zap } from 'lucide-react';
-import { InfoTip } from '@/components/info-tip';
+import { InfoTip } from '@/components/info-tip';\nimport { batteryTone, loadTone, solarTone, semanticIcon, semanticText } from '@/lib/energy';
 
 interface EnergyFlowProps {
   solarKw: number;
@@ -55,7 +55,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
 
   const measuredPowers = [solarKw, homeKw, gridKw, batteryKw];
   const hasNonZeroLiveReading = measuredPowers.every(Number.isFinite) && measuredPowers.some((value) => Math.abs(value) > FLOW_THRESHOLD);
-  const liveFlowActive = isLive && hasNonZeroLiveReading;
+  const liveFlowActive = isLive && hasNonZeroLiveReading;\n  const solarToneClass = semanticText[solarTone(solarKw)];\n  const homeToneClass = semanticText[loadTone(homeKw)];\n  const batteryToneClass = semanticText[batteryTone(batteryPercentage)];
 
   const solarActive = liveFlowActive && solarKw > FLOW_THRESHOLD;
   const homeActive = liveFlowActive && homeKw > FLOW_THRESHOLD;
@@ -188,10 +188,10 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             style={solarActive ? { boxShadow: `0 10px 28px rgba(245,158,11,${solarGlowStrength}), 0 0 ${Math.round(18 + Math.abs(solarKw) * 3)}px rgba(245,158,11,${solarGlowStrength * 0.55})`, animation: `energy-node-pulse ${solarPulseDuration}s ease-in-out infinite` } : undefined}
           >
             <span className={solarActive ? "absolute inset-1 rounded-[1rem] border border-amber-300/50 animate-pulse" : "hidden"} />
-            <Sun className="h-9 w-9 text-amber-500" strokeWidth={2.2} />
+            <Sun className={"h-9 w-9 " + semanticIcon[solarTone(solarKw)]} strokeWidth={2.2} />
           </div>
           <div className="mt-1.5 text-xs font-black text-slate-700">الطاقة الشمسية</div>
-          <div className="text-base font-black text-emerald-600">{formatKw(solarKw)}</div>
+          <div className={"text-base font-black " + solarToneClass}>{formatKw(solarKw)}</div>
           <div className="text-[10px] font-bold text-slate-500">{solarActive ? "إنتاج الآن" : "لا يوجد توليد"}</div>
         </button>
 
@@ -212,10 +212,10 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             className="mx-auto flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-100"
             style={homeActive ? { boxShadow: `0 10px 24px rgba(14,165,233,${homeGlowStrength}), 0 0 ${Math.round(16 + Math.abs(homeKw) * 2.5)}px rgba(14,165,233,${homeGlowStrength * 0.5})`, animation: `energy-node-pulse ${homePulseDuration}s ease-in-out infinite` } : undefined}
           >
-            <Home className="h-8 w-8 text-sky-500" strokeWidth={2.1} />
+            <Home className={"h-8 w-8 " + semanticIcon[loadTone(homeKw)]} strokeWidth={2.1} />
           </div>
           <div className="mt-1.5 text-xs font-black text-slate-700">المنزل</div>
-          <div className="text-sm font-black text-blue-600">{formatKw(homeKw)}</div>
+          <div className={"text-sm font-black " + homeToneClass}>{formatKw(homeKw)}</div>
           <div className="text-[10px] font-bold text-slate-500">{homeActive ? "استهلاك الآن" : "لا توجد قراءة"}</div>
         </button>
 
@@ -225,12 +225,12 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             style={batteryCharging || batteryDischarging ? { boxShadow: `0 10px 28px rgba(16,185,129,${batteryGlowStrength}), 0 0 ${Math.round(18 + Math.abs(batteryKw) * 3)}px rgba(16,185,129,${batteryGlowStrength * 0.55})`, animation: `energy-node-pulse ${batteryPulseDuration}s ease-in-out infinite` } : undefined}
           >
             <div className="relative flex h-12 w-12 items-center justify-center rounded-full border-[5px] border-emerald-400 bg-white/80">
-              <BatteryCharging className="absolute h-5 w-5 -translate-y-3 text-emerald-500" strokeWidth={2.3} />
-              <span className="mt-2 text-sm font-black text-slate-800">{batteryPercentage.toFixed(0)}%</span>
+              <BatteryCharging className={"absolute h-5 w-5 -translate-y-3 " + semanticIcon[batteryTone(batteryPercentage)]} strokeWidth={2.3} />
+              <span className={"mt-2 text-sm font-black " + batteryToneClass}>{batteryPercentage.toFixed(0)}%</span>
             </div>
           </div>
           <div className="mt-1.5 text-xs font-black text-slate-700">البطارية</div>
-          <div className="text-sm font-black text-emerald-600">{formatKw(batteryKw)}</div>
+          <div className={"text-sm font-black " + batteryToneClass}>{formatKw(batteryKw)}</div>
           <div className="text-[10px] font-bold text-slate-500">{batteryCharging ? "تشحن الآن" : batteryDischarging ? "تفرغ الآن" : "ثابتة"}</div>
         </button>
 
@@ -264,19 +264,19 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
               {activeNode === "solar" && (
                 <>
-                  <div className="rounded-xl bg-amber-50 p-3"><div className="font-bold text-slate-500">الإنتاج الآن</div><div className="mt-1 font-black text-amber-700">{formatKw(solarKw)}</div></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الإنتاج الآن</div><div className={"mt-1 font-black " + solarToneClass}>{formatKw(solarKw)}</div></div>
                   <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الحالة</div><div className="mt-1 font-black text-slate-800">{solarActive ? "يولّد طاقة" : "لا يوجد توليد مؤكد"}</div></div>
                 </>
               )}
               {activeNode === "battery" && (
                 <>
-                  <div className="rounded-xl bg-emerald-50 p-3"><div className="font-bold text-slate-500">حالة الشحن</div><div className="mt-1 font-black text-emerald-700">{batteryPercentage.toFixed(0)}%</div></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">حالة الشحن</div><div className={"mt-1 font-black " + batteryToneClass}>{batteryPercentage.toFixed(0)}%</div></div>
                   <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">القدرة</div><div className="mt-1 font-black text-slate-800">{formatKw(batteryKw)}</div></div>
                 </>
               )}
               {activeNode === "home" && (
                 <>
-                  <div className="rounded-xl bg-blue-50 p-3"><div className="font-bold text-slate-500">الاستهلاك الآن</div><div className="mt-1 font-black text-blue-700">{formatKw(homeKw)}</div></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الاستهلاك الآن</div><div className={"mt-1 font-black " + homeToneClass}>{formatKw(homeKw)}</div></div>
                   <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الحمل</div><div className="mt-1 font-black text-slate-800">{homeActive ? "نشط" : "لا توجد قراءة حية مؤكدة"}</div></div>
                 </>
               )}
@@ -296,8 +296,8 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
 
       <div className="relative border-t border-slate-100 bg-slate-50/70 px-3 py-4 sm:px-5">
         <div className="grid grid-cols-3 divide-x divide-x-reverse divide-slate-200 text-center">
-          <div className="px-2"><div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">TODAY'S PRODUCTION</div><div className="mt-1 text-base font-black text-emerald-600 sm:text-lg">{formatKwh(todayProductionKWh)}</div><div className="text-[10px] font-bold text-slate-500">إنتاج اليوم</div></div>
-          <div className="px-2"><div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">HOME USAGE</div><div className="mt-1 text-base font-black text-blue-600 sm:text-lg">{formatKwh(todayHomeUsageKWh)}</div><div className="text-[10px] font-bold text-slate-500">استهلاك المنزل</div></div>
+          <div className="px-2"><div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">TODAY'S PRODUCTION</div><div className={"mt-1 text-base font-black " + semanticText[solarTone(todayProductionKWh ?? 0)] + " sm:text-lg"}>{formatKwh(todayProductionKWh)}</div><div className="text-[10px] font-bold text-slate-500">إنتاج اليوم</div></div>
+          <div className="px-2"><div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">HOME USAGE</div><div className={"mt-1 text-base font-black " + semanticText[loadTone(todayHomeUsageKWh ?? 0)] + " sm:text-lg"}>{formatKwh(todayHomeUsageKWh)}</div><div className="text-[10px] font-bold text-slate-500">استهلاك المنزل</div></div>
           <div className="px-2"><div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">GRID SAVINGS</div><div className="mt-1 text-base font-black text-amber-500 sm:text-lg">{formatSavings(todayGridSavings)}</div><div className="text-[10px] font-bold text-slate-500">التوفير</div></div>
         </div>
       </div>
