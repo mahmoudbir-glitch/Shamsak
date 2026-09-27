@@ -124,11 +124,11 @@ export default function SettingsPage() {
     );
   };
 
-  const inputClass = "w-full min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-base font-bold text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
+  const inputClass = "w-full min-h-12 rounded-xl border border-slate-200 bg-indigo-50/60 px-4 text-base font-bold text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
   const selectClass = inputClass + " appearance-auto";
 
   return (
-    <div className="w-full space-y-5 pb-4 text-right" dir="rtl">
+    <div className="w-full space-y-5 rounded-[2rem] bg-gradient-to-b from-indigo-50/55 via-white/40 to-white/20 p-2 pb-4 text-right sm:p-3" dir="rtl">
       <div className="energy-card border-blue-100 p-4 sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -225,7 +225,7 @@ export default function SettingsPage() {
           <button type="button" onClick={() => void testNetwork()} disabled={connectionState === "connecting"} className="min-h-14 w-full rounded-xl bg-blue-600 px-4 text-lg font-bold text-white shadow-sm transition active:scale-95 hover:bg-blue-700 disabled:opacity-60">{connectionState === "connecting" ? "جاري الاتصال والتحقق…" : "اتصال واختبار الإنفرتر"}</button>
           {connectionState === "connected" && <p className="rounded-xl bg-emerald-50 p-3 text-base font-bold text-emerald-700">✓ الاتصال ناجح — وصلت بيانات حية من الإنفرتر.</p>}
           {connectionState === "error" && <p className="rounded-xl bg-amber-50 p-3 text-base font-bold text-amber-700">⚠️ لم تصل قراءة حية بعد. احفظ الإعدادات وتحقق من الدونغل/البوابة وبروتوكول الاتصال.</p>}
-          <div className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-600">الحالة الحالية: {connectionState === "connected" ? "متصل" : connectionState === "connecting" ? "جاري الاتصال" : "غير متصل"}</div>
+          <div className="rounded-xl bg-indigo-50/60 p-3 text-sm font-semibold text-slate-600">الحالة الحالية: {connectionState === "connected" ? "متصل" : connectionState === "connecting" ? "جاري الاتصال" : "غير متصل"}</div>
         </div>
       )}
     </div>
