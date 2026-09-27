@@ -18,8 +18,6 @@ export default function SettingsPage() {
   const [inverterModel, setInverterModel] = useState<InverterModel>("Felicity");
   const [protocol, setProtocol] = useState<Protocol>("Modbus RTU");
   const [inverterAddress, setInverterAddress] = useState("");
-  const [inverterUsername, setInverterUsername] = useState("");
-  const [inverterLinkCode, setInverterLinkCode] = useState("");
   const [systemName, setSystemName] = useState("منظومة شمسك");
   const [connectionState, setConnectionState] = useState<"idle" | "connecting" | "connected" | "error">("idle");
   const [wifiSsid, setWifiSsid] = useState("");
@@ -33,14 +31,12 @@ export default function SettingsPage() {
 
   useEffect(() => {
     void fetch("/api/inverter/connection", { cache: "no-store" })
-      .then(async (response) => response.ok ? (await response.json()) as { connection?: { systemName?: string; inverterAddress?: string; inverterUsername?: string; inverterLinkCode?: string; wifiSsid?: string; hasWifiPassword?: boolean } } : null)
+      .then(async (response) => response.ok ? (await response.json()) as { connection?: { systemName?: string; inverterAddress?: string; wifiSsid?: string; hasWifiPassword?: boolean } } : null)
       .then((data) => {
         const row = data?.connection;
         if (!row) return;
         if (row.systemName) setSystemName(row.systemName);
         if (row.inverterAddress) setInverterAddress(row.inverterAddress);
-        if (row.inverterUsername) setInverterUsername(row.inverterUsername);
-        if (row.inverterLinkCode) setInverterLinkCode(row.inverterLinkCode);
         if (row.wifiSsid) setWifiSsid(row.wifiSsid);
         if (row.hasWifiPassword) setWifiPassword("");
       })
@@ -55,8 +51,6 @@ export default function SettingsPage() {
       model: localStorage.getItem("shamsak_inverter_model"),
       protocol: localStorage.getItem("shamsak_protocol"),
       address: localStorage.getItem("shamsak_inverter_address"),
-      username: localStorage.getItem("shamsak_inverter_username"),
-      linkCode: localStorage.getItem("shamsak_inverter_link_code"),
       systemName: localStorage.getItem("shamsak_system_name"),
       ssid: localStorage.getItem("shamsak_wifi_ssid"),
       notifySurplus: localStorage.getItem("shamsak_notify_surplus"),
@@ -72,8 +66,6 @@ export default function SettingsPage() {
     if (saved.model) setInverterModel(saved.model as InverterModel);
     if (saved.protocol) setProtocol(saved.protocol as Protocol);
     if (saved.address) setInverterAddress(saved.address);
-    if (saved.username) setInverterUsername(saved.username);
-    if (saved.linkCode) setInverterLinkCode(saved.linkCode);
     if (saved.systemName) setSystemName(saved.systemName);
     if (saved.ssid) setWifiSsid(saved.ssid);
     if (saved.notifySurplus !== null) setNotifySurplus(saved.notifySurplus !== "false");
@@ -91,8 +83,6 @@ export default function SettingsPage() {
     localStorage.setItem("shamsak_inverter_model", inverterModel);
     localStorage.setItem("shamsak_protocol", protocol);
     localStorage.setItem("shamsak_inverter_address", inverterAddress);
-    localStorage.setItem("shamsak_inverter_username", inverterUsername);
-    localStorage.setItem("shamsak_inverter_link_code", inverterLinkCode);
     localStorage.setItem("shamsak_system_name", systemName);
     localStorage.setItem("shamsak_wifi_ssid", wifiSsid);
     try {
@@ -104,8 +94,6 @@ export default function SettingsPage() {
           inverterModel,
           protocol,
           inverterAddress,
-          inverterUsername,
-          inverterLinkCode,
           wifiSsid,
           wifiPassword,
         }),
@@ -217,16 +205,12 @@ export default function SettingsPage() {
       <div className="mb-5 space-y-5 rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
         <div>
           <h2 className="border-b border-slate-100 pb-3 text-xl font-bold text-slate-900">📶 ربط الإنفرتر عبر Wi‑Fi</h2>
-          <p className="mt-2 text-sm font-medium leading-6 text-slate-500">أدخل بيانات الشبكة وبيانات ربط الإنفرتر. تُستخدم هذه الإعدادات كملف ربط للبوابة أو الدونغل الذي يرسل القراءات إلى شمسك.</p>
+          <p className="mt-2 text-sm font-medium leading-6 text-slate-500">أدخل بيانات الشبكة وكلمة مرور Wi‑Fi. تُستخدم هذه الإعدادات كملف ربط للبوابة أو الدونغل الذي يرسل القراءات إلى شمسك.</p>
         </div>
         <div className="space-y-4">
           <div className="space-y-2"><label className="text-base font-semibold text-slate-700">اسم المنظومة</label><input value={systemName} onChange={(e) => setSystemName(e.target.value)} placeholder="منظومة شمسك" className={inputClass} /></div>
           <div className="space-y-2"><label className="text-base font-semibold text-slate-700">اسم شبكة المنزل (SSID)</label><input value={wifiSsid} onChange={(e) => setWifiSsid(e.target.value)} placeholder="MyHomeWiFi" className={inputClass} dir="ltr" autoComplete="off" /></div>
           <div className="space-y-2"><label className="text-base font-semibold text-slate-700">كلمة مرور Wi‑Fi</label><div className="relative"><input type={showPassword ? "text" : "password"} value={wifiPassword} onChange={(e) => setWifiPassword(e.target.value)} placeholder="••••••••" className={inputClass + " pl-20"} dir="ltr" autoComplete="new-password" /><button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute left-2 top-1/2 -translate-y-1/2 rounded-lg px-3 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50">{showPassword ? "إخفاء" : "إظهار"}</button></div></div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2"><label className="text-base font-semibold text-slate-700">اسم المستخدم / الحساب</label><input value={inverterUsername} onChange={(e) => setInverterUsername(e.target.value)} placeholder="اسم المستخدم أو الحساب" className={inputClass} dir="ltr" autoComplete="off" /></div>
-            <div className="space-y-2"><label className="text-base font-semibold text-slate-700">رمز الربط / Registration Code</label><input value={inverterLinkCode} onChange={(e) => setInverterLinkCode(e.target.value)} placeholder="XXXX-XXXX" className={inputClass} dir="ltr" autoComplete="off" /></div>
-          </div>
         </div>
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium leading-6 text-amber-800">⚠️ المتصفح وحده لا يستطيع برمجة شبكة Wi‑Fi للإنفرتر أو اكتشاف أجهزة Wi‑Fi القريبة بشكل عام. الربط اللاسلكي الحقيقي يحتاج Wi‑Fi dongle/بوابة تدعم بروتوكول الإنفرتر أو خدمة وسيطة.</div>
         <InverterWifiPairing
@@ -240,11 +224,9 @@ export default function SettingsPage() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 systemName,
-                inverterModel: "Felicity",
-                protocol: "Wi-Fi Datalogger",
+                inverterModel,
+                protocol,
                 inverterAddress,
-                inverterUsername,
-                inverterLinkCode,
                 wifiSsid: ssid,
                 wifiPassword: password,
               }),
