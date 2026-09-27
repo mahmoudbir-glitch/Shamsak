@@ -45,7 +45,7 @@ export default function SolarDashboardClient() {
   }, [loadTelemetry]);
 
   return (
-    <div className="w-full overflow-x-hidden rounded-[2rem] bg-gradient-to-b from-sky-50/70 via-white/40 to-amber-50/20 p-2 text-right text-slate-800 sm:p-3" dir="rtl">
+    <div className="w-full overflow-x-hidden rounded-[2rem] bg-gradient-to-b from-sky-50/70 via-white/40 to-cyan-50/20 p-2 text-right text-slate-800 sm:p-3" dir="rtl">
       <EnergyFlow
         solarKw={(snapshot?.solarPowerW ?? 0) / 1000}
         homeKw={(snapshot?.homePowerW ?? 0) / 1000}
