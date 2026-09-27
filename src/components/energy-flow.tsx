@@ -167,21 +167,46 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
       </div>
 
       <div className="mt-3 px-4 sm:px-6">
-        {activeNode && (
+        {activeNode ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" role="status">
             <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-black text-slate-900">{activeNode === 'solar' ? 'تفاصيل الألواح الشمسية' : activeNode === 'battery' ? 'تفاصيل البطارية' : activeNode === 'home' ? 'تفاصيل المنزل' : 'تفاصيل الشبكة'}</div>
+              <div className="text-sm font-black text-slate-900">
+                {activeNode === 'solar' && 'تفاصيل الألواح الشمسية'}
+                {activeNode === 'battery' && 'تفاصيل البطارية'}
+                {activeNode === 'home' && 'تفاصيل المنزل'}
+                {activeNode === 'grid' && 'تفاصيل الشبكة'}
+              </div>
               <button type="button" onClick={() => setActiveNode(null)} className="rounded-lg px-2 py-1 text-xs font-black text-slate-500 hover:bg-slate-100">إغلاق</button>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-              {activeNode === 'solar' && <><div className="rounded-xl bg-amber-50 p-3"><div className="font-bold text-slate-500">الإنتاج الآن</div><div className="mt-1 font-black text-amber-700">{formatKw(solarKw)}</div></div><div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الحالة</div><div className="mt-1 font-black text-slate-800">{solarActive ? 'يولّد طاقة' : 'لا يوجد توليد مؤكد'}</div></div></>}
-              {activeNode === 'battery' && <><div className="rounded-xl bg-emerald-50 p-3"><div className="font-bold text-slate-500">حالة الشحن</div><div className="mt-1 font-black text-emerald-700">{batteryPercentage.toFixed(0)}%</div></div><div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">القدرة</div><div className="mt-1 font-black text-slate-800">{formatKw(batteryKw)}</div></div></>}
-              {activeNode === 'home' && <><div className="rounded-xl bg-blue-50 p-3"><div className="font-bold text-slate-500">الاستهلاك الآن</div><div className="mt-1 font-black text-blue-700">{formatKw(homeKw)}</div></div><div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الحمل</div><div className="mt-1 font-black text-slate-800">{homeActive ? 'نشط' : 'لا توجد قراءة حية مؤكدة'}</div></div></>}
-              {activeNode === 'grid' && <><div className="rounded-xl bg-sky-50 p-3"><div className="font-bold text-slate-500">الحالة</div><div className="mt-1 font-black text-sky-700">{gridConnected ? 'متصلة' : 'مقطوعة'}</div></div><div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">التدفق</div><div className="mt-1 font-black text-slate-800">{gridExporting ? 'تصدير' : gridImporting ? 'سحب' : 'متوازن / لا يوجد تدفق'}</div></div>}
+              {activeNode === 'solar' && (
+                <>
+                  <div className="rounded-xl bg-amber-50 p-3"><div className="font-bold text-slate-500">الإنتاج الآن</div><div className="mt-1 font-black text-amber-700">{formatKw(solarKw)}</div></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الحالة</div><div className="mt-1 font-black text-slate-800">{solarActive ? 'يولّد طاقة' : 'لا يوجد توليد مؤكد'}</div></div>
+                </>
+              )}
+              {activeNode === 'battery' && (
+                <>
+                  <div className="rounded-xl bg-emerald-50 p-3"><div className="font-bold text-slate-500">حالة الشحن</div><div className="mt-1 font-black text-emerald-700">{batteryPercentage.toFixed(0)}%</div></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">القدرة</div><div className="mt-1 font-black text-slate-800">{formatKw(batteryKw)}</div></div>
+                </>
+              )}
+              {activeNode === 'home' && (
+                <>
+                  <div className="rounded-xl bg-blue-50 p-3"><div className="font-bold text-slate-500">الاستهلاك الآن</div><div className="mt-1 font-black text-blue-700">{formatKw(homeKw)}</div></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الحمل</div><div className="mt-1 font-black text-slate-800">{homeActive ? 'نشط' : 'لا توجد قراءة حية مؤكدة'}</div></div>
+                </>
+              )}
+              {activeNode === 'grid' && (
+                <>
+                  <div className="rounded-xl bg-sky-50 p-3"><div className="font-bold text-slate-500">الحالة</div><div className="mt-1 font-black text-sky-700">{gridConnected ? 'متصلة' : 'مقطوعة'}</div></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">التدفق</div><div className="mt-1 font-black text-slate-800">{gridExporting ? 'تصدير' : gridImporting ? 'سحب' : 'متوازن / لا يوجد تدفق'}</div></div>
+                </>
+              )}
             </div>
             <p className="mt-3 text-[11px] font-semibold text-slate-500">اضغط على أي عقدة أخرى لعرض تفاصيلها. الأرقام هنا مأخوذة من بيانات الإنفرتر الحالية ولا يتم توليد أرقام DEMO.</p>
           </div>
-        )}
+        ) : null}
       </div>
 
       {!liveFlowActive && <div className="mx-4 mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-center text-xs font-bold text-amber-800 sm:mx-6">⚠️ لا توجد قراءة حية متاحة حاليًا. تحقّق من اتصال الإنفرتر وإرسال بيانات القياس.</div>}
