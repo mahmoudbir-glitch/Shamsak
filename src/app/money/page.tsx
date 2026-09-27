@@ -74,7 +74,7 @@ export default function MoneyDashboard() {
   const selectClass = inputClass + " appearance-auto";
 
   return (
-    <div className="w-full space-y-4 text-right" dir="rtl">
+    <div className="w-full space-y-4 rounded-[2rem] bg-gradient-to-b from-cyan-50/60 via-white/40 to-white/20 p-2 text-right sm:p-3" dir="rtl">
       <div className="energy-card p-5">
         <h1 className="text-2xl font-black text-slate-950">💰 التحليل المالي ومصادر الكهرباء</h1>
         <p className="mt-2 text-base font-semibold text-slate-500">بيانات آخر {data?.periodDays ?? 30} يوماً المسجلة في النظام.</p>
@@ -83,7 +83,7 @@ export default function MoneyDashboard() {
       <section className="energy-card p-5">
         <h2 className="text-xl font-black text-slate-900">⚡ من أين تأتي كهرباء منزلك؟</h2>
         {loading ? <p className="mt-4 text-base font-bold text-slate-500">جاري تحميل التحليل…</p> : !data ? (
-          <p className="mt-4 rounded-xl bg-slate-50 p-4 text-base font-semibold text-slate-600">لا توجد ملخصات طاقة مسجلة بعد.</p>
+          <p className="mt-4 rounded-xl bg-sky-50/70 p-4 text-base font-semibold text-slate-600">لا توجد ملخصات طاقة مسجلة بعد.</p>
         ) : (
           <>
             <div className="mt-5 flex h-5 overflow-hidden rounded-full bg-slate-100">
@@ -91,7 +91,7 @@ export default function MoneyDashboard() {
             </div>
             <div className="mt-5 space-y-3">
               {sourceRows.map((row) => (
-                <div key={row.name} className="flex items-center justify-between rounded-xl bg-slate-50 p-4">
+                <div key={row.name} className="flex items-center justify-between rounded-xl bg-sky-50/70 p-4">
                   <div className="flex items-center gap-3">
                     <span className={"h-4 w-4 rounded-full " + row.color} />
                     <span className="text-base font-semibold text-slate-700">{row.name}</span>
@@ -104,14 +104,14 @@ export default function MoneyDashboard() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+      <section className="energy-card p-5">
         <h2 className="text-xl font-black text-slate-900">🪙 حاسبة الوفر المالي</h2>
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-xl bg-slate-50 p-4">
+          <div className="rounded-xl bg-sky-50/70 p-4">
             <span className="text-base font-semibold text-slate-500">سعر الكيلوواط من الشبكة</span>
             <strong className="mt-1 block text-xl font-extrabold text-slate-900">{tariff.toLocaleString()} {currency}</strong>
           </div>
-          <div className="rounded-xl bg-slate-50 p-4">
+          <div className="rounded-xl bg-sky-50/70 p-4">
             <span className="text-base font-semibold text-slate-500">تكلفة الشبكة الفعلية</span>
             <strong className="mt-1 block text-xl font-extrabold text-purple-700">{gridCost.toLocaleString()} {currency}</strong>
           </div>
@@ -147,11 +147,11 @@ export default function MoneyDashboard() {
 
       <section className="energy-card space-y-4 p-5">
         <h2 className="border-b border-slate-100 pb-3 text-xl font-black text-slate-900">🔔 التنبيهات</h2>
-        <label className="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3 text-base font-semibold text-slate-700">
+        <label className="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-xl bg-sky-50/70 px-4 py-3 text-base font-semibold text-slate-700">
           <span>تنبيهي عند وجود فائض طاقة غير مستغل</span>
           <input type="checkbox" checked={notifySurplus} onChange={(e) => setNotifySurplus(e.target.checked)} className="h-7 w-7 shrink-0 accent-amber-500" />
         </label>
-        <label className="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3 text-base font-semibold text-slate-700">
+        <label className="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-xl bg-sky-50/70 px-4 py-3 text-base font-semibold text-slate-700">
           <span>تنبيهي عند اقتراب البطارية من حد الأمان (10%)</span>
           <input type="checkbox" checked={notifyLowBattery} onChange={(e) => setNotifyLowBattery(e.target.checked)} className="h-7 w-7 shrink-0 accent-emerald-500" />
         </label>
