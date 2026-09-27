@@ -376,7 +376,7 @@ export function SmartForecast() {
               ))}
             </div>
           </section>
-          )}}
+          )}
         </>
       )}
 
