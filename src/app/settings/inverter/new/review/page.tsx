@@ -16,6 +16,8 @@ type Setup = {
 export default function InverterReviewPage() {
   const router = useRouter();
   const [setup, setSetup] = useState<Setup | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const saved = sessionStorage.getItem("shamsak_new_inverter_step3");
@@ -31,6 +33,37 @@ export default function InverterReviewPage() {
   }, [router]);
 
   if (!setup) return null;
+
+  const handleSave = async () => {
+    setSaving(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/inverter/connection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemName: setup.systemName,
+          inverterModel: setup.model || setup.manufacturer || "Inverter",
+          protocol: setup.protocol,
+          inverterAddress: setup.inverterAddress,
+          wifiSsid: "",
+        }),
+      });
+      if (!response.ok) throw new Error("save_failed");
+
+      localStorage.setItem("shamsak_new_inverter", JSON.stringify(setup));
+      localStorage.setItem("shamsak_panel_capacity_kw", String(Number(setup.panelCapacity || 0) / (Number(setup.panelCapacity || 0) > 100 ? 1000 : 1)));
+      localStorage.setItem("shamsak_battery_capacity_wh", String(Number(setup.batteryCapacity || 0)));
+      setMessage("✓ تم حفظ إعدادات الإنفرتر بنجاح.");
+      sessionStorage.removeItem("shamsak_new_inverter_step1");
+      sessionStorage.removeItem("shamsak_new_inverter_step2");
+      sessionStorage.removeItem("shamsak_new_inverter_step3");
+    } catch {
+      setMessage("تعذر حفظ الإعدادات. تأكد من اتصال الخادم بقاعدة البيانات ثم حاول مرة أخرى.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const rows = [
     ["اسم النظام", setup.systemName || "—"],
@@ -85,10 +118,25 @@ export default function InverterReviewPage() {
             هذه الشاشة للمراجعة فقط. لم يتم حفظ الإعدادات نهائيًا بعد.
           </div>
 
+          {message && (
+            <p className="mt-5 rounded-xl bg-blue-50 p-4 text-sm font-bold leading-6 text-blue-800">
+              {message}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="mt-5 min-h-14 w-full rounded-xl bg-blue-600 px-4 text-lg font-bold text-white shadow-sm transition active:scale-95 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {saving ? "جارٍ الحفظ..." : "حفظ وتثبيت الإنفرتر"}
+          </button>
+
           <button
             type="button"
             onClick={() => router.back()}
-            className="mt-5 min-h-14 w-full rounded-xl border border-slate-200 bg-white px-4 text-lg font-bold text-slate-700 shadow-sm"
+            className="mt-3 min-h-14 w-full rounded-xl border border-slate-200 bg-white px-4 text-lg font-bold text-slate-700 shadow-sm"
           >
             تعديل البيانات
           </button>
