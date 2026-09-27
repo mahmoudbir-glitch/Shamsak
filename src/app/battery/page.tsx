@@ -34,7 +34,12 @@ export default function BatteryPage() {
   const soc = Math.min(100, Math.max(0, snapshot?.batterySoc ?? 0));
   const powerW = snapshot?.batteryPowerW ?? 0;
   const voltage = snapshot?.batteryVoltage;
-  const state = batteryState(powerW);\n  const tone = batteryTone(soc);\n  const toneText = semanticText[tone];\n  const toneIcon = semanticIcon[tone];\n  const toneBg = semanticBg[tone];\n  const toneBorder = semanticBorder[tone];
+  const state = batteryState(powerW);
+  const tone = batteryTone(soc);
+  const toneText = semanticText[tone];
+  const toneIcon = semanticIcon[tone];
+  const toneBg = semanticBg[tone];
+  const toneBorder = semanticBorder[tone];
 
   return (
     <div className="w-full space-y-4 rounded-[2rem] bg-gradient-to-b from-emerald-50/70 via-white/40 to-white/20 p-2 text-right sm:p-3" dir="rtl">
