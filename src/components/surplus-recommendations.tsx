@@ -4,7 +4,15 @@ import { useState } from "react";
 import { useSmartEnergy } from "@/hooks/use-smart-energy";
 
 function formatHour(iso: string) {
-  return new Intl.DateTimeFormat("ar-LB", { timeZone: "Asia/Beirut", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+  return new Intl.DateTimeFormat("ar-LB", {
+    timeZone: "Asia/Beirut",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
+}
+
+function addHour(iso: string) {
+  return new Date(new Date(iso).getTime() + 60 * 60 * 1000).toISOString();
 }
 
 export function SurplusRecommendations() {
@@ -24,28 +32,44 @@ export function SurplusRecommendations() {
       current = null;
     }
   });
+
   if (current) windows.push(current);
 
   const best = windows.sort((a, b) => b.kwh - a.kwh)[0];
+
   const recommendations = [
-    "تشغيل الغسالة",
-    "تشغيل مضخة المياه",
-    "شحن السيارة الكهربائية",
-    "تشغيل المكيف",
-    "تشغيل سخان الماء",
+    { id: 1, title: "تشغيل الغسالة" },
+    { id: 2, title: "تشغيل مضخة المياه" },
+    { id: 3, title: "شحن السيارة الكهربائية" },
+    ...(best && best.kwh >= 1
+      ? [{ id: 4, title: "تشغيل المكيف" }]
+      : []),
+    ...(best && best.kwh >= 1.5
+      ? [{ id: 5, title: "تشغيل سخان الماء" }]
+      : []),
   ];
 
   return (
     <section dir="rtl" className="energy-card p-5">
       <h2 className="text-lg font-black text-slate-950">⚡ إدارة الفائض والتوصيات الذكية</h2>
-      <p className="mt-2 text-sm font-semibold text-slate-500">نحدد الساعات التي تتجاوز فيها الطاقة الشمسية الاستهلاك المتوقع.</p>
-      {loading && <p className="mt-4 text-base font-bold text-slate-500">جاري تحليل ساعات الفائض…</p>}
+      <p className="mt-2 text-sm font-semibold text-slate-500">
+        نحدد الساعات التي تتجاوز فيها الطاقة الشمسية الاستهلاك المتوقع.
+      </p>
+
+      {loading && (
+        <p className="mt-4 text-base font-bold text-slate-500">جاري تحليل ساعات الفائض…</p>
+      )}
+
       {!loading && best && (
         <>
           <div className="mt-4 rounded-2xl border border-cyan-100 bg-gradient-to-br from-cyan-50 to-sky-50 p-4">
             <span className="text-xs font-bold text-slate-500">☀️ الساعات الذهبية المتوقعة</span>
-            <strong className="mt-1 block text-2xl font-black tracking-tight text-cyan-700">{formatHour(best.start)} — {formatHour(best.end)}</strong>
-            <p className="mt-2 text-base font-semibold text-slate-600">فائض قابل للاستفادة: نحو {Math.round(best.kwh * 10) / 10} ك.و.س</p>
+            <strong className="mt-1 block text-2xl font-black tracking-tight text-cyan-700">
+              {formatHour(best.start)} — {formatHour(addHour(best.end))}
+            </strong>
+            <p className="mt-2 text-base font-semibold text-slate-600">
+              فائض قابل للاستفادة: نحو {Math.round(best.kwh * 10) / 10} ك.و.س
+            </p>
           </div>
 
           <div className="mt-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
@@ -71,9 +95,16 @@ export function SurplusRecommendations() {
             {showRecommendations && (
               <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {recommendations.map((item) => (
-                  <div key={item} className="rounded-2xl border border-emerald-100 bg-white p-3 shadow-sm">
-                    <strong className="text-base font-extrabold text-emerald-800">{item}</strong>
-                    <p className="mt-1 text-sm font-semibold text-emerald-700">يفضل تشغيله خلال نافذة الفائض.</p>
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-emerald-100 bg-white p-3 shadow-sm"
+                  >
+                    <strong className="text-base font-extrabold text-emerald-800">
+                      {item.title}
+                    </strong>
+                    <p className="mt-1 text-sm font-semibold text-emerald-700">
+                      يفضل تشغيله خلال نافذة الفائض.
+                    </p>
                   </div>
                 ))}
               </div>
@@ -81,8 +112,11 @@ export function SurplusRecommendations() {
           </div>
         </>
       )}
+
       {!loading && !best && (
-        <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-600">لا توجد نافذة فائض واضحة في التوقع الحالي.</div>
+        <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-600">
+          لا توجد نافذة فائض واضحة في التوقع الحالي.
+        </div>
       )}
     </section>
   );
