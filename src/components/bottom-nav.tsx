@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { Home, House, BatteryCharging, Sun, WalletCards, Settings } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
-const activeToneClasses: Record<string, string> = {
+type NavTone = 'blue' | 'violet' | 'emerald' | 'amber' | 'cyan' | 'indigo';
+
+const activeToneClasses: Record<NavTone, string> = {
   blue: 'bg-blue-50 text-blue-700 ring-blue-100',
   violet: 'bg-violet-50 text-violet-700 ring-violet-100',
   emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
@@ -13,7 +15,7 @@ const activeToneClasses: Record<string, string> = {
   indigo: 'bg-indigo-50 text-indigo-700 ring-indigo-100',
 };
 
-export const navItems = [
+export const navItems: { href: string; label: string; Icon: typeof Home; tone: NavTone }[] = [
   { href: '/', label: 'الرئيسية', Icon: Home, tone: 'blue' },
   { href: '/home-consumption', label: 'المنزل', Icon: House, tone: 'violet' },
   { href: '/battery', label: 'البطارية', Icon: BatteryCharging, tone: 'emerald' },
@@ -54,7 +56,7 @@ export function DesktopNav() {
                   : 'text-slate-500 hover:bg-white/80 hover:text-slate-800')
               }
             >
-              <Icon size={18} aria-hidden="true" />
+              <Icon size={21} strokeWidth={2.4} aria-hidden="true" />
               <span>{label}</span>
             </Link>
           );
