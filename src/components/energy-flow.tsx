@@ -44,6 +44,14 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   const arrowId = `${flowId}-arrow-flow`;
   const ringId = `${flowId}-energy-ring`;
   const glowId = `${flowId}-energy-glow`;
+  const solarGlowStrength = Math.min(0.42, 0.12 + Math.abs(solarKw) * 0.035);
+  const homeGlowStrength = Math.min(0.38, 0.10 + Math.abs(homeKw) * 0.03);
+  const batteryGlowStrength = Math.min(0.40, 0.10 + Math.abs(batteryKw) * 0.035);
+  const gridGlowStrength = Math.min(0.36, 0.10 + Math.abs(gridKw) * 0.03);
+  const solarPulseDuration = Math.max(0.8, 2.2 - Math.min(Math.abs(solarKw), 8) * 0.16);
+  const homePulseDuration = Math.max(0.85, 2.1 - Math.min(Math.abs(homeKw), 8) * 0.14);
+  const batteryPulseDuration = Math.max(0.8, 2.2 - Math.min(Math.abs(batteryKw), 8) * 0.16);
+  const gridPulseDuration = Math.max(0.85, 2.2 - Math.min(Math.abs(gridKw), 8) * 0.15);
 
   const measuredPowers = [solarKw, homeKw, gridKw, batteryKw];
   const hasNonZeroLiveReading = measuredPowers.every(Number.isFinite) && measuredPowers.some((value) => Math.abs(value) > FLOW_THRESHOLD);
@@ -175,7 +183,10 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
         </svg>
 
         <button type="button" onClick={() => setActiveNode("solar")} aria-label="عرض تفاصيل الطاقة الشمسية" className="absolute left-1/2 top-[6%] z-10 w-[32%] min-w-[100px] -translate-x-1/2 text-center transition-transform active:scale-95">
-          <div className="relative mx-auto flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.35rem] border border-amber-200 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-100 shadow-[0_10px_28px_rgba(245,158,11,0.20)]">
+          <div
+            className="relative mx-auto flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.35rem] border border-amber-200 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-100"
+            style={solarActive ? { boxShadow: `0 10px 28px rgba(245,158,11,${solarGlowStrength}), 0 0 ${Math.round(18 + Math.abs(solarKw) * 3)}px rgba(245,158,11,${solarGlowStrength * 0.55})`, animation: `energy-node-pulse ${solarPulseDuration}s ease-in-out infinite` } : undefined}
+          >
             <span className={solarActive ? "absolute inset-1 rounded-[1rem] border border-amber-300/50 animate-pulse" : "hidden"} />
             <Sun className="h-9 w-9 text-amber-500" strokeWidth={2.2} />
           </div>
@@ -185,7 +196,10 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
         </button>
 
         <button type="button" onClick={() => setActiveNode("grid")} aria-label="عرض تفاصيل الشبكة" className="absolute left-[1%] top-1/2 z-10 w-[29%] min-w-[94px] -translate-y-1/2 text-center transition-transform active:scale-95">
-          <div className={gridConnected ? "mx-auto flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-violet-200 bg-gradient-to-br from-violet-50 to-blue-50 shadow-[0_10px_24px_rgba(139,92,246,0.16)]" : "mx-auto flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-slate-200 bg-slate-100 shadow-sm"}>
+          <div
+            className={gridConnected ? "mx-auto flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-violet-200 bg-gradient-to-br from-violet-50 to-blue-50" : "mx-auto flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-slate-200 bg-slate-100"}
+            style={gridConnected && (gridImporting || gridExporting) ? { boxShadow: `0 10px 24px rgba(139,92,246,${gridGlowStrength}), 0 0 ${Math.round(16 + Math.abs(gridKw) * 2.5)}px rgba(139,92,246,${gridGlowStrength * 0.5})`, animation: `energy-node-pulse ${gridPulseDuration}s ease-in-out infinite` } : undefined}
+          >
             <RadioTower className={gridConnected ? "h-8 w-8 text-violet-500" : "h-8 w-8 text-slate-400"} strokeWidth={2.1} />
           </div>
           <div className="mt-1.5 text-xs font-black text-slate-700">الشبكة</div>
@@ -194,7 +208,10 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
         </button>
 
         <button type="button" onClick={() => setActiveNode("home")} aria-label="عرض تفاصيل المنزل" className="absolute right-[1%] top-1/2 z-10 w-[29%] min-w-[94px] -translate-y-1/2 text-center transition-transform active:scale-95">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-100 shadow-[0_10px_24px_rgba(14,165,233,0.16)]">
+          <div
+            className="mx-auto flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-100"
+            style={homeActive ? { boxShadow: `0 10px 24px rgba(14,165,233,${homeGlowStrength}), 0 0 ${Math.round(16 + Math.abs(homeKw) * 2.5)}px rgba(14,165,233,${homeGlowStrength * 0.5})`, animation: `energy-node-pulse ${homePulseDuration}s ease-in-out infinite` } : undefined}
+          >
             <Home className="h-8 w-8 text-sky-500" strokeWidth={2.1} />
           </div>
           <div className="mt-1.5 text-xs font-black text-slate-700">المنزل</div>
@@ -203,7 +220,10 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
         </button>
 
         <button type="button" onClick={() => setActiveNode("battery")} aria-label="عرض تفاصيل البطارية" className="absolute bottom-[6%] left-1/2 z-10 w-[34%] min-w-[110px] -translate-x-1/2 text-center transition-transform active:scale-95">
-          <div className="relative mx-auto flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.35rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-100 shadow-[0_10px_28px_rgba(16,185,129,0.18)]">
+          <div
+            className="relative mx-auto flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.35rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-100"
+            style={batteryCharging || batteryDischarging ? { boxShadow: `0 10px 28px rgba(16,185,129,${batteryGlowStrength}), 0 0 ${Math.round(18 + Math.abs(batteryKw) * 3)}px rgba(16,185,129,${batteryGlowStrength * 0.55})`, animation: `energy-node-pulse ${batteryPulseDuration}s ease-in-out infinite` } : undefined}
+          >
             <div className="relative flex h-12 w-12 items-center justify-center rounded-full border-[5px] border-emerald-400 bg-white/80">
               <BatteryCharging className="absolute h-5 w-5 -translate-y-3 text-emerald-500" strokeWidth={2.3} />
               <span className="mt-2 text-sm font-black text-slate-800">{batteryPercentage.toFixed(0)}%</span>
@@ -221,6 +241,13 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           </div>
         </div>
       </div>
+
+<style jsx>{`
+  @keyframes energy-node-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.055); }
+  }
+`}</style>
 
       <div className="relative mt-2 px-4 sm:px-6">
         {activeNode ? (
