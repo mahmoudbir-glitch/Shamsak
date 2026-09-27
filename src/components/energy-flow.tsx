@@ -2,7 +2,8 @@
 
 import React, { useId, useState } from 'react';
 import { BatteryCharging, Home, RadioTower, Sun, Zap } from 'lucide-react';
-import { InfoTip } from '@/components/info-tip';\nimport { batteryTone, loadTone, solarTone, semanticIcon, semanticText } from '@/lib/energy';
+import { InfoTip } from '@/components/info-tip';
+import { batteryTone, loadTone, solarTone, semanticIcon, semanticText } from '@/lib/energy';
 
 interface EnergyFlowProps {
   solarKw: number;
@@ -55,7 +56,10 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
 
   const measuredPowers = [solarKw, homeKw, gridKw, batteryKw];
   const hasNonZeroLiveReading = measuredPowers.every(Number.isFinite) && measuredPowers.some((value) => Math.abs(value) > FLOW_THRESHOLD);
-  const liveFlowActive = isLive && hasNonZeroLiveReading;\n  const solarToneClass = semanticText[solarTone(solarKw)];\n  const homeToneClass = semanticText[loadTone(homeKw)];\n  const batteryToneClass = semanticText[batteryTone(batteryPercentage)];
+  const liveFlowActive = isLive && hasNonZeroLiveReading;
+  const solarToneClass = semanticText[solarTone(solarKw)];
+  const homeToneClass = semanticText[loadTone(homeKw)];
+  const batteryToneClass = semanticText[batteryTone(batteryPercentage)];
 
   const solarActive = liveFlowActive && solarKw > FLOW_THRESHOLD;
   const homeActive = liveFlowActive && homeKw > FLOW_THRESHOLD;
@@ -110,7 +114,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
 
   return (
     <section className="relative mx-auto w-full max-w-lg overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.09)]" aria-label="مخطط تدفق الطاقة">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(251,191,36,0.10),transparent_32%),radial-gradient(circle_at_15%_50%,rgba(56,189,248,0.08),transparent_28%),radial-gradient(circle_at_85%_50%,rgba(59,130,246,0.08),transparent_28%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(245,158,11,0.06),transparent_32%),radial-gradient(circle_at_15%_50%,rgba(56,189,248,0.08),transparent_28%),radial-gradient(circle_at_85%_50%,rgba(59,130,246,0.08),transparent_28%)]" />
 
       <div className="relative px-4 pt-4 sm:px-6 sm:pt-5">
         <div className="flex items-center justify-between gap-3">
@@ -128,7 +132,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
         <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 400 400" fill="none" aria-hidden="true">
           <defs>
             <linearGradient id={ringId} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#F59E0B" />
+              <stop offset="0%" stopColor="#D97706" />
               <stop offset="50%" stopColor="#10B981" />
               <stop offset="100%" stopColor="#3B82F6" />
             </linearGradient>
@@ -141,11 +145,11 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           <circle cx="200" cy="200" r="150" stroke={`url(#${ringId})`} strokeWidth="1.5" opacity="0.14" strokeDasharray="4 9" />
           <path d={solarHomePath} pathLength="100" stroke={solarToHome ? "#10B981" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={solarToHome ? 0.95 : 0.16} markerEnd={solarToHome ? `url(#${arrowId})` : undefined}
             id={solarHomeId} className={solarToHome ? activeFlowClass : dashedFlowClass} />
-          <path d={homeBatteryPath} pathLength="100" stroke={batteryDischarging ? "#10B981" : homeToBattery ? "#F59E0B" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={batteryDischarging || homeToBattery ? 0.95 : 0.16} markerEnd={batteryDischarging || homeToBattery ? `url(#${arrowId})` : undefined}
+          <path d={homeBatteryPath} pathLength="100" stroke={batteryDischarging ? "#10B981" : homeToBattery ? "#D97706" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={batteryDischarging || homeToBattery ? 0.95 : 0.16} markerEnd={batteryDischarging || homeToBattery ? `url(#${arrowId})` : undefined}
             id={homeBatteryId} className={batteryDischarging || homeToBattery ? activeFlowClass : dashedFlowClass} />
-          <path d={batteryGridPath} pathLength="100" stroke={batteryToGrid ? "#8B5CF6" : gridToBattery ? "#F59E0B" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={batteryToGrid || gridToBattery ? 0.95 : 0.16} markerEnd={batteryToGrid || gridToBattery ? `url(#${arrowId})` : undefined}
+          <path d={batteryGridPath} pathLength="100" stroke={batteryToGrid ? "#8B5CF6" : gridToBattery ? "#D97706" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={batteryToGrid || gridToBattery ? 0.95 : 0.16} markerEnd={batteryToGrid || gridToBattery ? `url(#${arrowId})` : undefined}
             id={batteryGridId} className={batteryToGrid || gridToBattery ? activeFlowClass : dashedFlowClass} />
-          <path d={gridSolarPath} pathLength="100" stroke={solarToGrid ? "#10B981" : gridToSolar ? "#F59E0B" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={solarToGrid || gridToSolar ? 0.95 : 0.16} markerEnd={solarToGrid || gridToSolar ? `url(#${arrowId})` : undefined}
+          <path d={gridSolarPath} pathLength="100" stroke={solarToGrid ? "#10B981" : gridToSolar ? "#D97706" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={solarToGrid || gridToSolar ? 0.95 : 0.16} markerEnd={solarToGrid || gridToSolar ? `url(#${arrowId})` : undefined}
             id={gridSolarId} className={solarToGrid || gridToSolar ? activeFlowClass : dashedFlowClass} />
 
           {solarToHome && (
@@ -156,21 +160,21 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             </circle>
           )}
           {(batteryDischarging || homeToBattery) && (
-            <circle r="4" fill={batteryDischarging ? "#10B981" : "#F59E0B"} filter={`url(#${glowId})`}>
+            <circle r="4" fill={batteryDischarging ? "#10B981" : "#D97706"} filter={`url(#${glowId})`}>
               <animateMotion dur="1.9s" repeatCount="indefinite" rotate="auto">
                 <mpath href={`#${homeBatteryId}`} />
               </animateMotion>
             </circle>
           )}
           {(batteryToGrid || gridToBattery) && (
-            <circle r="4" fill={batteryToGrid ? "#8B5CF6" : "#F59E0B"} filter={`url(#${glowId})`}>
+            <circle r="4" fill={batteryToGrid ? "#8B5CF6" : "#D97706"} filter={`url(#${glowId})`}>
               <animateMotion dur="2s" repeatCount="indefinite" rotate="auto">
                 <mpath href={`#${batteryGridId}`} />
               </animateMotion>
             </circle>
           )}
           {(solarToGrid || gridToSolar) && (
-            <circle r="4" fill={solarToGrid ? "#10B981" : "#F59E0B"} filter={`url(#${glowId})`}>
+            <circle r="4" fill={solarToGrid ? "#10B981" : "#D97706"} filter={`url(#${glowId})`}>
               <animateMotion dur="1.8s" repeatCount="indefinite" rotate="auto">
                 <mpath href={`#${gridSolarId}`} />
               </animateMotion>
@@ -178,7 +182,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           )}
 
           <circle cx="200" cy="200" r="38" fill="white" stroke="#FDE68A" strokeWidth="1.5" opacity="0.95" />
-          <circle cx="200" cy="200" r="30" fill="#FFFBEB" stroke="#F59E0B" strokeWidth="1.5" filter={`url(#${glowId})`} />
+          <circle cx="200" cy="200" r="30" fill="#FFFBEB" stroke="#D97706" strokeWidth="1.5" filter={`url(#${glowId})`} />
           <circle cx="200" cy="200" r="22" fill="white" />
         </svg>
 
