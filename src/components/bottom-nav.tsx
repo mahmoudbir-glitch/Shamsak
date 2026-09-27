@@ -4,13 +4,13 @@ import Link from 'next/link';
 import { Home, House, BatteryCharging, Sun, WalletCards, Settings } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
-type NavTone = 'blue' | 'violet' | 'emerald' | 'amber' | 'cyan' | 'indigo';
+type NavTone = 'blue' | 'violet' | 'emerald' | 'sky' | 'cyan' | 'indigo';
 
 const activeToneClasses: Record<NavTone, string> = {
   blue: 'bg-blue-50 text-blue-700 ring-blue-100',
   violet: 'bg-violet-50 text-violet-700 ring-violet-100',
   emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
-  amber: 'bg-amber-50 text-amber-700 ring-amber-100',
+  sky: 'bg-sky-50 text-sky-700 ring-sky-100',
   cyan: 'bg-cyan-50 text-cyan-700 ring-cyan-100',
   indigo: 'bg-indigo-50 text-indigo-700 ring-indigo-100',
 };
@@ -19,7 +19,7 @@ export const navItems: { href: string; label: string; Icon: typeof Home; tone: N
   { href: '/', label: 'الرئيسية', Icon: Home, tone: 'blue' },
   { href: '/home-consumption', label: 'المنزل', Icon: House, tone: 'violet' },
   { href: '/battery', label: 'البطارية', Icon: BatteryCharging, tone: 'emerald' },
-  { href: '/energy', label: 'الطاقة', Icon: Sun, tone: 'amber' },
+  { href: '/energy', label: 'الطاقة', Icon: Sun, tone: 'sky' },
   { href: '/money', label: 'المال', Icon: WalletCards, tone: 'cyan' },
   { href: '/settings', label: 'الإعدادات', Icon: Settings, tone: 'indigo' },
 ];
