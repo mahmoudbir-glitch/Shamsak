@@ -43,7 +43,8 @@ export default function InverterReviewPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           systemName: setup.systemName,
-          inverterModel: setup.model || setup.manufacturer || "Inverter",
+          inverterModel: setup.model || "Inverter",
+          manufacturer: setup.manufacturer,
           protocol: setup.protocol,
           inverterAddress: setup.inverterAddress,
           wifiSsid: "",
@@ -109,7 +110,7 @@ export default function InverterReviewPage() {
             {rows.map(([label, value]) => (
               <div key={label} className="flex items-center justify-between gap-4 p-4">
                 <span className="text-sm font-bold text-slate-500">{label}</span>
-                <span className="text-base font-black text-slate-900">{value}</span>
+                <span dir={label === "عنوان / منفذ الاتصال" ? "ltr" : undefined} className="text-base font-black text-slate-900">{value}</span>
               </div>
             ))}
           </div>
