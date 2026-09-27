@@ -310,16 +310,17 @@ export function SmartForecast() {
 
           <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg font-black text-slate-900">توزيع الطاقة اليومية</h2>
+              <h2 className="text-lg font-black text-slate-900">توزيع الطاقة الشمسية اليومية</h2>
               <InfoTip label="شرح توزيع الطاقة" title="توزيع الطاقة">
-                تقسيم تقديري للطاقة الشمسية المتوقعة إلى استهلاك منزلي مباشر، شحن بطارية وفائض غير مستخدم.
+                تقسيم إنتاج الشمس المتوقع لهذا اليوم إلى استهلاك منزلي مباشر، شحن البطارية، وفائض متبقٍ بعد استيعاب البطارية. النسب محسوبة من إجمالي الإنتاج المتوقع.
               </InfoTip>
             </div>
-            <div className="mt-4 flex h-5 overflow-hidden rounded-full bg-slate-100">
-              <div className="bg-blue-500" style={{ width: selected.homePct + "%" }} />
-              <div className="bg-emerald-500" style={{ width: selected.batteryPct + "%" }} />
-              <div className="bg-amber-400" style={{ width: selected.surplusPct + "%" }} />
+            <div className="mt-4 flex h-5 overflow-hidden rounded-full bg-slate-100" aria-label="توزيع إنتاج الطاقة الشمسية">
+              <div className="bg-blue-500" style={{ width: selected.homePct + "%" }} title={"المنزل " + selected.homePct + "%"} />
+              <div className="bg-emerald-500" style={{ width: selected.batteryPct + "%" }} title={"البطارية " + selected.batteryPct + "%"} />
+              <div className="bg-amber-400" style={{ width: selected.surplusPct + "%" }} title={"الفائض " + selected.surplusPct + "%"} />
             </div>
+            <p className="mt-2 text-xs font-bold text-slate-500">إجمالي الإنتاج الشمسي المتوقع: {selected.productionKWh} ك.و.س</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               {[
                 ["استهلاك المنزل نهارًا", selected.homePct, selected.homeKWh, "text-blue-700", "bg-blue-50"],
