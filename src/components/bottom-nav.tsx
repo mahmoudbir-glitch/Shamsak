@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { LayoutDashboard, House, BatteryCharging, Sun, WalletCards, Settings } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
-export const navItems: { href: string; label: string; Icon: typeof LayoutDashboard; tone: NavTone }[] = [
+export const navItems: { href: string; label: string; Icon: typeof LayoutDashboard }[] = [
   { href: '/', label: 'الرئيسية', Icon: LayoutDashboard },
   { href: '/home-consumption', label: 'المنزل', Icon: House },
   { href: '/battery', label: 'البطارية', Icon: BatteryCharging },
@@ -65,7 +65,7 @@ export function BottomNav() {
       className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200/70 bg-white/96 px-2 pt-2 shadow-[0_-10px_35px_rgba(15,23,42,0.10)] backdrop-blur-xl md:hidden"
     >
       <div className="mx-auto grid max-w-lg grid-cols-6 gap-1">
-        {navItems.map(({ href, label, Icon, tone }) => {
+        {navItems.map(({ href, label, Icon }) => {
           const active = isNavActive(path, href);
           return (
             <Link
