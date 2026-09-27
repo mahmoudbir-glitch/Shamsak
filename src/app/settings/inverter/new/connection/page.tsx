@@ -19,6 +19,25 @@ export default function InverterConnectionPage() {
   }, [router]);
 
   const handleNext = () => {
+    const cleanAddress = address.trim();
+
+    if ((protocol === "Modbus TCP" || protocol === "Modbus RTU") && !cleanAddress) {
+      setError("أدخل عنوان أو منفذ الاتصال للمتابعة.");
+      return;
+    }
+
+    if (protocol === "Modbus TCP") {
+      const parts = cleanAddress.split(".");
+      const validIp =
+        parts.length === 4 &&
+        parts.every((part) => /^\d+$/.test(part) && Number(part) >= 0 && Number(part) <= 255);
+      if (!validIp) {
+        setError("أدخل عنوان IP صحيحًا، مثل 192.168.1.50.");
+        return;
+      }
+    }
+
+    setError("");
     const previous = sessionStorage.getItem("shamsak_new_inverter_step2");
     const step2 = previous ? JSON.parse(previous) : {};
 
@@ -27,7 +46,7 @@ export default function InverterConnectionPage() {
       JSON.stringify({
         ...step2,
         protocol,
-        inverterAddress: address.trim(),
+        inverterAddress: cleanAddress,
       }),
     );
 
@@ -50,6 +69,7 @@ export default function InverterConnectionPage() {
 
   const inputClass =
     "w-full min-h-14 rounded-xl border border-slate-200 bg-slate-50 px-4 text-lg font-bold text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
+  const [error, setError] = useState("");
 
   return (
     <main className="min-h-screen bg-slate-50 p-4 pb-28 text-right" dir="rtl">
@@ -106,12 +126,22 @@ export default function InverterConnectionPage() {
               <span className="text-base font-bold text-slate-700">{addressLabel}</span>
               <input
                 value={address}
-                onChange={(event) => setAddress(event.target.value)}
+                onChange={(event) => {
+                  setAddress(event.target.value);
+                  setError("");
+                }}
                 placeholder={addressPlaceholder}
                 className={inputClass}
+                dir="ltr"
                 autoComplete="off"
               />
             </label>
+
+            {error && (
+              <p className="rounded-xl bg-amber-50 p-3 text-sm font-bold leading-6 text-amber-800">
+                {error}
+              </p>
+            )}
 
             <button
               type="button"
