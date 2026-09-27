@@ -10,11 +10,6 @@ type Protocol = "Modbus RTU" | "Modbus TCP" | "Wi-Fi Datalogger";
 export default function SettingsPage() {
   const [panelCapacity, setPanelCapacity] = useState(6);
   const [batteryCapacity, setBatteryCapacity] = useState(4800);
-  const [currency, setCurrency] = useState("ل.س");
-  const [gridTariff, setGridTariff] = useState(0);
-  const [exportTariff, setExportTariff] = useState(0);
-  const [notifySurplus, setNotifySurplus] = useState(true);
-  const [notifyLowBattery, setNotifyLowBattery] = useState(true);
   const [inverterModel, setInverterModel] = useState<InverterModel>("Felicity");
   const [protocol, setProtocol] = useState<Protocol>("Modbus RTU");
   const [inverterAddress, setInverterAddress] = useState("");
@@ -45,31 +40,21 @@ export default function SettingsPage() {
     const saved = {
       panels: localStorage.getItem("shamsak_panel_capacity"),
       battery: localStorage.getItem("shamsak_battery_capacity"),
-      currency: localStorage.getItem("shamsak_currency"),
-      gridTariff: localStorage.getItem("shamsak_grid_tariff"),
-      exportTariff: localStorage.getItem("shamsak_export_tariff"),
       model: localStorage.getItem("shamsak_inverter_model"),
       protocol: localStorage.getItem("shamsak_protocol"),
       address: localStorage.getItem("shamsak_inverter_address"),
       systemName: localStorage.getItem("shamsak_system_name"),
       ssid: localStorage.getItem("shamsak_wifi_ssid"),
-      notifySurplus: localStorage.getItem("shamsak_notify_surplus"),
-      notifyLowBattery: localStorage.getItem("shamsak_notify_low_battery"),
       latitude: localStorage.getItem("shamsak_latitude"),
       longitude: localStorage.getItem("shamsak_longitude"),
     };
     if (saved.panels) setPanelCapacity(Number(saved.panels));
     if (saved.battery) setBatteryCapacity(Number(saved.battery));
-    if (saved.currency) setCurrency(saved.currency);
-    if (saved.gridTariff) setGridTariff(Number(saved.gridTariff));
-    if (saved.exportTariff) setExportTariff(Number(saved.exportTariff));
     if (saved.model) setInverterModel(saved.model as InverterModel);
     if (saved.protocol) setProtocol(saved.protocol as Protocol);
     if (saved.address) setInverterAddress(saved.address);
     if (saved.systemName) setSystemName(saved.systemName);
     if (saved.ssid) setWifiSsid(saved.ssid);
-    if (saved.notifySurplus !== null) setNotifySurplus(saved.notifySurplus !== "false");
-    if (saved.notifyLowBattery !== null) setNotifyLowBattery(saved.notifyLowBattery !== "false");
     if (saved.latitude) setLatitude(Number(saved.latitude));
     if (saved.longitude) setLongitude(Number(saved.longitude));
   }, []);
@@ -77,9 +62,6 @@ export default function SettingsPage() {
   const handleSaveSettings = async () => {
     localStorage.setItem("shamsak_panel_capacity", String(panelCapacity));
     localStorage.setItem("shamsak_battery_capacity", String(batteryCapacity));
-    localStorage.setItem("shamsak_currency", currency);
-    localStorage.setItem("shamsak_grid_tariff", String(gridTariff));
-    localStorage.setItem("shamsak_export_tariff", String(exportTariff));
     localStorage.setItem("shamsak_inverter_model", inverterModel);
     localStorage.setItem("shamsak_protocol", protocol);
     localStorage.setItem("shamsak_inverter_address", inverterAddress);
@@ -105,8 +87,6 @@ export default function SettingsPage() {
       window.alert("تعذر حفظ إعدادات ربط الإنفرتر على الخادم. تحقق من اتصال قاعدة البيانات.");
       return;
     }
-    localStorage.setItem("shamsak_notify_surplus", String(notifySurplus));
-    localStorage.setItem("shamsak_notify_low_battery", String(notifyLowBattery));
     localStorage.setItem("shamsak_latitude", String(latitude));
     localStorage.setItem("shamsak_longitude", String(longitude));
     setSaved(true);
@@ -246,41 +226,6 @@ export default function SettingsPage() {
         {connectionState === "error" && <p className="rounded-xl bg-amber-50 p-3 text-base font-bold text-amber-700">⚠️ لم تصل قراءة حية بعد. احفظ الإعدادات وتحقق من الدونغل/البوابة وبروتوكول الاتصال.</p>}
         <div className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-600">الحالة الحالية: {connectionState === "connected" ? "متصل" : connectionState === "connecting" ? "جاري الاتصال" : "غير متصل"}</div>
       </div>
-      <div className="mb-5 space-y-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-        <h2 className="border-b border-slate-100 pb-3 text-xl font-bold text-slate-900">💰 التفضيلات المالية</h2>
-        <div className="space-y-2">
-          <label className="text-base font-semibold text-slate-700">العملة المحلية لحساب التوفير</label>
-          <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={selectClass}>
-            <option value="ل.س">ليرة سورية (ل.س)</option><option value="USD">دولار أمريكي ($)</option><option value="LBP">ليرة لبنانية (L.B.P)</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <label className="text-base font-semibold text-slate-700">سعر شراء الكهرباء من الشبكة لكل ك.و.س</label>
-          <input type="number" min="0" value={gridTariff} onChange={(e) => setGridTariff(Number(e.target.value))} className={inputClass} />
-        </div>
-        <div className="space-y-2">
-          <label className="text-base font-semibold text-slate-700">سعر بيع/تصدير الفائض لكل ك.و.س</label>
-          <input type="number" min="0" value={exportTariff} onChange={(e) => setExportTariff(Number(e.target.value))} className={inputClass} />
-        </div>
-      </div>
-
-      <div className="mb-6 space-y-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-        <h2 className="border-b border-slate-100 pb-3 text-xl font-bold text-slate-900">🔔 التنبيهات</h2>
-        <label className="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3 text-base font-semibold text-slate-700">
-          <span>تنبيهي عند وجود فائض طاقة غير مستغل</span>
-          <input type="checkbox" checked={notifySurplus} onChange={(e) => setNotifySurplus(e.target.checked)} className="h-7 w-7 shrink-0 accent-amber-500" />
-        </label>
-        <label className="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3 text-base font-semibold text-slate-700">
-          <span>تنبيهي عند اقتراب البطارية من حد الأمان (10%)</span>
-          <input type="checkbox" checked={notifyLowBattery} onChange={(e) => setNotifyLowBattery(e.target.checked)} className="h-7 w-7 shrink-0 accent-emerald-500" />
-        </label>
-      </div>
-
-      {saved && <div role="status" className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center text-base font-black text-emerald-700">✓ تم حفظ إعدادات شمسك بنجاح</div>}
-
-      <button type="button" onClick={() => void handleSaveSettings()} className="mb-4 min-h-16 w-full rounded-2xl bg-slate-900 px-5 py-4 text-lg font-bold text-white shadow-md transition active:scale-95 active:bg-slate-800">
-        حفظ وتثبيت الإعدادات في ذاكرة الهاتف
-      </button>
     </div>
   );
 }
