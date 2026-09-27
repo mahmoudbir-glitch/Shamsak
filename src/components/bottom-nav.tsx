@@ -4,6 +4,15 @@ import Link from 'next/link';
 import { Home, House, BatteryCharging, Sun, WalletCards, Settings } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
+const activeToneClasses: Record<string, string> = {
+  blue: 'bg-blue-50 text-blue-700 ring-blue-100',
+  violet: 'bg-violet-50 text-violet-700 ring-violet-100',
+  emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
+  amber: 'bg-amber-50 text-amber-700 ring-amber-100',
+  cyan: 'bg-cyan-50 text-cyan-700 ring-cyan-100',
+  indigo: 'bg-indigo-50 text-indigo-700 ring-indigo-100',
+};
+
 export const navItems = [
   { href: '/', label: 'الرئيسية', Icon: Home, tone: 'blue' },
   { href: '/home-consumption', label: 'المنزل', Icon: House, tone: 'violet' },
@@ -41,14 +50,7 @@ export function DesktopNav() {
               className={
                 'flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl px-3 text-sm font-extrabold transition-all ' +
                 (active
-                  ? ({
-                      blue: 'bg-blue-50 text-blue-700 ring-blue-100',
-                      violet: 'bg-violet-50 text-violet-700 ring-violet-100',
-                      emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
-                      amber: 'bg-amber-50 text-amber-700 ring-amber-100',
-                      cyan: 'bg-cyan-50 text-cyan-700 ring-cyan-100',
-                      indigo: 'bg-indigo-50 text-indigo-700 ring-indigo-100',
-                    }[tone] + ' shadow-sm ring-1')
+                  ? (activeToneClasses[tone] + ' shadow-sm ring-1')
                   : 'text-slate-500 hover:bg-white/80 hover:text-slate-800')
               }
             >
