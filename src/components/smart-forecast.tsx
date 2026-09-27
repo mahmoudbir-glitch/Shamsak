@@ -312,15 +312,7 @@ export function SmartForecast() {
                     </div>
                   </div>
                   <p className="mt-3 text-sm font-semibold text-slate-700">النافذة تُحسب عندما يتجاوز الإنتاج الشمسي استهلاك المنزل وما يمكن للبطارية استيعابه؛ لا تُعرض كتوصية تشغيل ثابتة.</p>
-                  <button
-                    type="button"
-                    onClick={() => setShowHourlyDetails((value) => !value)}
-                    className="mt-4 inline-flex items-center gap-2 text-sm font-black text-amber-800 underline underline-offset-4"
-                    aria-expanded={showHourlyDetails}
-                    aria-controls="hourly-details"
-                  >
-                    {showHourlyDetails ? "إخفاء تفصيل الساعات" : "عرض تفصيل الساعات"} <ArrowDownToLine size={16} />
-                  </button>
+
                 </div>
               </div>
             </section>
@@ -354,13 +346,25 @@ export function SmartForecast() {
             </div>
           </section>
 
-          {showHourlyDetails && (
           <section id="hourly-details" className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg font-black text-slate-900">تفصيل الساعات</h2>
-              <CloudSun size={20} className="text-slate-400" />
-            </div>
-            <div className="mt-4 space-y-2">
+            <button
+              type="button"
+              onClick={() => setShowHourlyDetails((value) => !value)}
+              className="flex w-full items-center justify-between gap-2 text-right"
+              aria-expanded={showHourlyDetails}
+              aria-controls="hourly-details-content"
+            >
+              <div className="flex items-center gap-2">
+                <CloudSun size={20} className="text-slate-400" />
+                <div>
+                  <h2 className="text-lg font-black text-slate-900">تفصيل الساعات</h2>
+                  <p className="text-xs font-semibold text-slate-500">اضغط لعرض التوقعات ساعة بساعة</p>
+                </div>
+              </div>
+              <span className="text-slate-500 text-lg font-black">{showHourlyDetails ? "⌃" : "⌄"}</span>
+            </button>
+            {showHourlyDetails && (
+            <div id="hourly-details-content" className="mt-4 space-y-2">
               {selected.hourly.map((point) => (
                 <div key={point.time} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl bg-slate-50 p-3">
                   <span className="text-xs font-black text-slate-500">{formatHour(point.time)}</span>
@@ -375,8 +379,8 @@ export function SmartForecast() {
                 </div>
               ))}
             </div>
+            )}
           </section>
-          )}
         </>
       )}
 
