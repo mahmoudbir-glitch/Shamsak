@@ -142,6 +142,7 @@ model InverterConnection {
   id                 String   @id @default("default")
   systemName         String   @default("منظومة شمسك")
   inverterModel      String   @default("Felicity")
+  manufacturer       String?
   protocol           String   @default("Wi-Fi Datalogger")
   inverterAddress    String?
   inverterUsername   String?
