@@ -67,6 +67,12 @@ function NightCard({
     : 4800;
   const effectiveLoadW = averageNightLoadW ?? loadW;
   const result = calculateAutonomy(startSoc, capacityWh, effectiveLoadW, hours);
+  const hasEnoughSamples = sampleCount >= 3;
+  const confidenceClass = hasEnoughSamples
+    ? result.sufficient
+      ? "rounded-full bg-emerald-50 p-3 text-emerald-600"
+      : "rounded-full bg-amber-50 p-3 text-amber-600"
+    : "rounded-full bg-slate-100 p-3 text-slate-500";
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
@@ -74,10 +80,14 @@ function NightCard({
         <div>
           <p className="text-sm font-bold text-slate-500">{title}</p>
           <h3 className="mt-1 text-lg font-black text-slate-900">
-            {result.sufficient ? "تكفي حتى الصباح" : "قد لا تكفي حتى الصباح"}
+            {hasEnoughSamples
+              ? result.sufficient
+                ? "تكفي حتى الصباح"
+                : "قد لا تكفي حتى الصباح"
+              : "تقدير أولي — البيانات التاريخية غير كافية"}
           </h3>
         </div>
-        <div className={result.sufficient ? "rounded-full bg-emerald-50 p-3 text-emerald-600" : "rounded-full bg-amber-50 p-3 text-amber-600"}>
+        <div className={confidenceClass}>
           <MoonStar size={21} />
         </div>
       </div>
@@ -97,6 +107,7 @@ function NightCard({
           <span className={confidence === "عالية" ? "rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700" : confidence === "متوسطة" ? "rounded-full bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-700" : confidence === "منخفضة" ? "rounded-full bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700" : "rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600"}>ثقة استقرار الاستهلاك: {confidence}</span>
           <span className="text-xs">عينات ليلية: {sampleCount}</span>
         </div>
+        {!hasEnoughSamples && <p className="text-xs font-bold text-slate-600">يلزم توفر 3 أيام ليلية على الأقل قبل عرض نسبة ثقة رقمية.</p>}
         {averageNightLoadW === null && <p className="text-xs text-amber-700">لا توجد بيانات تاريخية ليلية كافية بعد؛ استُخدمت القراءة الحالية مؤقتًا.</p>}
       </div>
     </div>
