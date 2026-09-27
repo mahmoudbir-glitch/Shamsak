@@ -94,11 +94,11 @@ function NightCard({
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-emerald-50 p-3">
           <span className="text-xs font-bold text-slate-500">احتمال الصمود</span>
-          <strong className="mt-1 block text-2xl font-black text-emerald-700">{result.probability}%</strong>
+          <strong className={"mt-1 block font-black " + (hasEnoughSamples ? "text-2xl text-emerald-700" : "text-sm text-slate-500")}>{hasEnoughSamples ? `${result.probability}%` : "غير كافٍ للتقدير بعد"}</strong>
         </div>
         <div className="rounded-xl bg-sky-50 p-3">
           <span className="text-xs font-bold text-slate-500">المتوقع عند الشروق</span>
-          <strong className="mt-1 block text-2xl font-black text-sky-700">{result.expectedSocAtSunrise}%</strong>
+          <strong className={"mt-1 block font-black " + (hasEnoughSamples ? "text-2xl text-sky-700" : "text-sm text-slate-500")}>{hasEnoughSamples ? `${result.expectedSocAtSunrise}%` : "غير كافٍ للتقدير بعد"}</strong>
         </div>
       </div>
       <div className="mt-3 space-y-2 text-sm font-semibold text-slate-500">
