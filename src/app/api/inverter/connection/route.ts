@@ -20,6 +20,7 @@ export async function GET() {
         id: row.id,
         systemName: row.systemName,
         inverterModel: row.inverterModel,
+        manufacturer: row.manufacturer,
         protocol: row.protocol,
         inverterAddress: row.inverterAddress,
         inverterUsername: row.inverterUsername,
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
         id: "default",
         systemName: text(input.systemName),
         inverterModel: text(input.inverterModel) || "Felicity",
+        manufacturer: text(input.manufacturer) || null,
         protocol: text(input.protocol) || "Wi-Fi Datalogger",
         inverterAddress: text(input.inverterAddress) || null,
         inverterUsername: text(input.inverterUsername) || null,
@@ -67,6 +69,7 @@ export async function POST(request: NextRequest) {
       update: {
         systemName: text(input.systemName),
         inverterModel: text(input.inverterModel) || "Felicity",
+        manufacturer: text(input.manufacturer) || null,
         protocol: text(input.protocol) || "Wi-Fi Datalogger",
         inverterAddress: text(input.inverterAddress) || null,
         inverterUsername: text(input.inverterUsername) || null,
