@@ -42,9 +42,9 @@ export function SurplusRecommendations() {
       {loading && <p className="mt-4 text-base font-bold text-slate-500">جاري تحليل ساعات الفائض…</p>}
       {!loading && best && (
         <>
-          <div className="mt-4 rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 to-orange-50 p-4">
+          <div className="mt-4 rounded-2xl border border-cyan-100 bg-gradient-to-br from-cyan-50 to-sky-50 p-4">
             <span className="text-xs font-bold text-slate-500">☀️ الساعات الذهبية المتوقعة</span>
-            <strong className="mt-1 block text-2xl font-black tracking-tight text-amber-700">{formatHour(best.start)} — {formatHour(best.end)}</strong>
+            <strong className="mt-1 block text-2xl font-black tracking-tight text-cyan-700">{formatHour(best.start)} — {formatHour(best.end)}</strong>
             <p className="mt-2 text-base font-semibold text-slate-600">فائض قابل للاستفادة: نحو {Math.round(best.kwh * 10) / 10} ك.و.س</p>
           </div>
 
