@@ -104,11 +104,11 @@ function NightCard({
       <div className="mt-3 space-y-2 text-sm font-semibold text-slate-500">
         <p>تغطية تقديرية {result.hoursCovered} ساعة عند متوسط استهلاك ليلي {Math.round(effectiveLoadW).toLocaleString("ar-LB")} واط.</p>
         <div className="flex flex-wrap items-center gap-2">
-          <span className={confidence === "عالية" ? "rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700" : confidence === "متوسطة" ? "rounded-full bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-700" : confidence === "منخفضة" ? "rounded-full bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700" : "rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600"}>ثقة استقرار الاستهلاك: {confidence}</span>
+          <span className={confidence === "عالية" ? "rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700" : confidence === "متوسطة" ? "rounded-full bg-amber-50 px-2.5 py-1 text-xs font-black text-cyan-700" : confidence === "منخفضة" ? "rounded-full bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700" : "rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600"}>ثقة استقرار الاستهلاك: {confidence}</span>
           <span className="text-xs">عينات ليلية: {sampleCount}</span>
         </div>
         {!hasEnoughSamples && <p className="text-xs font-bold text-slate-600">يلزم توفر 3 أيام ليلية على الأقل قبل عرض نسبة ثقة رقمية.</p>}
-        {averageNightLoadW === null && <p className="text-xs text-amber-700">لا توجد بيانات تاريخية ليلية كافية بعد؛ استُخدمت القراءة الحالية مؤقتًا.</p>}
+        {averageNightLoadW === null && <p className="text-xs text-cyan-700">لا توجد بيانات تاريخية ليلية كافية بعد؛ استُخدمت القراءة الحالية مؤقتًا.</p>}
       </div>
     </div>
   );
@@ -203,7 +203,7 @@ export function SmartForecast() {
           </div>
         )}
 
-        {error && <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm font-bold text-amber-800">{error}.</p>}
+        {error && <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm font-bold text-cyan-800">{error}.</p>}
       </header>
 
       <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
@@ -235,15 +235,15 @@ export function SmartForecast() {
                 <h2 className="mt-1 text-2xl font-black text-slate-950">{weatherIcon(selected.weatherCode)} {weatherLabel(selected.weatherCode)}</h2>
                 <p className="mt-1 text-sm font-semibold text-slate-500">{Math.round(selected.tempMin)}° — {Math.round(selected.tempMax)}°م</p>
               </div>
-              <div className="rounded-2xl bg-amber-50 p-3 text-amber-600">
+              <div className="rounded-2xl bg-cyan-50 p-3 text-cyan-700">
                 <SunMedium size={27} />
               </div>
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl bg-amber-50 p-4">
+              <div className="rounded-2xl bg-cyan-50 p-4">
                 <span className="text-xs font-bold text-slate-500">إنتاج الألواح المتوقع</span>
-                <strong className="mt-1 block text-2xl font-black text-amber-700">{selected.productionKWh} <small className="text-sm">ك.و.س</small></strong>
+                <strong className="mt-1 block text-2xl font-black text-cyan-700">{selected.productionKWh} <small className="text-sm">ك.و.س</small></strong>
               </div>
               <div className="rounded-2xl bg-emerald-50 p-4">
                 <span className="text-xs font-bold text-slate-500">ثقة التوقع الجوي</span>
@@ -291,24 +291,24 @@ export function SmartForecast() {
           </section>
 
           {surplus && (
-            <section className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 p-5 shadow-sm">
+            <section className="rounded-3xl border border-cyan-100 bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-50 p-5 shadow-sm">
               <div className="flex items-start gap-3">
                 <div className="rounded-2xl bg-white p-3 text-amber-600 shadow-sm"><Zap size={23} /></div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-black text-amber-900">☀️ فائض شمسي متوقع</h2>
+                    <h2 className="text-lg font-black text-cyan-900">☀️ فائض شمسي متوقع</h2>
                     <CheckCircle2 size={18} className="text-emerald-600" />
                   </div>
-                  <strong className="mt-1 block text-3xl font-black text-amber-800">{surplus.kwh} ك.و.س</strong>
-                  <p className="mt-1 text-sm font-bold text-amber-900/70">خلال {formatHour(surplus.start)} — {formatHour(surplus.end)} • مدة تقريبية {surplus.durationHours} ساعة</p>
+                  <strong className="mt-1 block text-3xl font-black text-cyan-800">{surplus.kwh} ك.و.س</strong>
+                  <p className="mt-1 text-sm font-bold text-cyan-900/70">خلال {formatHour(surplus.start)} — {formatHour(surplus.end)} • مدة تقريبية {surplus.durationHours} ساعة</p>
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <div className="rounded-xl bg-white/80 p-3">
                       <span className="block text-[11px] font-bold text-slate-500">متوسط الفائض</span>
-                      <strong className="mt-1 block text-lg font-black text-amber-800">{surplus.averageKw} kW</strong>
+                      <strong className="mt-1 block text-lg font-black text-cyan-800">{surplus.averageKw} kW</strong>
                     </div>
                     <div className="rounded-xl bg-white/80 p-3">
                       <span className="block text-[11px] font-bold text-slate-500">ذروة الفائض</span>
-                      <strong className="mt-1 block text-lg font-black text-amber-800">{surplus.peakKw} kW</strong>
+                      <strong className="mt-1 block text-lg font-black text-cyan-800">{surplus.peakKw} kW</strong>
                     </div>
                   </div>
                   <p className="mt-3 text-sm font-semibold text-slate-700">النافذة تُحسب عندما يتجاوز الإنتاج الشمسي استهلاك المنزل وما يمكن للبطارية استيعابه؛ لا تُعرض كتوصية تشغيل ثابتة.</p>
@@ -335,7 +335,7 @@ export function SmartForecast() {
               {[
                 ["استهلاك المنزل نهارًا", selected.homePct, selected.homeKWh, "text-blue-700", "bg-blue-50"],
                 ["شحن البطارية", selected.batteryPct, selected.batteryKWh, "text-emerald-700", "bg-emerald-50"],
-                ["فائض بلا استخدام", selected.surplusPct, selected.surplusKWh, "text-amber-700", "bg-amber-50"],
+                ["فائض بلا استخدام", selected.surplusPct, selected.surplusKWh, "text-cyan-700", "bg-amber-50"],
               ].map(([label, pct, kwh, textColor, bg]) => (
                 <div key={String(label)} className={String(bg) + " rounded-2xl p-3"}>
                   <span className="block text-xs font-bold text-slate-500">{label}</span>
@@ -375,7 +375,7 @@ export function SmartForecast() {
                     </div>
                     <span className="text-xs font-semibold text-slate-500">إنتاج متوقع {point.solarKWh.toFixed(2)} ك.و.س • مطر {Math.round(point.precipitationProbability)}%</span>
                   </div>
-                  <span className="text-xs font-black text-amber-700">فائض {point.surplusKWh.toFixed(2)}</span>
+                  <span className="text-xs font-black text-cyan-700">فائض {point.surplusKWh.toFixed(2)}</span>
                 </div>
               ))}
             </div>
