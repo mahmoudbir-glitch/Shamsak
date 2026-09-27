@@ -10,8 +10,16 @@ export default function InverterSpecsPage() {
   const [error, setError] = useState("");
 
   const handleNext = () => {
+    const panel = Number(panelCapacity);
+    const battery = Number(batteryCapacity);
+
     if (!panelCapacity.trim() || !batteryCapacity.trim()) {
       setError("أدخل قدرة الألواح وسعة البطاريات للمتابعة.");
+      return;
+    }
+
+    if (!Number.isFinite(panel) || panel <= 0 || !Number.isFinite(battery) || battery <= 0) {
+      setError("أدخل أرقامًا صحيحة أكبر من صفر لقدرة الألواح وسعة البطاريات.");
       return;
     }
 
