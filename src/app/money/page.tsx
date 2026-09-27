@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";\nimport { moneyTone, semanticBg, semanticBorder, semanticText } from "@/lib/energy";
 
 type FinanceData = {
   periodDays: number;
@@ -51,7 +51,7 @@ export default function MoneyDashboard() {
     return data.sources.solarKWh * tariff + data.sources.batteryKWh * tariff + data.totals.gridExportKWh * exportTariff;
   }, [data, tariff, exportTariff]);
 
-  const gridCost = data ? data.totals.gridImportKWh * tariff : 0;
+  const gridCost = data ? data.totals.gridImportKWh * tariff : 0;\n  const savedTone = moneyTone(savedAmount);\n  const costTone = moneyTone(-gridCost);
   const hypotheticalCost = data ? (data.sources.solarKWh + data.sources.batteryKWh + data.totals.gridImportKWh) * tariff : 0;
 
   const sourceRows = data ? [
@@ -113,11 +113,11 @@ export default function MoneyDashboard() {
           </div>
           <div className="rounded-xl bg-sky-50/70 p-4">
             <span className="text-base font-semibold text-slate-500">تكلفة الشبكة الفعلية</span>
-            <strong className="mt-1 block text-xl font-extrabold text-purple-700">{gridCost.toLocaleString()} {currency}</strong>
+            <strong className={"mt-1 block text-xl font-extrabold " + semanticText[costTone]}>{gridCost.toLocaleString()} {currency}</strong>
           </div>
-          <div className="rounded-xl bg-emerald-50 p-4">
-            <span className="text-base font-semibold text-emerald-700">وفرت بنظامك</span>
-            <strong className="mt-1 block text-2xl font-black text-emerald-700">{savedAmount.toLocaleString()} {currency}</strong>
+          <div className={"rounded-xl border p-4 " + semanticBorder[savedTone] + " " + semanticBg[savedTone]}>
+            <span className={"text-base font-semibold " + semanticText[savedTone]}>وفرت بنظامك</span>
+            <strong className={"mt-1 block text-2xl font-black " + semanticText[savedTone]}>{savedAmount.toLocaleString()} {currency}</strong>
           </div>
           <div className="rounded-xl bg-amber-50 p-4">
             <span className="text-base font-semibold text-amber-700">تكلفة افتراضية بلا الشمس</span>
