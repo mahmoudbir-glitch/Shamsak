@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useSmartEnergy } from "@/hooks/use-smart-energy";
 
 function formatHour(iso: string) {
@@ -8,6 +9,7 @@ function formatHour(iso: string) {
 
 export function SurplusRecommendations() {
   const { forecasts, loading } = useSmartEnergy();
+  const [showRecommendations, setShowRecommendations] = useState(false);
   const points = forecasts[0]?.hourly ?? [];
   const windows: { start: string; end: string; kwh: number }[] = [];
   let current: { start: string; end: string; kwh: number } | null = null;
@@ -25,6 +27,13 @@ export function SurplusRecommendations() {
   if (current) windows.push(current);
 
   const best = windows.sort((a, b) => b.kwh - a.kwh)[0];
+  const recommendations = [
+    "تشغيل الغسالة",
+    "تشغيل مضخة المياه",
+    "شحن السيارة الكهربائية",
+    "تشغيل المكيف",
+    "تشغيل سخان الماء",
+  ];
 
   return (
     <section dir="rtl" className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
@@ -38,19 +47,37 @@ export function SurplusRecommendations() {
             <strong className="mt-1 block text-2xl font-black text-amber-700">{formatHour(best.start)} — {formatHour(best.end)}</strong>
             <p className="mt-2 text-base font-semibold text-slate-600">فائض قابل للاستفادة: نحو {Math.round(best.kwh * 10) / 10} ك.و.س</p>
           </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            {[
-              "تشغيل الغسالة",
-              "تشغيل مضخة المياه",
-              "شحن السيارة الكهربائية",
-              "تشغيل المكيف",
-              "تشغيل سخان الماء",
-            ].map((item) => (
-              <div key={item} className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
-                <strong className="text-lg font-extrabold text-emerald-800">{item}</strong>
-                <p className="mt-1 text-sm font-semibold text-emerald-700">يفضل تشغيله خلال نافذة الفائض.</p>
+
+          <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+            <button
+              type="button"
+              onClick={() => setShowRecommendations((value) => !value)}
+              aria-expanded={showRecommendations}
+              className="flex w-full items-center justify-between gap-3 text-right"
+            >
+              <div>
+                <strong className="block text-base font-extrabold text-emerald-800">
+                  توصيات ذكية ({recommendations.length})
+                </strong>
+                <span className="mt-1 block text-sm font-semibold text-emerald-700">
+                  اختر الأجهزة التي تريد تشغيلها خلال نافذة الفائض.
+                </span>
               </div>
-            ))}
+              <span className="shrink-0 rounded-full bg-white px-3 py-1 text-sm font-bold text-emerald-800 shadow-sm">
+                {showRecommendations ? "إخفاء" : "عرض"}
+              </span>
+            </button>
+
+            {showRecommendations && (
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {recommendations.map((item) => (
+                  <div key={item} className="rounded-xl border border-emerald-100 bg-white p-3">
+                    <strong className="text-base font-extrabold text-emerald-800">{item}</strong>
+                    <p className="mt-1 text-sm font-semibold text-emerald-700">يفضل تشغيله خلال نافذة الفائض.</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}
