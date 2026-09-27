@@ -17,7 +17,7 @@ jobs:
     # CI-only placeholders. Never commit real credentials here.
     env:
       DATABASE_URL: "postgresql://ci:ci@127.0.0.1:5432/shamsak_ci?schema=public"
-      SHAMSAK_USERNAME: "ci-user"
+      SHAMSAK_USER: "ci-user"
       SHAMSAK_PASSWORD: "ci-password-only"
       AUTH_SECRET: "ci-only-secret-not-used-in-production"
       TELEMETRY_INGEST_TOKEN: "ci-telemetry-token"
