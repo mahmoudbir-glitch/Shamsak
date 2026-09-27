@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";\nimport { moneyTone, semanticBg, semanticBorder, semanticText } from "@/lib/energy";
+import { useEffect, useMemo, useState } from "react";
+import { moneyTone, semanticBg, semanticBorder, semanticText } from "@/lib/energy";
 
 type FinanceData = {
   periodDays: number;
@@ -51,11 +52,13 @@ export default function MoneyDashboard() {
     return data.sources.solarKWh * tariff + data.sources.batteryKWh * tariff + data.totals.gridExportKWh * exportTariff;
   }, [data, tariff, exportTariff]);
 
-  const gridCost = data ? data.totals.gridImportKWh * tariff : 0;\n  const savedTone = moneyTone(savedAmount);\n  const costTone = moneyTone(-gridCost);
+  const gridCost = data ? data.totals.gridImportKWh * tariff : 0;
+  const savedTone = moneyTone(savedAmount);
+  const costTone = moneyTone(-gridCost);
   const hypotheticalCost = data ? (data.sources.solarKWh + data.sources.batteryKWh + data.totals.gridImportKWh) * tariff : 0;
 
   const sourceRows = data ? [
-    { name: "من الشمس مباشرة", pct: data.sources.solarPct, kwh: data.sources.solarKWh, color: "bg-amber-500" },
+    { name: "من الشمس مباشرة", pct: data.sources.solarPct, kwh: data.sources.solarKWh, color: "bg-cyan-500" },
     { name: "من البطارية", pct: data.sources.batteryPct, kwh: data.sources.batteryKWh, color: "bg-emerald-500" },
     { name: "من الشبكة", pct: data.sources.gridPct, kwh: data.sources.gridKWh, color: "bg-purple-500" },
   ] : [];
