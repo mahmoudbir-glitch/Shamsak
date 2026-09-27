@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "if [ \"$CI\" != \"true\" ]; then prisma migrate deploy; fi && node scripts/prisma-generate.mjs && next build",
+    "build": "node scripts/prisma-generate.mjs && next build",
     "start": "next start",
     "verify": "npm run typecheck && npm run lint",
     "lint": "node scripts/lint.mjs",
