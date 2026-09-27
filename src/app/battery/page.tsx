@@ -37,24 +37,24 @@ export default function BatteryPage() {
   const state = batteryState(powerW);
 
   return (
-    <div className="w-full space-y-5 text-right" dir="rtl">
-      <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-        <h1 className="flex items-center gap-2 text-2xl font-extrabold text-emerald-600">
+    <div className="w-full space-y-4 text-right" dir="rtl">
+      <div className="flex items-center justify-between gap-3 energy-card p-5">
+        <h1 className="flex items-center gap-2 text-2xl font-black text-slate-950">
           <BatteryCharging size={28} aria-hidden="true" />
           حالة البطارية
         </h1>
-        <span className="rounded-full bg-slate-50 px-3 py-2 text-sm font-bold text-slate-500">
+        <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700">
           {snapshot?.source === "live" ? "مباشر" : "بانتظار قراءة حية"}
         </span>
       </div>
 
-      <div className="rounded-2xl border border-slate-100 bg-white p-6 text-center shadow-sm">
-        <span className="block text-base font-semibold text-slate-400">نسبة الشحن الحالية (SOC)</span>
+      <div className="energy-card p-5 text-center">
+        <span className="block text-sm font-semibold text-slate-400">نسبة الشحن الحالية (SOC)</span>
         {loading && !snapshot ? (
           <Loader2 className="mx-auto mt-5 h-10 w-10 animate-spin text-emerald-500" aria-label="جاري تحميل القراءة" />
         ) : (
           <>
-            <span className="mb-4 mt-1 block text-5xl font-black text-emerald-600">{Math.round(soc)}%</span>
+            <span className="mb-4 mt-1 block text-4xl font-black tracking-tight text-emerald-600 sm:text-5xl">{Math.round(soc)}%</span>
             <div className="mb-2 h-4 w-full overflow-hidden rounded-full bg-slate-100">
               <div className="h-full rounded-full bg-emerald-500 transition-all duration-500" style={{ width: soc + "%" }} />
             </div>
@@ -62,7 +62,7 @@ export default function BatteryPage() {
         )}
       </div>
 
-      <div className="space-y-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+      <div className="energy-card space-y-3 p-5">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-base">
           <span className="text-slate-500">حالة التشغيل</span>
           <span className="font-black text-slate-800">{batteryStateLabel(state)} • {Math.abs(powerW).toLocaleString("ar-LB")} واط</span>
