@@ -1,38 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
-import { getAuthConfig } from "@/lib/auth-config";
+
+const PUBLIC_PATHS = new Set(["/login"]);
+
+function redirectToLogin(request: NextRequest) {
+  const url = new URL("/login", request.url);
+  url.searchParams.set("next", request.nextUrl.pathname);
+  const response = NextResponse.redirect(url);
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  return response;
+}
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  const authConfigured = getAuthConfig().configured;
 
-  if (pathname === "/login") {
-    const session = await verifySessionToken(
-      request.cookies.get(COOKIE_NAME)?.value
-    );
-    return session && authConfigured
-      ? NextResponse.redirect(new URL("/", request.url))
-      : NextResponse.next();
+  // The login page must always be reachable, even if Vercel environment
+  // variables are temporarily missing. The API will report a clear error
+  // when credentials are submitted.
+  if (PUBLIC_PATHS.has(pathname)) {
+    const token = request.cookies.get(COOKIE_NAME)?.value;
+    const session = await verifySessionToken(token);
+
+    if (session) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    const response = NextResponse.next();
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    return response;
   }
 
-  if (!authConfigured) {
-    const url = new URL("/login", request.url);
-    url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+  // Every application page requires a valid signed session cookie.
+  const token = request.cookies.get(COOKIE_NAME)?.value;
+  const session = await verifySessionToken(token);
+
+  if (session) {
+    return NextResponse.next();
   }
 
-  const session = await verifySessionToken(
-    request.cookies.get(COOKIE_NAME)?.value
-  );
-  if (session) return NextResponse.next();
-
-  const url = new URL("/login", request.url);
-  url.searchParams.set("next", pathname);
-  return NextResponse.redirect(url);
+  return redirectToLogin(request);
 }
 
 export const config = {
   matcher: [
-    "/((?!api/auth|_next/static|_next/image|favicon.ico|manifest.webmanifest|robots.txt).*)",
+    "/((?!api/auth/|_next/static|_next/image|favicon.ico|manifest.webmanifest|robots.txt).*)",
   ],
 };
