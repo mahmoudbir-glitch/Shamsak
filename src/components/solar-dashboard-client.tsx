@@ -61,7 +61,7 @@ export default function SolarDashboardClient() {
       />
 
       <div className="mx-auto mt-5 flex max-w-lg items-center justify-between gap-3 rounded-2xl border border-sky-100/80 bg-white/95 px-4 py-4 shadow-sm">
-        <div className={isLive ? "text-sm font-extrabold text-emerald-600" : "text-sm font-extrabold text-amber-600"}>
+        <div className={isLive ? "text-sm font-extrabold text-emerald-600" : "text-sm font-extrabold text-sky-600"}>
           {isLive ? '● البيانات الحية متصلة' : '● غير متصل بالبيانات الحية'}
         </div>
         <button
@@ -74,7 +74,7 @@ export default function SolarDashboardClient() {
       </div>
 
       {error && (
-        <div className="mx-auto mt-4 max-w-lg rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-800">
+        <div className="mx-auto mt-4 max-w-lg rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm font-semibold leading-6 text-sky-800">
           ⚠️ {error}. لا يتم عرض أرقام DEMO على أنها بيانات حقيقية.
         </div>
       )}
