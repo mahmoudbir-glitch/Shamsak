@@ -1,0 +1,1 @@
+ALTER TABLE "InverterConnection" ADD COLUMN IF NOT EXISTS "manufacturer" TEXT;
