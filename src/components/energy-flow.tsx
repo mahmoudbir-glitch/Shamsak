@@ -35,7 +35,9 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   isLive = false,
   lastUpdated,
 }) => {
-  const [activeNode, setActiveNode] = useState<'solar' | 'battery' | 'home' | 'grid' | null>(null);\n\n  const measuredPowers = [solarKw, homeKw, gridKw, batteryKw];
+  const [activeNode, setActiveNode] = useState<'solar' | 'battery' | 'home' | 'grid' | null>(null);
+
+  const measuredPowers = [solarKw, homeKw, gridKw, batteryKw];
   const hasNonZeroLiveReading = measuredPowers.every(Number.isFinite) && measuredPowers.some((value) => Math.abs(value) > FLOW_THRESHOLD);
   const liveFlowActive = isLive && hasNonZeroLiveReading;
 
