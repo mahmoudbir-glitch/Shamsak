@@ -161,7 +161,17 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 pb-28 text-right" dir="rtl">
-      <div className="mb-5 rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">\n        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">\n          <div>\n            <h2 className="text-xl font-black text-slate-900">🔌 إضافة إنفرتر جديد</h2>\n            <p className="mt-1 text-sm font-medium text-slate-500">ابدأ إعداد الجهاز خطوة بخطوة.</p>\n          </div>\n          <button type="button" onClick={() => { window.location.href = "/settings/inverter/new"; }} className="min-h-12 rounded-xl bg-blue-600 px-5 font-bold text-white shadow-sm transition active:scale-95 hover:bg-blue-700">إضافة إنفرتر</button>\n        </div>\n      </div>\n\n      <div className="mb-5 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+      <div className="mb-5 rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-black text-slate-900">🔌 إضافة إنفرتر جديد</h2>
+            <p className="mt-1 text-sm font-medium text-slate-500">ابدأ إعداد الجهاز خطوة بخطوة.</p>
+          </div>
+          <button type="button" onClick={() => { window.location.href = "/settings/inverter/new"; }} className="min-h-12 rounded-xl bg-blue-600 px-5 font-bold text-white shadow-sm transition active:scale-95 hover:bg-blue-700">إضافة إنفرتر</button>
+        </div>
+      </div>
+
+      <div className="mb-5 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
         <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900">⚙️ إعدادات منظومة شمسك</h1>
         <p className="mt-2 text-base font-medium text-slate-500">تهيئة المنظومة والاتصال والذاكرة</p>
       </div>
@@ -284,7 +294,9 @@ export default function SettingsPage() {
         </label>
       </div>
 
-      {saved && <div role="status" className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center text-base font-black text-emerald-700">✓ تم حفظ إعدادات شمسك بنجاح</div>}\n\n      <button type="button" onClick={() => void handleSaveSettings()} className="mb-4 min-h-16 w-full rounded-2xl bg-slate-900 px-5 py-4 text-lg font-bold text-white shadow-md transition active:scale-95 active:bg-slate-800">
+      {saved && <div role="status" className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center text-base font-black text-emerald-700">✓ تم حفظ إعدادات شمسك بنجاح</div>}
+
+      <button type="button" onClick={() => void handleSaveSettings()} className="mb-4 min-h-16 w-full rounded-2xl bg-slate-900 px-5 py-4 text-lg font-bold text-white shadow-md transition active:scale-95 active:bg-slate-800">
         حفظ وتثبيت الإعدادات في ذاكرة الهاتف
       </button>
     </div>
