@@ -21,19 +21,21 @@ function LoginFormFallback() {
 
 export default function LoginPage() {
   return (
-    <div dir="rtl" className="flex min-h-[70vh] items-center justify-center">
-      <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-6 text-center">
-          <div className="text-4xl">☀️</div>
-          <h1 className="mt-2 text-2xl font-black">شمسك</h1>
-          <p className="mt-1 text-sm font-semibold text-slate-500">
-            تسجيل الدخول إلى لوحة الطاقة
-          </p>
+    <div dir="rtl" className="relative flex min-h-[100svh] items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.18),transparent_35%),linear-gradient(180deg,#f8fafc_0%,#eef4ff_100%)] px-4 py-8 sm:px-6">
+      <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-amber-200/25 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-blue-200/25 blur-3xl" />
+      <section className="relative w-full max-w-sm rounded-[2rem] border border-white/80 bg-white/95 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.12)] backdrop-blur-xl sm:p-8">
+        <div className="mb-7 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-gradient-to-br from-amber-100 via-yellow-50 to-orange-100 text-3xl shadow-sm ring-1 ring-amber-200/80">☀️</div>
+          <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950">شمسك</h1>
+          <p className="mt-2 text-sm font-bold text-slate-500">إدارة الطاقة بذكاء</p>
+          <p className="mt-1 text-xs font-semibold text-slate-400">تسجيل الدخول إلى لوحة الطاقة</p>
         </div>
-
-        <Suspense fallback={<LoginFormFallback />}>
-          <LoginForm />
-        </Suspense>
+        <Suspense fallback={<LoginFormFallback />}><LoginForm /></Suspense>
+        <div className="mt-6 flex items-center justify-center gap-2 text-[11px] font-semibold text-slate-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          نظام إدارة الطاقة الخاص بك
+        </div>
       </section>
     </div>
   );
