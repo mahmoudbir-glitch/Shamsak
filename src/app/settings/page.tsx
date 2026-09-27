@@ -182,50 +182,52 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="mb-5 space-y-5 rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
-        <div>
-          <h2 className="border-b border-slate-100 pb-3 text-xl font-bold text-slate-900">📶 ربط الإنفرتر عبر Wi‑Fi</h2>
-          <p className="mt-2 text-sm font-medium leading-6 text-slate-500">أدخل بيانات الشبكة وكلمة مرور Wi‑Fi. تُستخدم هذه الإعدادات كملف ربط للبوابة أو الدونغل الذي يرسل القراءات إلى شمسك.</p>
+      {protocol === "Wi-Fi Datalogger" && (
+        <div className="mb-5 space-y-5 rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+          <div>
+            <h2 className="border-b border-slate-100 pb-3 text-xl font-bold text-slate-900">📶 ربط الإنفرتر عبر Wi‑Fi</h2>
+            <p className="mt-2 text-sm font-medium leading-6 text-slate-500">أدخل بيانات الشبكة وكلمة مرور Wi‑Fi. تُستخدم هذه الإعدادات كملف ربط للبوابة أو الدونغل الذي يرسل القراءات إلى شمسك.</p>
+          </div>
+          <div className="space-y-4">
+            <div className="space-y-2"><label className="text-base font-semibold text-slate-700">اسم المنظومة</label><input value={systemName} onChange={(e) => setSystemName(e.target.value)} placeholder="منظومة شمسك" className={inputClass} /></div>
+            <div className="space-y-2"><label className="text-base font-semibold text-slate-700">اسم شبكة المنزل (SSID)</label><input value={wifiSsid} onChange={(e) => setWifiSsid(e.target.value)} placeholder="MyHomeWiFi" className={inputClass} dir="ltr" autoComplete="off" /></div>
+            <div className="space-y-2"><label className="text-base font-semibold text-slate-700">كلمة مرور Wi‑Fi</label><div className="relative"><input type={showPassword ? "text" : "password"} value={wifiPassword} onChange={(e) => setWifiPassword(e.target.value)} placeholder="••••••••" className={inputClass + " pl-20"} dir="ltr" autoComplete="new-password" /><button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute left-2 top-1/2 -translate-y-1/2 rounded-lg px-3 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50">{showPassword ? "إخفاء" : "إظهار"}</button></div></div>
+          </div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium leading-6 text-amber-800">⚠️ المتصفح وحده لا يستطيع برمجة شبكة Wi‑Fi للإنفرتر أو اكتشاف أجهزة Wi‑Fi القريبة بشكل عام. الربط اللاسلكي الحقيقي يحتاج Wi‑Fi dongle/بوابة تدعم بروتوكول الإنفرتر أو خدمة وسيطة.</div>
+          <InverterWifiPairing
+            onComplete={({ ssid, password }) => {
+              setWifiSsid(ssid);
+              setWifiPassword("");
+              setNetworkStatus("success");
+              setConnectionState("connecting");
+              void fetch("/api/inverter/connection", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  systemName,
+                  inverterModel,
+                  protocol,
+                  inverterAddress,
+                  wifiSsid: ssid,
+                  wifiPassword: password,
+                }),
+              }).then(async (response) => {
+                if (!response.ok) throw new Error("save_failed");
+                setSaved(true);
+                window.setTimeout(() => setSaved(false), 3000);
+              }).catch(() => {
+                setNetworkStatus("error");
+                window.alert("تم إرسال بيانات Wi‑Fi إلى الوحدة، لكن تعذر حفظها في خادم شمسك.");
+              });
+            }}
+          />
+          <div className="flex items-center justify-between gap-3"><span className="text-base font-black text-slate-800">اختبار وصول القراءات الحية</span><InfoTip label="شرح حالة الاتصال" title="حالة اتصال الإنفرتر"><span>يعتبر الاختبار ناجحًا فقط عندما تصل قراءة telemetry مصدرها live. وجود إعدادات Wi‑Fi محفوظة لا يعني أن الإنفرتر متصل فعليًا.</span></InfoTip></div>
+          <button type="button" onClick={() => void testNetwork()} disabled={connectionState === "connecting"} className="min-h-14 w-full rounded-xl bg-blue-600 px-4 text-lg font-bold text-white shadow-sm transition active:scale-95 hover:bg-blue-700 disabled:opacity-60">{connectionState === "connecting" ? "جاري الاتصال والتحقق…" : "اتصال واختبار الإنفرتر"}</button>
+          {connectionState === "connected" && <p className="rounded-xl bg-emerald-50 p-3 text-base font-bold text-emerald-700">✓ الاتصال ناجح — وصلت بيانات حية من الإنفرتر.</p>}
+          {connectionState === "error" && <p className="rounded-xl bg-amber-50 p-3 text-base font-bold text-amber-700">⚠️ لم تصل قراءة حية بعد. احفظ الإعدادات وتحقق من الدونغل/البوابة وبروتوكول الاتصال.</p>}
+          <div className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-600">الحالة الحالية: {connectionState === "connected" ? "متصل" : connectionState === "connecting" ? "جاري الاتصال" : "غير متصل"}</div>
         </div>
-        <div className="space-y-4">
-          <div className="space-y-2"><label className="text-base font-semibold text-slate-700">اسم المنظومة</label><input value={systemName} onChange={(e) => setSystemName(e.target.value)} placeholder="منظومة شمسك" className={inputClass} /></div>
-          <div className="space-y-2"><label className="text-base font-semibold text-slate-700">اسم شبكة المنزل (SSID)</label><input value={wifiSsid} onChange={(e) => setWifiSsid(e.target.value)} placeholder="MyHomeWiFi" className={inputClass} dir="ltr" autoComplete="off" /></div>
-          <div className="space-y-2"><label className="text-base font-semibold text-slate-700">كلمة مرور Wi‑Fi</label><div className="relative"><input type={showPassword ? "text" : "password"} value={wifiPassword} onChange={(e) => setWifiPassword(e.target.value)} placeholder="••••••••" className={inputClass + " pl-20"} dir="ltr" autoComplete="new-password" /><button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute left-2 top-1/2 -translate-y-1/2 rounded-lg px-3 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50">{showPassword ? "إخفاء" : "إظهار"}</button></div></div>
-        </div>
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium leading-6 text-amber-800">⚠️ المتصفح وحده لا يستطيع برمجة شبكة Wi‑Fi للإنفرتر أو اكتشاف أجهزة Wi‑Fi القريبة بشكل عام. الربط اللاسلكي الحقيقي يحتاج Wi‑Fi dongle/بوابة تدعم بروتوكول الإنفرتر أو خدمة وسيطة.</div>
-        <InverterWifiPairing
-          onComplete={({ ssid, password }) => {
-            setWifiSsid(ssid);
-            setWifiPassword("");
-            setNetworkStatus("success");
-            setConnectionState("connecting");
-            void fetch("/api/inverter/connection", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                systemName,
-                inverterModel,
-                protocol,
-                inverterAddress,
-                wifiSsid: ssid,
-                wifiPassword: password,
-              }),
-            }).then(async (response) => {
-              if (!response.ok) throw new Error("save_failed");
-              setSaved(true);
-              window.setTimeout(() => setSaved(false), 3000);
-            }).catch(() => {
-              setNetworkStatus("error");
-              window.alert("تم إرسال بيانات Wi‑Fi إلى الوحدة، لكن تعذر حفظها في خادم شمسك.");
-            });
-          }}
-        />
-        <div className="flex items-center justify-between gap-3"><span className="text-base font-black text-slate-800">اختبار وصول القراءات الحية</span><InfoTip label="شرح حالة الاتصال" title="حالة اتصال الإنفرتر"><span>يعتبر الاختبار ناجحًا فقط عندما تصل قراءة telemetry مصدرها live. وجود إعدادات Wi‑Fi محفوظة لا يعني أن الإنفرتر متصل فعليًا.</span></InfoTip></div>
-        <button type="button" onClick={() => void testNetwork()} disabled={connectionState === "connecting"} className="min-h-14 w-full rounded-xl bg-blue-600 px-4 text-lg font-bold text-white shadow-sm transition active:scale-95 hover:bg-blue-700 disabled:opacity-60">{connectionState === "connecting" ? "جاري الاتصال والتحقق…" : "اتصال واختبار الإنفرتر"}</button>
-        {connectionState === "connected" && <p className="rounded-xl bg-emerald-50 p-3 text-base font-bold text-emerald-700">✓ الاتصال ناجح — وصلت بيانات حية من الإنفرتر.</p>}
-        {connectionState === "error" && <p className="rounded-xl bg-amber-50 p-3 text-base font-bold text-amber-700">⚠️ لم تصل قراءة حية بعد. احفظ الإعدادات وتحقق من الدونغل/البوابة وبروتوكول الاتصال.</p>}
-        <div className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-600">الحالة الحالية: {connectionState === "connected" ? "متصل" : connectionState === "connecting" ? "جاري الاتصال" : "غير متصل"}</div>
-      </div>
+      )}
     </div>
   );
 }
