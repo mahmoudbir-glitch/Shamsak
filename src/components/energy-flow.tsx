@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { BatteryCharging, Home, RadioTower, Sun, Zap } from 'lucide-react';
 import { InfoTip } from '@/components/info-tip';
 
@@ -36,6 +36,14 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   lastUpdated,
 }) => {
   const [activeNode, setActiveNode] = useState<'solar' | 'battery' | 'home' | 'grid' | null>(null);
+  const flowId = useId().replace(/:/g, '');
+  const solarHomeId = `${flowId}-solar-home`;
+  const homeBatteryId = `${flowId}-home-battery`;
+  const batteryGridId = `${flowId}-battery-grid`;
+  const gridSolarId = `${flowId}-grid-solar`;
+  const arrowId = `${flowId}-arrow-flow`;
+  const ringId = `${flowId}-energy-ring`;
+  const glowId = `${flowId}-energy-glow`;
 
   const measuredPowers = [solarKw, homeKw, gridKw, batteryKw];
   const hasNonZeroLiveReading = measuredPowers.every(Number.isFinite) && measuredPowers.some((value) => Math.abs(value) > FLOW_THRESHOLD);
@@ -111,25 +119,58 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
       <div className="relative mx-auto mt-1 aspect-square w-full max-w-lg p-2 sm:p-4">
         <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 400 400" fill="none" aria-hidden="true">
           <defs>
-            <linearGradient id="energy-ring" x1="0" y1="0" x2="1" y2="1">
+            <linearGradient id={ringId} x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor="#F59E0B" />
               <stop offset="50%" stopColor="#10B981" />
               <stop offset="100%" stopColor="#3B82F6" />
             </linearGradient>
-            <filter id="energy-glow"><feGaussianBlur stdDeviation="5" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
-            <marker id="arrow-flow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" markerUnits="strokeWidth" orient="auto">
+            <filter id={glowId}><feGaussianBlur stdDeviation="5" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+            <marker id={arrowId} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" markerUnits="strokeWidth" orient="auto">
               <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
             </marker>
           </defs>
 
-          <circle cx="200" cy="200" r="150" stroke="url(#energy-ring)" strokeWidth="1.5" opacity="0.14" strokeDasharray="4 9" />
-          <path d={solarHomePath} pathLength="100" stroke={solarToHome ? "#10B981" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={solarToHome ? 0.95 : 0.16} markerEnd={solarToHome ? "url(#arrow-flow)" : undefined} className={solarToHome ? activeFlowClass : dashedFlowClass} />
-          <path d={homeBatteryPath} pathLength="100" stroke={batteryDischarging ? "#10B981" : homeToBattery ? "#F59E0B" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={batteryDischarging || homeToBattery ? 0.95 : 0.16} markerEnd={batteryDischarging || homeToBattery ? "url(#arrow-flow)" : undefined} className={batteryDischarging || homeToBattery ? activeFlowClass : dashedFlowClass} />
-          <path d={batteryGridPath} pathLength="100" stroke={batteryToGrid ? "#8B5CF6" : gridToBattery ? "#F59E0B" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={batteryToGrid || gridToBattery ? 0.95 : 0.16} markerEnd={batteryToGrid || gridToBattery ? "url(#arrow-flow)" : undefined} className={batteryToGrid || gridToBattery ? activeFlowClass : dashedFlowClass} />
-          <path d={gridSolarPath} pathLength="100" stroke={solarToGrid ? "#10B981" : gridToSolar ? "#F59E0B" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={solarToGrid || gridToSolar ? 0.95 : 0.16} markerEnd={solarToGrid || gridToSolar ? "url(#arrow-flow)" : undefined} className={solarToGrid || gridToSolar ? activeFlowClass : dashedFlowClass} />
+          <circle cx="200" cy="200" r="150" stroke={`url(#${ringId})`} strokeWidth="1.5" opacity="0.14" strokeDasharray="4 9" />
+          <path d={solarHomePath} pathLength="100" stroke={solarToHome ? "#10B981" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={solarToHome ? 0.95 : 0.16} markerEnd={solarToHome ? `url(#${arrowId})` : undefined}
+            id={solarHomeId} className={solarToHome ? activeFlowClass : dashedFlowClass} />
+          <path d={homeBatteryPath} pathLength="100" stroke={batteryDischarging ? "#10B981" : homeToBattery ? "#F59E0B" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={batteryDischarging || homeToBattery ? 0.95 : 0.16} markerEnd={batteryDischarging || homeToBattery ? `url(#${arrowId})` : undefined}
+            id={homeBatteryId} className={batteryDischarging || homeToBattery ? activeFlowClass : dashedFlowClass} />
+          <path d={batteryGridPath} pathLength="100" stroke={batteryToGrid ? "#8B5CF6" : gridToBattery ? "#F59E0B" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={batteryToGrid || gridToBattery ? 0.95 : 0.16} markerEnd={batteryToGrid || gridToBattery ? `url(#${arrowId})` : undefined}
+            id={batteryGridId} className={batteryToGrid || gridToBattery ? activeFlowClass : dashedFlowClass} />
+          <path d={gridSolarPath} pathLength="100" stroke={solarToGrid ? "#10B981" : gridToSolar ? "#F59E0B" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={solarToGrid || gridToSolar ? 0.95 : 0.16} markerEnd={solarToGrid || gridToSolar ? `url(#${arrowId})` : undefined}
+            id={gridSolarId} className={solarToGrid || gridToSolar ? activeFlowClass : dashedFlowClass} />
+
+          {solarToHome && (
+            <circle r="4" fill="#10B981" filter={`url(#${glowId})`}>
+              <animateMotion dur="1.7s" repeatCount="indefinite" rotate="auto">
+                <mpath href={`#${solarHomeId}`} />
+              </animateMotion>
+            </circle>
+          )}
+          {(batteryDischarging || homeToBattery) && (
+            <circle r="4" fill={batteryDischarging ? "#10B981" : "#F59E0B"} filter={`url(#${glowId})`}>
+              <animateMotion dur="1.9s" repeatCount="indefinite" rotate="auto">
+                <mpath href={`#${homeBatteryId}`} />
+              </animateMotion>
+            </circle>
+          )}
+          {(batteryToGrid || gridToBattery) && (
+            <circle r="4" fill={batteryToGrid ? "#8B5CF6" : "#F59E0B"} filter={`url(#${glowId})`}>
+              <animateMotion dur="2s" repeatCount="indefinite" rotate="auto">
+                <mpath href={`#${batteryGridId}`} />
+              </animateMotion>
+            </circle>
+          )}
+          {(solarToGrid || gridToSolar) && (
+            <circle r="4" fill={solarToGrid ? "#10B981" : "#F59E0B"} filter={`url(#${glowId})`}>
+              <animateMotion dur="1.8s" repeatCount="indefinite" rotate="auto">
+                <mpath href={`#${gridSolarId}`} />
+              </animateMotion>
+            </circle>
+          )}
 
           <circle cx="200" cy="200" r="38" fill="white" stroke="#FDE68A" strokeWidth="1.5" opacity="0.95" />
-          <circle cx="200" cy="200" r="30" fill="#FFFBEB" stroke="#F59E0B" strokeWidth="1.5" filter="url(#energy-glow)" />
+          <circle cx="200" cy="200" r="30" fill="#FFFBEB" stroke="#F59E0B" strokeWidth="1.5" filter={`url(#${glowId})`} />
           <circle cx="200" cy="200" r="22" fill="white" />
         </svg>
 
