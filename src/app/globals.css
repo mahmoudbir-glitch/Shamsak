@@ -3,9 +3,9 @@
 @tailwind utilities;
 
 :root { color-scheme: light; }
-html { min-height: 100%; background: #f8fafc; }
-body { margin: 0; min-height: 100vh; background: #f8fafc; color: #172033; }
-.animate-dynamic-bg { background: #f8fafc; }
+html { min-height: 100%; background: #f4f8ff; }
+body { margin: 0; min-height: 100vh; background: linear-gradient(180deg, #f8fbff 0%, #f3f7ff 52%, #f8fafc 100%); color: #172033; }
+.animate-dynamic-bg { background: linear-gradient(180deg, #f8fbff 0%, #f3f7ff 100%); }
 * { box-sizing: border-box; }
 :focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 button,a,input,select { -webkit-tap-highlight-color: transparent; }
@@ -16,7 +16,7 @@ button:disabled { cursor: not-allowed; opacity: .6; }
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.055); }
 }
-.energy-card { border: 1px solid rgba(226,232,240,.9); border-radius: 1.5rem; background: rgba(255,255,255,.96); box-shadow: 0 8px 30px rgba(15,23,42,.055); }
+.energy-card { border: 1px solid rgba(226,232,240,.88); border-radius: 1.5rem; background: rgba(255,255,255,.97); box-shadow: 0 10px 32px rgba(37,99,235,.055); }
 .page-title { font-size: 1.5rem; line-height: 2rem; font-weight: 900; color: #0f172a; }
 .page-subtitle { margin-top: .35rem; font-size: .875rem; line-height: 1.4rem; font-weight: 600; color: #64748b; }
 
