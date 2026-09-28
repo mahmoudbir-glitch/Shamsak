@@ -60,6 +60,7 @@ const connectionSchema = z.object({
   cloudReadEndpoint: z.string().trim().max(500).optional(),
   cloudStatusEndpoint: z.string().trim().max(500).optional(),
   cloudTls: z.boolean().optional(),
+  retryCount: z.number().int().min(1).max(10).optional(),
   enabled: z.boolean().optional(),
   isPrimary: z.boolean().optional(),
   panelCapacityKw: z.number().finite().positive().optional(),
@@ -98,7 +99,7 @@ function publicConnection(row: InverterConnection) {
     mqttUsername: extras.mqttUsername || null, hasMqttPassword: Boolean(extras.mqttPassword),
     mqttClientId: extras.mqttClientId || null, mqttReadTopic: extras.mqttReadTopic || null,
     mqttStatusTopic: extras.mqttStatusTopic || null, mqttCommandTopic: extras.mqttCommandTopic || null,
-    mqttQos: extras.mqttQos ?? 0, mqttKeepAlive: extras.mqttKeepAlive ?? 60,
+    mqttQos: extras.mqttQos ?? 0, mqttKeepAlive: extras.mqttKeepAlive ?? 60, retryCount: extras.retryCount ?? 3,
     cloudApiUrl: extras.cloudApiUrl || null, cloudAuthType: extras.cloudAuthType || "api_key",
     hasCloudCredential: Boolean(extras.cloudApiKey || extras.cloudBearerToken || extras.cloudPassword),
     cloudUsername: extras.cloudUsername || null, cloudDeviceId: extras.cloudDeviceId || null,
@@ -232,14 +233,14 @@ export async function POST(request: NextRequest) {
       mqttUsername: input.mqttUsername || "", ...(input.mqttPassword ? { mqttPassword: input.mqttPassword } : {}),
       mqttClientId: input.mqttClientId || "", mqttReadTopic: input.mqttReadTopic || "",
       mqttStatusTopic: input.mqttStatusTopic || "", mqttCommandTopic: input.mqttCommandTopic || "",
-      mqttQos: input.mqttQos ?? 0, mqttKeepAlive: input.mqttKeepAlive ?? 60,
+      mqttQos: input.mqttQos ?? 0, mqttKeepAlive: input.mqttKeepAlive ?? 60, retryCount: input.retryCount ?? 3,
     } : input.protocol === "Cloud API" ? {
       cloudApiUrl: input.cloudApiUrl || "", cloudAuthType: input.cloudAuthType || "api_key",
       ...(input.cloudApiKey ? { cloudApiKey: input.cloudApiKey } : {}),
       ...(input.cloudBearerToken ? { cloudBearerToken: input.cloudBearerToken } : {}),
       cloudUsername: input.cloudUsername || "", ...(input.cloudPassword ? { cloudPassword: input.cloudPassword } : {}),
       cloudDeviceId: input.cloudDeviceId || "", cloudReadEndpoint: input.cloudReadEndpoint || "",
-      cloudStatusEndpoint: input.cloudStatusEndpoint || "", cloudTls: input.cloudTls !== false,
+      cloudStatusEndpoint: input.cloudStatusEndpoint || "", cloudTls: input.cloudTls !== false, retryCount: input.retryCount ?? 3,
     } : null;
 
     const data = {
