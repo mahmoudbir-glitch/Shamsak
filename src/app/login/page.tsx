@@ -26,9 +26,9 @@ export default function LoginPage() {
       <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-blue-200/25 blur-3xl" />
       <section className="relative w-full max-w-sm rounded-[2rem] border border-white/80 bg-white/95 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.12)] backdrop-blur-xl sm:p-8">
         <div className="mb-7 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-gradient-to-br from-amber-100 via-yellow-50 to-orange-100 text-3xl shadow-sm ring-1 ring-amber-200/80">☀️</div>
-          <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950">شمسك</h1>
-          <p className="mt-2 text-sm font-bold text-slate-500">إدارة الطاقة بذكاء</p>
+          <div className="text-5xl leading-none" aria-hidden="true">☀️</div>
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">شمسك</h1>
+          <p className="mt-2 text-sm font-bold text-slate-500">الشمس تعمل من أجلك</p>
           <p className="mt-1 text-xs font-semibold text-slate-400">تسجيل الدخول إلى لوحة الطاقة</p>
         </div>
         <Suspense fallback={<LoginFormFallback />}><LoginForm /></Suspense>
