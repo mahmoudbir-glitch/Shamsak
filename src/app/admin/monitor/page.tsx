@@ -47,15 +47,32 @@ export default async function MonitoringPage() {
 
   await ensureMonitoringStorage();
 
-  const [events, eventCount, inverter, telemetry] = await Promise.all([
+  const [eventsResult, eventCountResult, inverterResult, telemetryResult] = await Promise.all([
     prisma.monitoringEvent.findMany({
       orderBy: { timestamp: "desc" },
       take: 30,
+    }).catch((error) => {
+      console.error("[monitoring] events_read_failed", error);
+      return [];
     }),
-    prisma.monitoringEvent.count(),
-    prisma.inverterConnection.findUnique({ where: { id: "default" } }),
-    prisma.telemetryLog.findFirst({ orderBy: { timestamp: "desc" } }),
+    prisma.monitoringEvent.count().catch((error) => {
+      console.error("[monitoring] event_count_failed", error);
+      return 0;
+    }),
+    prisma.inverterConnection.findUnique({ where: { id: "default" } }).catch((error) => {
+      console.error("[monitoring] inverter_read_failed", error);
+      return null;
+    }),
+    prisma.telemetryLog.findFirst({ orderBy: { timestamp: "desc" } }).catch((error) => {
+      console.error("[monitoring] telemetry_read_failed", error);
+      return null;
+    }),
   ]);
+
+  const events = eventsResult;
+  const eventCount = eventCountResult;
+  const inverter = inverterResult;
+  const telemetry = telemetryResult;
 
   const latestLogin = events.find((event) => event.action === "LOGIN_SUCCESS")?.timestamp ?? null;
   const latestAppOpen = events.find((event) => event.action === "APP_OPEN")?.timestamp ?? null;
