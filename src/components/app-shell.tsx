@@ -15,11 +15,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen w-full bg-slate-50">
       <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/92 shadow-[0_4px_20px_rgba(15,23,42,0.04)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <div className="flex min-w-0 items-center gap-2.5" aria-label="شمسك">
-            <span className="flex shrink-0 items-center justify-center text-3xl leading-none" aria-hidden="true">☀️</span>
-            <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-2" aria-label="شمسك">
+            <span className="flex shrink-0 items-center justify-center text-[2rem] leading-none sm:text-[2.15rem]" aria-hidden="true">☀️</span>
+            <div className="min-w-0 leading-none">
               <div className="truncate text-xl font-black tracking-tight text-slate-950 sm:text-2xl">شمسك</div>
-              <div className="mt-0.5 text-[10px] font-black text-slate-900 sm:text-[11px]">الشمس تعمل من أجلك</div>
+              <div className="mt-1 text-[10px] font-black leading-tight text-slate-800 sm:text-[11px]">الشمس تعمل من أجلك</div>
             </div>
           </div>
           <LogoutButton />
