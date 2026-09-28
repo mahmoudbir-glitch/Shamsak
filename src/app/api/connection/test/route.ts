@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { lookup } from "node:dns/promises";
 import { sanitizeConnection } from "@/lib/inverter-connection";
+import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
+import { MONITORING_ACTIONS, recordMonitoringEvent } from "@/lib/monitoring";
 
 export const runtime = "nodejs";
 
@@ -66,6 +68,9 @@ async function probeHttp(endpoint: string) {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await verifySessionToken(request.cookies.get(COOKIE_NAME)?.value);
+  if (!session) return NextResponse.json({ ok: false, message: "غير مصرح." }, { status: 401 });
+
   try {
     const body = await request.json();
     const config = sanitizeConnection(body);
@@ -93,14 +98,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, message }, { status: 422 });
     }
 
+    await recordMonitoringEvent({
+      action: MONITORING_ACTIONS.CONNECTION_TEST,
+      username: session.username,
+      details: `protocol=${config.protocol}`,
+    });
+
     const result = await probeHttp(endpoint);
 
     if (!result.ok) {
+      await recordMonitoringEvent({
+        action: MONITORING_ACTIONS.CONNECTION_TEST_FAILED,
+        username: session.username,
+        success: false,
+        details: `http_status=${result.status}`,
+      });
       return NextResponse.json({
         ok: false,
         message: `وصل الطلب إلى العنوان لكن الاستجابة غير صالحة كقناة بيانات (HTTP ${result.status}).`,
       }, { status: 502 });
     }
+
+    await recordMonitoringEvent({
+      action: MONITORING_ACTIONS.CONNECTION_TEST_SUCCESS,
+      username: session.username,
+      details: `http_status=${result.status}`,
+    });
 
     return NextResponse.json({
       ok: true,
@@ -108,6 +131,12 @@ export async function POST(request: NextRequest) {
       httpStatus: result.status,
     });
   } catch (error) {
+    await recordMonitoringEvent({
+      action: MONITORING_ACTIONS.CONNECTION_TEST_FAILED,
+      username: session.username,
+      success: false,
+      details: error instanceof Error ? error.message : "unknown_error",
+    });
     const message = error instanceof Error && error.name === "AbortError"
       ? "انتهت مهلة اختبار الاتصال بعد 4.5 ثوانٍ."
       : "تعذر الوصول إلى عنوان الاتصال. تحقق من العنوان والمنفذ والبوابة.";
