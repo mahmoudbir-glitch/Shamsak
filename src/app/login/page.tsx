@@ -29,7 +29,7 @@ export default function LoginPage() {
           <div className="text-5xl leading-none" aria-hidden="true">☀️</div>
           <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">شمسك</h1>
           <p className="mt-0 text-sm font-extrabold text-slate-900">الشمس تعمل من أجلك</p>
-          <p className="mt-2 text-xs font-semibold text-slate-400">تسجيل الدخول إلى لوحة الطاقة</p>
+          <p className="mt-3 text-xs font-semibold text-slate-400">تسجيل الدخول إلى لوحة الطاقة</p>
         </div>
         <Suspense fallback={<LoginFormFallback />}><LoginForm /></Suspense>
         <div className="mt-6 flex items-center justify-center gap-2 text-[11px] font-semibold text-slate-400">
