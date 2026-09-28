@@ -260,7 +260,7 @@ export default function SettingsPage() {
               </div>
               <p className="mt-2 text-xs font-semibold text-slate-500">رمز الربط لا يُحفظ كنص مكشوف ويظهر مرة واحدة فقط.</p>
             </div>
-          )
+          )}
 
           <details className="rounded-2xl bg-white p-4">
             <summary className="cursor-pointer list-none font-black text-slate-800 [&::-webkit-details-marker]:hidden">⚙️ خيارات الاتصال المتقدمة</summary>
