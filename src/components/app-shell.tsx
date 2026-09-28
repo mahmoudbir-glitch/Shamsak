@@ -11,28 +11,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isLogin) return;
-
-    let cancelled = false;
-    void fetch('/api/auth/session', {
-      method: 'GET',
-      credentials: 'same-origin',
-      cache: 'no-store',
-      headers: { 'Cache-Control': 'no-cache' },
-    })
-      .then((response) => {
-        if (!response.ok && !cancelled) {
-          window.location.replace('/login?next=' + encodeURIComponent(window.location.pathname));
-        }
-      })
-      .catch(() => undefined);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isLogin]);
-
-  useEffect(() => {
-    if (isLogin) return;
     const key = 'shamsak_monitoring_app_open_recorded';
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, '1');
