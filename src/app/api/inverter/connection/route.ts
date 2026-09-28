@@ -1,37 +1,83 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { encryptSecret } from "@/lib/inverter-config-crypto";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { MONITORING_ACTIONS, recordMonitoringEvent } from "@/lib/monitoring";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
+import type { InverterConnection } from "@prisma/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const configured = () => Boolean(process.env.DATABASE_URL || process.env.PRISMA_DATABASE_URL || process.env.POSTGRES_URL);
-const text = (value: unknown, max = 255) => typeof value === "string" ? value.trim().slice(0, max) : "";
 const integer = (value: unknown, fallback: number, min: number, max: number) => {
   const n = Number(value);
   return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : fallback;
 };
+const text = (value: unknown, max = 255) => typeof value === "string" ? value.trim().slice(0, max) : "";
+
+const connectionSchema = z.object({
+  id: z.string().min(1).max(80).optional(),
+  systemName: z.string().trim().min(1).max(120),
+  inverterModel: z.string().trim().min(1).max(120),
+  manufacturer: z.string().trim().max(80).optional(),
+  protocol: z.enum(["Modbus RTU", "Modbus TCP", "Wi-Fi Datalogger"]),
+  inverterAddress: z.string().trim().max(255).optional(),
+  serialPort: z.string().trim().max(255).optional(),
+  port: z.number().int().min(1).max(65535).optional(),
+  baudRate: z.number().int().min(1200).max(115200).optional(),
+  dataBits: z.number().int().min(7).max(8).optional(),
+  stopBits: z.number().int().min(1).max(2).optional(),
+  parity: z.enum(["N", "E", "O"]).optional(),
+  slaveId: z.number().int().min(1).max(247).optional(),
+  timeoutMs: z.number().int().min(200).max(10000).optional(),
+  pollingIntervalMs: z.number().int().min(2000).max(300000).optional(),
+  gatewayUrl: z.string().trim().max(500).optional(),
+  gatewayName: z.string().trim().max(120).optional(),
+  connectionMode: z.enum(["local", "gateway"]).optional(),
+  wifiSsid: z.string().trim().max(120).optional(),
+  wifiPassword: z.string().optional(),
+  enabled: z.boolean().optional(),
+  isPrimary: z.boolean().optional(),
+  panelCapacityKw: z.number().finite().positive().optional(),
+  batteryCapacityWh: z.number().finite().positive().optional(),
+});
+
+function tokenHash(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+async function audit(username: string, action: string, details: string) {
+  try {
+    const user = await prisma.user.findUnique({ where: { email: username } });
+    if (user) await prisma.auditLog.create({ data: { userId: user.id, action, details: details.slice(0, 4000) } });
+  } catch (error) {
+    console.error("[inverter] audit_write_failed", error);
+  }
+}
+
+function publicConnection(row: InverterConnection) {
+  return {
+    id: row.id, systemName: row.systemName, inverterModel: row.inverterModel, manufacturer: row.manufacturer,
+    protocol: row.protocol, inverterAddress: row.inverterAddress, serialPort: row.serialPort, port: row.port,
+    baudRate: row.baudRate, dataBits: row.dataBits, stopBits: row.stopBits, parity: row.parity,
+    slaveId: row.slaveId, timeoutMs: row.timeoutMs, pollingIntervalMs: row.pollingIntervalMs,
+    gatewayUrl: row.gatewayUrl, gatewayName: row.gatewayName, connectionMode: row.connectionMode,
+    wifiSsid: row.wifiSsid, hasWifiPassword: Boolean(row.wifiPasswordCipher), enabled: row.enabled,
+    isPrimary: row.isPrimary, lastStatus: row.lastStatus, lastSeenAt: row.lastSeenAt?.toISOString() ?? null,
+    lastTestResult: row.lastTestResult, lastTestLatencyMs: row.lastTestLatencyMs, lastTestReason: row.lastTestReason,
+  };
+}
 
 export async function GET(request: NextRequest) {
   const session = await verifySessionToken(request.cookies.get(COOKIE_NAME)?.value);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!configured()) return NextResponse.json({ error: "database_not_configured" }, { status: 503 });
   try {
-    const row = await prisma.inverterConnection.findUnique({ where: { id: "default" } });
-    if (!row) return NextResponse.json({ configured: false, connection: null });
-    return NextResponse.json({
-      configured: true,
-      connection: {
-        id: row.id, systemName: row.systemName, inverterModel: row.inverterModel, manufacturer: row.manufacturer,
-        protocol: row.protocol, inverterAddress: row.inverterAddress, serialPort: row.serialPort, port: row.port,
-        baudRate: row.baudRate, dataBits: row.dataBits, stopBits: row.stopBits, parity: row.parity,
-        slaveId: row.slaveId, timeoutMs: row.timeoutMs, pollingIntervalMs: row.pollingIntervalMs,
-        gatewayUrl: row.gatewayUrl, wifiSsid: row.wifiSsid, hasWifiPassword: Boolean(row.wifiPasswordCipher),
-        enabled: row.enabled, lastStatus: row.lastStatus, lastSeenAt: row.lastSeenAt?.toISOString() ?? null,
-      },
-    }, { headers: { "Cache-Control": "no-store" } });
+    const rows = await prisma.inverterConnection.findMany({ orderBy: [{ isPrimary: "desc" }, { updatedAt: "desc" }] });
+    const primary = rows.find((row) => row.isPrimary) ?? rows[0] ?? null;
+    return NextResponse.json({ configured: rows.length > 0, connection: primary ? publicConnection(primary) : null, connections: rows.map(publicConnection) }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return NextResponse.json({ error: "inverter_config_read_failed" }, { status: 503 });
   }
@@ -42,75 +88,119 @@ export async function POST(request: NextRequest) {
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!configured()) return NextResponse.json({ error: "database_not_configured" }, { status: 503 });
 
-  let body: Record<string, unknown>;
-  try { body = await request.json() as Record<string, unknown>; }
-  catch { return NextResponse.json({ error: "invalid_json" }, { status: 400 }); }
+  let body: unknown;
+  try { body = await request.json(); } catch { return NextResponse.json({ error: "invalid_json", message: "البيانات المرسلة غير صالحة." }, { status: 400 }); }
+  const raw = body as Record<string, unknown>;
 
-  const systemName = text(body.systemName, 120);
-  if (!systemName) return NextResponse.json({ error: "missing_connection_fields" }, { status: 400 });
+  if (raw.action === "rotateGatewayToken") {
+    const id = text(raw.id, 80);
+    if (!id) return NextResponse.json({ error: "missing_connection_id", message: "حدد الإنفرتر أولاً." }, { status: 400 });
+    const token = randomBytes(32).toString("base64url");
+    const row = await prisma.inverterConnection.update({ where: { id }, data: { gatewayTokenHash: tokenHash(token), gatewayTokenCreatedAt: new Date() } });
+    await audit(session.username, "GATEWAY_TOKEN_ROTATED", "connection=" + row.id);
+    return NextResponse.json({ ok: true, token, message: "تم إنشاء رمز الربط. سيظهر مرة واحدة فقط، خزّنه في البوابة المحلية." });
+  }
 
-  const protocol = text(body.protocol, 50) || "Modbus RTU";
-  const wifiPassword = typeof body.wifiPassword === "string" ? body.wifiPassword : "";
-  const panelCapacityKw = Number(body.panelCapacityKw);
-  const batteryCapacityWh = Number(body.batteryCapacityWh);
+  if (raw.action === "setPrimary") {
+    const id = text(raw.id, 80);
+    if (!id) return NextResponse.json({ error: "missing_connection_id", message: "حدد الإنفرتر أولاً." }, { status: 400 });
+    await prisma.$transaction([
+      prisma.inverterConnection.updateMany({ data: { isPrimary: false } }),
+      prisma.inverterConnection.update({ where: { id }, data: { isPrimary: true } }),
+    ]);
+    await audit(session.username, "INVERTER_PRIMARY_CHANGED", "connection=" + id);
+    return NextResponse.json({ ok: true });
+  }
 
-  if (body.panelCapacityKw !== undefined && (!Number.isFinite(panelCapacityKw) || panelCapacityKw <= 0)) return NextResponse.json({ error: "invalid_panel_capacity" }, { status: 422 });
-  if (body.batteryCapacityWh !== undefined && (!Number.isFinite(batteryCapacityWh) || batteryCapacityWh <= 0)) return NextResponse.json({ error: "invalid_battery_capacity" }, { status: 422 });
+  if (raw.action === "delete") {
+    const id = text(raw.id, 80);
+    if (!id) return NextResponse.json({ error: "missing_connection_id", message: "حدد الإنفرتر أولاً." }, { status: 400 });
+    const count = await prisma.inverterConnection.count();
+    if (count <= 1) return NextResponse.json({ error: "cannot_delete_last", message: "لا يمكن حذف آخر إنفرتر مضاف." }, { status: 422 });
+    const row = await prisma.inverterConnection.findUnique({ where: { id } });
+    if (!row) return NextResponse.json({ error: "not_found", message: "الإنفرتر غير موجود." }, { status: 404 });
+    await prisma.inverterConnection.delete({ where: { id } });
+    if (row.isPrimary) {
+      const next = await prisma.inverterConnection.findFirst({ orderBy: { updatedAt: "desc" } });
+      if (next) await prisma.inverterConnection.update({ where: { id: next.id }, data: { isPrimary: true } });
+    }
+    await audit(session.username, "INVERTER_DELETED", "connection=" + id);
+    return NextResponse.json({ ok: true });
+  }
+
+  const parsed = connectionSchema.safeParse({
+    ...raw,
+    port: raw.port === undefined ? undefined : Number(raw.port),
+    baudRate: raw.baudRate === undefined ? undefined : Number(raw.baudRate),
+    dataBits: raw.dataBits === undefined ? undefined : Number(raw.dataBits),
+    stopBits: raw.stopBits === undefined ? undefined : Number(raw.stopBits),
+    slaveId: raw.slaveId === undefined ? undefined : Number(raw.slaveId),
+    timeoutMs: raw.timeoutMs === undefined ? undefined : Number(raw.timeoutMs),
+    pollingIntervalMs: raw.pollingIntervalMs === undefined ? undefined : Number(raw.pollingIntervalMs),
+    panelCapacityKw: raw.panelCapacityKw === undefined ? undefined : Number(raw.panelCapacityKw),
+    batteryCapacityWh: raw.batteryCapacityWh === undefined ? undefined : Number(raw.batteryCapacityWh),
+  });
+  if (!parsed.success) return NextResponse.json({ error: "invalid_connection", message: "تحقق من معاملات الاتصال والقيم المطلوبة.", issues: parsed.error.flatten() }, { status: 422 });
+
+  const input = parsed.data;
+  if (input.protocol === "Modbus RTU" && input.connectionMode === "gateway" && !input.serialPort) {
+    return NextResponse.json({ error: "missing_serial_port", message: "أدخل منفذ RS485 الخاص بالبوابة المحلية مثل COM3 أو /dev/ttyUSB0." }, { status: 422 });
+  }
+  if (input.protocol === "Modbus TCP" && !input.inverterAddress) {
+    return NextResponse.json({ error: "missing_address", message: "أدخل عنوان IP للإنفرتر." }, { status: 422 });
+  }
 
   try {
-    const existing = await prisma.inverterConnection.findUnique({ where: { id: "default" } });
-    const row = await prisma.inverterConnection.upsert({
-      where: { id: "default" },
-      create: {
-        id: "default", systemName, inverterModel: text(body.inverterModel, 120) || "Felicity",
-        manufacturer: text(body.manufacturer, 80) || "Felicity", protocol,
-        inverterAddress: text(body.inverterAddress), serialPort: text(body.serialPort),
-        port: integer(body.port, 502, 1, 65535), baudRate: integer(body.baudRate, 9600, 300, 921600),
-        dataBits: integer(body.dataBits, 8, 5, 8), stopBits: integer(body.stopBits, 1, 1, 2),
-        parity: ["N", "E", "O"].includes(String(body.parity)) ? String(body.parity) : "N",
-        slaveId: integer(body.slaveId, 1, 1, 247), timeoutMs: integer(body.timeoutMs, 3000, 500, 15000),
-        pollingIntervalMs: integer(body.pollingIntervalMs, 10000, 2000, 300000),
-        gatewayUrl: text(body.gatewayUrl, 500) || null, wifiSsid: text(body.wifiSsid, 120) || null,
-        wifiPasswordCipher: wifiPassword ? encryptSecret(wifiPassword) : null,
-      },
-      update: {
-        systemName, inverterModel: text(body.inverterModel, 120) || "Felicity",
-        manufacturer: text(body.manufacturer, 80) || "Felicity", protocol,
-        inverterAddress: text(body.inverterAddress) || null, serialPort: text(body.serialPort) || null,
-        port: integer(body.port, 502, 1, 65535), baudRate: integer(body.baudRate, 9600, 300, 921600),
-        dataBits: integer(body.dataBits, 8, 5, 8), stopBits: integer(body.stopBits, 1, 1, 2),
-        parity: ["N", "E", "O"].includes(String(body.parity)) ? String(body.parity) : "N",
-        slaveId: integer(body.slaveId, 1, 1, 247), timeoutMs: integer(body.timeoutMs, 3000, 500, 15000),
-        pollingIntervalMs: integer(body.pollingIntervalMs, 10000, 2000, 300000),
-        gatewayUrl: text(body.gatewayUrl, 500) || null, wifiSsid: text(body.wifiSsid, 120) || null,
-        ...(wifiPassword ? { wifiPasswordCipher: encryptSecret(wifiPassword) } : {}),
-      },
-    });
+    const existingRows = await prisma.inverterConnection.count();
+    const id = input.id || (existingRows === 0 ? "default" : randomUUID());
+    const existing = await prisma.inverterConnection.findUnique({ where: { id } });
+    const shouldPrimary = input.isPrimary === true || existingRows === 0;
+    if (shouldPrimary) await prisma.inverterConnection.updateMany({ data: { isPrimary: false } });
 
-    if (body.panelCapacityKw !== undefined || body.batteryCapacityWh !== undefined) {
+    const data = {
+      systemName: input.systemName,
+      inverterModel: input.inverterModel,
+      manufacturer: input.manufacturer || input.inverterModel,
+      protocol: input.protocol,
+      inverterAddress: input.inverterAddress || null,
+      serialPort: input.serialPort || null,
+      port: integer(input.port, 502, 1, 65535),
+      baudRate: integer(input.baudRate, 9600, 1200, 115200),
+      dataBits: integer(input.dataBits, 8, 7, 8),
+      stopBits: integer(input.stopBits, 1, 1, 2),
+      parity: input.parity || "N",
+      slaveId: integer(input.slaveId, 1, 1, 247),
+      timeoutMs: integer(input.timeoutMs, 1000, 200, 10000),
+      pollingIntervalMs: integer(input.pollingIntervalMs, 10000, 2000, 300000),
+      gatewayUrl: input.gatewayUrl || null,
+      gatewayName: input.gatewayName || null,
+      connectionMode: input.connectionMode || "gateway",
+      wifiSsid: input.wifiSsid || null,
+      enabled: input.enabled !== false,
+      isPrimary: shouldPrimary,
+      ...(input.wifiPassword ? { wifiPasswordCipher: encryptSecret(input.wifiPassword) } : {}),
+    };
+
+    const row = existing
+      ? await prisma.inverterConnection.update({ where: { id }, data })
+      : await prisma.inverterConnection.create({ data: { id, ...data } });
+
+    if (input.panelCapacityKw !== undefined || input.batteryCapacityWh !== undefined) {
       await prisma.energySettings.upsert({
         where: { id: "default" },
-        create: {
-          id: "default",
-          panelPowerW: body.panelCapacityKw !== undefined ? panelCapacityKw * 1000 : 6000,
-          batteryCapacityWh: body.batteryCapacityWh !== undefined ? batteryCapacityWh : 10000,
-        },
+        create: { id: "default", panelPowerW: input.panelCapacityKw !== undefined ? input.panelCapacityKw * 1000 : 6000, batteryCapacityWh: input.batteryCapacityWh !== undefined ? input.batteryCapacityWh : 10000 },
         update: {
-          ...(body.panelCapacityKw !== undefined ? { panelPowerW: panelCapacityKw * 1000 } : {}),
-          ...(body.batteryCapacityWh !== undefined ? { batteryCapacityWh } : {}),
+          ...(input.panelCapacityKw !== undefined ? { panelPowerW: input.panelCapacityKw * 1000 } : {}),
+          ...(input.batteryCapacityWh !== undefined ? { batteryCapacityWh: input.batteryCapacityWh } : {}),
         },
       });
     }
 
-    await recordMonitoringEvent({
-      action: MONITORING_ACTIONS.INVERTER_CONFIG_SAVED,
-      username: session.username,
-      details: `system=${row.systemName}; protocol=${row.protocol}; slave=${row.slaveId}`,
-    });
-
-    return NextResponse.json({ saved: true, hasWifiPassword: Boolean(row.wifiPasswordCipher), preservedPassword: Boolean(existing?.wifiPasswordCipher && !wifiPassword) });
+    await audit(session.username, "INVERTER_CONFIG_SAVED", "connection=" + row.id + "; protocol=" + row.protocol + "; primary=" + row.isPrimary);
+    await recordMonitoringEvent({ action: MONITORING_ACTIONS.INVERTER_CONFIG_SAVED, username: session.username, details: "connection=" + row.id + "; protocol=" + row.protocol });
+    return NextResponse.json({ saved: true, connection: publicConnection(row), hasWifiPassword: Boolean(row.wifiPasswordCipher), preservedPassword: Boolean(existing?.wifiPasswordCipher && !input.wifiPassword) });
   } catch (error) {
     console.error("inverter_config_write_failed", error);
-    return NextResponse.json({ error: "inverter_config_write_failed" }, { status: 503 });
+    return NextResponse.json({ error: "inverter_config_write_failed", message: "تعذر حفظ إعدادات الإنفرتر. لم تُحذف القيم السابقة." }, { status: 503 });
   }
 }
