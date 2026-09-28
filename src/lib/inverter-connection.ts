@@ -2,7 +2,8 @@ export type ConnectionProtocol =
   | "modbus-rtu"
   | "modbus-tcp"
   | "wifi-gateway"
-  | "mqtt";
+  | "mqtt"
+  | "auto";
 
 export type InverterConnectionConfig = {
   enabled: boolean;
@@ -20,6 +21,9 @@ export type InverterConnectionConfig = {
   timeoutMs: number;
   pollingIntervalMs: number;
   gatewayUrl?: string;
+  /** Legacy UI aliases kept for backwards compatibility. */
+  endpoint?: string;
+  refreshSeconds?: number;
 };
 
 export const defaultConnection: InverterConnectionConfig = {
@@ -38,6 +42,8 @@ export const defaultConnection: InverterConnectionConfig = {
   timeoutMs: 3000,
   pollingIntervalMs: 10000,
   gatewayUrl: "",
+  endpoint: "",
+  refreshSeconds: 10,
 };
 
 export function sanitizeConnection(input: Partial<InverterConnectionConfig>): InverterConnectionConfig {
@@ -61,7 +67,9 @@ export function sanitizeConnection(input: Partial<InverterConnectionConfig>): In
     slaveId: n(input.slaveId, 1, 1, 247),
     timeoutMs: n(input.timeoutMs, 3000, 500, 15000),
     pollingIntervalMs: n(input.pollingIntervalMs, 10000, 2000, 300000),
-    gatewayUrl: String(input.gatewayUrl ?? "").trim().replace(/\/$/, "").slice(0, 500),
+    gatewayUrl: String(input.gatewayUrl ?? input.endpoint ?? "").trim().replace(/\/$/, "").slice(0, 500),
+    endpoint: String(input.endpoint ?? input.gatewayUrl ?? "").trim().replace(/\/$/, "").slice(0, 500),
+    refreshSeconds: n(input.refreshSeconds, 10, 2, 300),
   };
 }
 
@@ -70,4 +78,5 @@ export const protocolLabels: Record<ConnectionProtocol, string> = {
   "modbus-tcp": "Modbus TCP",
   "wifi-gateway": "Wi‑Fi Gateway",
   mqtt: "MQTT Gateway",
+  auto: "تلقائي",
 };
