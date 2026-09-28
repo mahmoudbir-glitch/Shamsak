@@ -201,6 +201,28 @@ export async function POST(request: NextRequest) {
 
     await updateDailySummary(timestamp, latest, row);
 
+    const alertSettings = await prisma.energySettings.findUnique({ where: { id: "default" } });
+    if (alertSettings) {
+      const events: Array<{ action: string; details: string }> = [];
+      if (row.batterySoc <= alertSettings.criticalBatteryPct) events.push({ action: "ALERT_CRITICAL_BATTERY", details: "batterySoc=" + row.batterySoc });
+      else if (row.batterySoc <= alertSettings.lowBatteryPct) events.push({ action: "ALERT_LOW_BATTERY", details: "batterySoc=" + row.batterySoc });
+      if (alertSettings.inverterRatedPowerKw && row.loadPowerW >= alertSettings.inverterRatedPowerKw * 1000 * (alertSettings.overloadPct / 100)) {
+        events.push({ action: "ALERT_OVERLOAD", details: "loadPowerW=" + row.loadPowerW });
+      }
+      if (latest && alertSettings.gridOutageAlert && latest.gridConnected !== row.gridConnected) {
+        events.push({ action: row.gridConnected ? "ALERT_GRID_RESTORED" : "ALERT_GRID_OUTAGE", details: "gridConnected=" + row.gridConnected });
+      }
+      if (events.length) {
+        for (const event of events) {
+          await recordMonitoringEvent({ action: event.action, success: true, details: event.details });
+        }
+      }
+      if (alertSettings.retentionDays > 0) {
+        const cutoff = new Date(Date.now() - alertSettings.retentionDays * 86_400_000);
+        await prisma.telemetryLog.deleteMany({ where: { timestamp: { lt: cutoff } } });
+      }
+    }
+
     if (input.source.toLowerCase() !== "demo") {
       await prisma.inverterConnection.updateMany({
         where: { id: "default" },
