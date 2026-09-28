@@ -12,7 +12,7 @@ type Inverter = {
   wifiSsid?: string | null; hasWifiPassword?: boolean; enabled: boolean; isPrimary: boolean; serialNumber?: string | null;
   lastStatus?: string; lastSeenAt?: string | null; lastTestResult?: string | null; lastTestLatencyMs?: number | null; lastTestReason?: string | null;
   mqttBroker?: string | null; mqttPort?: number; mqttTls?: boolean; mqttUsername?: string | null; hasMqttPassword?: boolean; mqttClientId?: string | null; mqttReadTopic?: string | null; mqttStatusTopic?: string | null; mqttCommandTopic?: string | null; mqttQos?: number; mqttKeepAlive?: number;
-  cloudApiUrl?: string | null; cloudAuthType?: "api_key" | "bearer" | "username_password"; hasCloudCredential?: boolean; cloudUsername?: string | null; cloudDeviceId?: string | null; cloudReadEndpoint?: string | null; cloudStatusEndpoint?: string | null; cloudTls?: boolean; retryCount?: number; mqttPassword?: string; cloudApiKey?: string; cloudBearerToken?: string; cloudPassword?: string; retryCount?: number; mqttPassword?: string; cloudApiKey?: string; cloudBearerToken?: string; cloudPassword?: string;
+  cloudApiUrl?: string | null; cloudAuthType?: "api_key" | "bearer" | "username_password"; hasCloudCredential?: boolean; cloudUsername?: string | null; cloudDeviceId?: string | null; cloudReadEndpoint?: string | null; cloudStatusEndpoint?: string | null; cloudTls?: boolean; retryCount?: number; mqttPassword?: string; cloudApiKey?: string; cloudBearerToken?: string; cloudPassword?: string;
 };
 
 type Settings = {
