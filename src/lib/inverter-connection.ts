@@ -1,65 +1,73 @@
 export type ConnectionProtocol =
-  | "auto"
-  | "http"
-  | "mqtt"
-  | "home-assistant"
+  | "modbus-rtu"
   | "modbus-tcp"
-  | "modbus-rtu-gateway"
-  | "csv";
-
-export type ConnectionStatus = "not-configured" | "testing" | "connected" | "failed";
+  | "wifi-gateway"
+  | "mqtt";
 
 export type InverterConnectionConfig = {
   enabled: boolean;
   protocol: ConnectionProtocol;
-  manufacturer?: string;
-  model?: string;
-  endpoint?: string;
+  manufacturer: string;
+  model: string;
+  address: string;
   port?: number;
-  username?: string;
-  refreshSeconds: number;
+  serialPort?: string;
+  baudRate: number;
+  dataBits: number;
+  stopBits: number;
+  parity: "N" | "E" | "O";
+  slaveId: number;
+  timeoutMs: number;
+  pollingIntervalMs: number;
+  gatewayUrl?: string;
 };
 
 export const defaultConnection: InverterConnectionConfig = {
-  enabled: false,
-  protocol: "auto",
-  manufacturer: "",
-  model: "",
-  endpoint: "",
-  port: undefined,
-  username: "",
-  refreshSeconds: 10,
-};
-
-export const protocolLabels: Record<ConnectionProtocol, string> = {
-  auto: "اختيار البروتوكول لاحقًا",
-  http: "API / HTTP",
-  mqtt: "MQTT",
-  "home-assistant": "Home Assistant",
-  "modbus-tcp": "Modbus TCP عبر بوابة",
-  "modbus-rtu-gateway": "Modbus RTU عبر بوابة RS485",
-  csv: "ملف CSV",
+  enabled: true,
+  protocol: "modbus-rtu",
+  manufacturer: "Felicity",
+  model: "Felicity",
+  address: "",
+  port: 502,
+  serialPort: "",
+  baudRate: 9600,
+  dataBits: 8,
+  stopBits: 1,
+  parity: "N",
+  slaveId: 1,
+  timeoutMs: 3000,
+  pollingIntervalMs: 10000,
+  gatewayUrl: "",
 };
 
 export function sanitizeConnection(input: Partial<InverterConnectionConfig>): InverterConnectionConfig {
-  const refresh = Number(input.refreshSeconds);
+  const n = (value: unknown, fallback: number, min: number, max: number) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
+  };
   return {
     ...defaultConnection,
     ...input,
-    enabled: Boolean(input.enabled),
-    refreshSeconds: Number.isFinite(refresh) ? Math.min(300, Math.max(2, refresh)) : 10,
-    port: input.port && Number.isFinite(Number(input.port)) ? Math.min(65535, Math.max(1, Number(input.port))) : undefined,
+    enabled: input.enabled !== false,
+    manufacturer: String(input.manufacturer ?? defaultConnection.manufacturer).slice(0, 80),
+    model: String(input.model ?? defaultConnection.model).slice(0, 120),
+    address: String(input.address ?? "").trim().slice(0, 255),
+    port: n(input.port, 502, 1, 65535),
+    serialPort: String(input.serialPort ?? "").trim().slice(0, 255),
+    baudRate: n(input.baudRate, 9600, 300, 921600),
+    dataBits: n(input.dataBits, 8, 5, 8),
+    stopBits: n(input.stopBits, 1, 1, 2),
+    parity: input.parity === "E" || input.parity === "O" ? input.parity : "N",
+    slaveId: n(input.slaveId, 1, 1, 247),
+    timeoutMs: n(input.timeoutMs, 3000, 500, 15000),
+    pollingIntervalMs: n(input.pollingIntervalMs, 10000, 2000, 300000),
+    gatewayUrl: String(input.gatewayUrl ?? "").trim().replace(/\/$/, "").slice(0, 500),
   };
 }
 
-/**
- * This registry deliberately contains no vendor-specific assumptions.
- * A real adapter must prove connectivity and return normalized telemetry
- * before the UI is allowed to mark the connection as live.
- */
-export type ConnectionAdapter = {
-  protocol: ConnectionProtocol;
-  test(config: InverterConnectionConfig): Promise<{ ok: boolean; message: string }>;
+export const protocolLabels: Record<ConnectionProtocol, string> = {
+  "modbus-rtu": "Modbus RTU / RS485",
+  "modbus-tcp": "Modbus TCP",
+  "wifi-gateway": "Wi‑Fi Gateway",
+  mqtt: "MQTT Gateway",
 };
-
-export const adapterRegistry: Partial<Record<ConnectionProtocol, ConnectionAdapter>> = {};
