@@ -20,6 +20,13 @@ const settingsSchema = z.object({
   batteryNominalVoltage: z.number().int().refine((v) => [12, 24, 48].includes(v), "جهد البطارية يجب أن يكون 12 أو 24 أو 48 فولت.").optional(),
   batteryChemistry: z.enum(["LiFePO4", "Lithium-ion", "Lead-acid", "Gel", "AGM"]).nullable().optional(),
   batteryMinReservePct: z.number().finite().min(0).max(100).optional(),
+  bulkChargeVoltage: z.number().finite().min(15).max(70).nullable().optional(),
+  floatChargeVoltage: z.number().finite().min(15).max(70).nullable().optional(),
+  lowDcCutoffVoltage: z.number().finite().min(10).max(70).nullable().optional(),
+  backToGridVoltage: z.number().finite().min(10).max(70).nullable().optional(),
+  maxChargeCurrentA: z.number().finite().positive().max(300).nullable().optional(),
+  outputSourcePriority: z.enum(["SBU", "SUB"]).optional(),
+  chargerSourcePriority: z.enum(["CSO", "SNU"]).optional(),
   batteryMaxChargeA: z.number().finite().positive().nullable().optional(),
   batteryMaxDischargeA: z.number().finite().positive().nullable().optional(),
   inverterRatedPowerKw: z.number().finite().positive().nullable().optional(),
@@ -126,6 +133,17 @@ export async function PUT(request: NextRequest) {
       { error: "invalid_settings", message: first?.message || "تحقق من القيم المدخلة.", issues: parsed.error.flatten() },
       { status: 422 },
     );
+  }
+
+  const d = parsed.data;
+  if (d.lowDcCutoffVoltage != null && d.backToGridVoltage != null && d.lowDcCutoffVoltage >= d.backToGridVoltage) {
+    return NextResponse.json({ error: "invalid_voltage_thresholds", message: "Low DC Cut-off يجب أن يكون أقل من Back to Grid لتجنب التعارض بين الفصل والعودة إلى الشبكة." }, { status: 422 });
+  }
+  if (d.floatChargeVoltage != null && d.bulkChargeVoltage != null && d.floatChargeVoltage >= d.bulkChargeVoltage) {
+    return NextResponse.json({ error: "invalid_charge_voltages", message: "Float يجب أن يكون أقل من Bulk / CV." }, { status: 422 });
+  }
+  if (d.batteryNominalVoltage && d.lowDcCutoffVoltage != null && d.lowDcCutoffVoltage > d.batteryNominalVoltage * 1.35) {
+    return NextResponse.json({ error: "invalid_cutoff_voltage", message: "قيمة Low DC Cut-off لا تبدو مناسبة لجهد البطارية الاسمي المحدد." }, { status: 422 });
   }
 
   if (
