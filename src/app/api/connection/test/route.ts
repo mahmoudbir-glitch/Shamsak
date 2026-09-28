@@ -83,13 +83,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, message: "اختر بروتوكولًا معروفًا قبل اختبار الاتصال." }, { status: 400 });
     }
 
-    if (!config.endpoint) {
+    const endpointValue = config.endpoint || config.gatewayUrl || config.address;
+    if (!endpointValue) {
       return NextResponse.json({ ok: false, message: "أدخل عنوان الاتصال أو بوابة البيانات." }, { status: 400 });
     }
 
     let endpoint: string;
     try {
-      endpoint = await validatePublicEndpoint(config.endpoint);
+      endpoint = await validatePublicEndpoint(endpointValue);
     } catch (error) {
       const reason = error instanceof Error ? error.message : "";
       const message = reason === "private_endpoint"
