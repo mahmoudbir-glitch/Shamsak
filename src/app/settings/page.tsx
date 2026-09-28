@@ -227,6 +227,37 @@ export default function SettingsPage() {
             <Field label="وضع الاتصال"><select value={draft.connectionMode || "gateway"} onChange={(e) => updateDraft("connectionMode", e.target.value as ConnectionMode)} className={input}><option value="gateway">عبر بوابة</option><option value="local">محلي (نفس الجهاز)</option></select></Field>
           </div>
 
+          {draft.connectionMode === "gateway" && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <h4 className="font-black text-slate-900">🌐 إعدادات البوابة المحلية</h4>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <Field label="اسم البوابة">
+                  <input
+                    value={draft.gatewayName || ""}
+                    onChange={(e) => setDraft((current) => current ? { ...current, gatewayName: e.target.value } : current)}
+                    autoComplete="off"
+                    className={input}
+                  />
+                </Field>
+                <Field label="عنوان البوابة">
+                  <input
+                    dir="ltr"
+                    value={draft.gatewayUrl || ""}
+                    onChange={(e) => setDraft((current) => current ? { ...current, gatewayUrl: e.target.value } : current)}
+                    placeholder="https://gateway.example.com"
+                    autoComplete="url"
+                    className={input}
+                  />
+                </Field>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button type="button" onClick={() => void rotateToken()} className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-black text-white">تدوير رمز الربط</button>
+                {newToken && <code dir="ltr" className="w-full break-all rounded-xl bg-slate-50 p-3 text-xs">{newToken}</code>}
+              </div>
+              <p className="mt-2 text-xs font-semibold text-slate-500">رمز الربط لا يُحفظ كنص مكشوف ويظهر مرة واحدة فقط.</p>
+            </div>
+          )
+
           <details className="rounded-2xl bg-white p-4">
             <summary className="cursor-pointer list-none font-black text-slate-800 [&::-webkit-details-marker]:hidden">⚙️ خيارات الاتصال المتقدمة</summary>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
