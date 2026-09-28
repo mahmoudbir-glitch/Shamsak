@@ -116,6 +116,24 @@ model EnergySettings {
   panelTilt Float?
   panelAzimuth Float?
   updatedAt DateTime @updatedAt
+  batteryNominalVoltage Int @default(48)
+  batteryChemistry String?
+  batteryMinReservePct Float @default(20)
+  batteryMaxChargeA Float?
+  batteryMaxDischargeA Float?
+  inverterRatedPowerKw Float?
+  gridPhase String @default("single")
+  retentionDays Int @default(365)
+  pollIntervalSec Int @default(10)
+  lowBatteryPct Float @default(20)
+  criticalBatteryPct Float @default(10)
+  gridOutageAlert Boolean @default(true)
+  faultAlert Boolean @default(true)
+  offlineMinutes Int @default(10)
+  overloadPct Float @default(90)
+  channels String @default("in_app")
+  quietHoursStart String?
+  quietHoursEnd String?
 }
 model AuditLog {
   id String @id @default(uuid())
@@ -157,6 +175,14 @@ model InverterConnection {
   wifiSsid String?
   wifiPasswordCipher String?
   enabled Boolean @default(true)
+  isPrimary Boolean @default(false)
+  connectionMode String @default("gateway")
+  gatewayName String?
+  gatewayTokenHash String?
+  gatewayTokenCreatedAt DateTime?
+  lastTestResult String?
+  lastTestLatencyMs Int?
+  lastTestReason String?
   lastStatus String @default("disconnected")
   lastSeenAt DateTime?
   updatedAt DateTime @updatedAt
