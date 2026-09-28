@@ -23,6 +23,7 @@ export default function SettingsPage() {
   const [latitude, setLatitude] = useState(33.8938);
   const [longitude, setLongitude] = useState(35.5018);
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [inverterConnection, setInverterConnection] = useState<"unknown" | "connected" | "disconnected">("unknown");
 
   useEffect(() => {
     void fetch("/api/inverter/connection", { cache: "no-store" })
@@ -34,6 +35,8 @@ export default function SettingsPage() {
         if (row.inverterAddress) setInverterAddress(row.inverterAddress);
         if (row.wifiSsid) setWifiSsid(row.wifiSsid);
         if (row.hasWifiPassword) setWifiPassword("");
+        if (row.lastStatus === "connected") setInverterConnection("connected");
+        else if (row.lastStatus) setInverterConnection("disconnected");
       })
       .catch(() => {});
 
@@ -78,6 +81,8 @@ export default function SettingsPage() {
           inverterAddress,
           wifiSsid,
           wifiPassword,
+          panelCapacityKw: panelCapacity,
+          batteryCapacityWh: batteryCapacity,
         }),
       });
       if (!response.ok) throw new Error("save_failed");
@@ -104,13 +109,16 @@ export default function SettingsPage() {
       if (source === "live") {
         setNetworkStatus("success");
         setConnectionState("connected");
+        setInverterConnection("connected");
       } else {
         setNetworkStatus("error");
         setConnectionState("error");
+        setInverterConnection("disconnected");
       }
     } catch {
       setNetworkStatus("error");
       setConnectionState("error");
+      setInverterConnection("disconnected");
     }
   };
 
@@ -142,6 +150,25 @@ export default function SettingsPage() {
       <div className="energy-card p-4 sm:p-5">
         <h1 className="flex items-center gap-2 text-xl font-black sm:text-2xl text-slate-900">⚙️ إعدادات منظومة شمسك</h1>
         <p className="mt-2 text-base font-medium text-slate-500">تهيئة المنظومة والاتصال والذاكرة</p>
+      </div>
+
+      <div className="energy-card space-y-4 border-blue-100 p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-black text-slate-900">📡 اتصال الإنفرتر</h2>
+            <p className="mt-1 text-sm font-medium text-slate-500">حالة الاتصال الفعلية ببيانات الإنفرتر الحية.</p>
+          </div>
+          <span className={`rounded-full px-3 py-1.5 text-sm font-black ${inverterConnection === "connected" ? "bg-emerald-100 text-emerald-700" : inverterConnection === "disconnected" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-600"}`}>
+            {inverterConnection === "connected" ? "متصل" : inverterConnection === "disconnected" ? "غير متصل" : "غير معروف"}
+          </span>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl bg-slate-50 p-3"><div className="text-xs font-bold text-slate-500">طريقة الاتصال</div><div className="mt-1 font-black text-slate-800">{protocol}</div></div>
+          <div className="rounded-xl bg-slate-50 p-3"><div className="text-xs font-bold text-slate-500">عنوان الاتصال</div><div className="mt-1 font-black text-slate-800" dir="ltr">{inverterAddress || "غير محدد"}</div></div>
+        </div>
+        <button type="button" onClick={() => void testNetwork()} disabled={connectionState === "connecting"} className="min-h-12 w-full rounded-xl bg-slate-900 px-4 font-bold text-white disabled:opacity-60">
+          {connectionState === "connecting" ? "جاري اختبار الاتصال…" : "اختبار الاتصال بالإنفرتر"}
+        </button>
       </div>
 
       <div className="energy-card space-y-4 p-4 sm:p-5">
@@ -188,7 +215,7 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      {protocol === "Wi-Fi Datalogger" && (
+      {(protocol === "Wi-Fi Datalogger" || wifiSsid) && (
         <div className="energy-card space-y-5 border-blue-100 p-4 sm:p-5">
           <div>
             <h2 className="border-b border-slate-100 pb-3 text-xl font-bold text-slate-900">📶 ربط الإنفرتر عبر Wi‑Fi</h2>
