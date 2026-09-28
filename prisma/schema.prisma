@@ -120,6 +120,13 @@ model EnergySettings {
   batteryNominalVoltage Int @default(48)
   batteryChemistry String? @default("LiFePO4")
   batteryMinReservePct Float @default(20)
+  bulkChargeVoltage Float? @default(56.4)
+  floatChargeVoltage Float? @default(54.0)
+  lowDcCutoffVoltage Float? @default(45.0)
+  backToGridVoltage Float? @default(46.0)
+  maxChargeCurrentA Float? @default(50)
+  outputSourcePriority String @default("SBU")
+  chargerSourcePriority String @default("CSO")
   batteryMaxChargeA Float?
   batteryMaxDischargeA Float?
   inverterRatedPowerKw Float? @default(8.2)
