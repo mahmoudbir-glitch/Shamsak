@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, message: "فعّل مصدر الطاقة أولًا، ثم أعد الاختبار." }, { status: 400 });
     }
 
-    if (!config.protocol || config.protocol === "auto") {
+    if (!config.protocol) {
       return NextResponse.json({ ok: false, message: "اختر بروتوكولًا معروفًا قبل اختبار الاتصال." }, { status: 400 });
     }
 
