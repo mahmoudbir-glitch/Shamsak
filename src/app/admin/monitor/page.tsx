@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { isMonitoringOwner } from "@/lib/monitor-auth";
+import { ensureMonitoringStorage } from "@/lib/monitoring";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,8 @@ export default async function MonitoringPage() {
   if (!session || !isMonitoringOwner(session.username)) {
     redirect("/");
   }
+
+  await ensureMonitoringStorage();
 
   const [events, eventCount, inverter, telemetry] = await Promise.all([
     prisma.monitoringEvent.findMany({
