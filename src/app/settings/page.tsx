@@ -182,6 +182,12 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      <div className="energy-card mt-2 border-blue-100 p-4 sm:p-5">
+        <button type="button" onClick={() => void handleSaveSettings()} className="min-h-14 w-full rounded-xl bg-blue-600 px-5 text-lg font-black text-white shadow-sm transition active:scale-95 hover:bg-blue-700">
+          {saved ? "✓ تم حفظ الإعدادات" : "💾 حفظ إعدادات المنظومة"}
+        </button>
+      </div>
+
       {protocol === "Wi-Fi Datalogger" && (
         <div className="energy-card space-y-5 border-blue-100 p-4 sm:p-5">
           <div>
