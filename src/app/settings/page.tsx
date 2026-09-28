@@ -26,8 +26,8 @@ type Settings = {
 const defaults: Settings = {
   panelPowerW: 6000, batteryCapacityWh: 10000, gridTariff: 0, exportTariff: 0, currency: "SYP",
   latitude: 33.8938, longitude: 35.5018, timezone: "Asia/Beirut", panelTilt: null, panelAzimuth: null,
-  batteryNominalVoltage: 48, batteryChemistry: null, batteryMinReservePct: 20, batteryMaxChargeA: null,
-  batteryMaxDischargeA: null, inverterRatedPowerKw: null, gridPhase: "single", gridType: "hybrid", retentionDays: 365, pollIntervalSec: 10,
+  batteryNominalVoltage: 48, batteryChemistry: "LiFePO4", batteryMinReservePct: 20, batteryMaxChargeA: null,
+  batteryMaxDischargeA: null, inverterRatedPowerKw: 8.2, gridPhase: "single", gridType: "hybrid", retentionDays: 365, pollIntervalSec: 10,
   lowBatteryPct: 20, criticalBatteryPct: 10, gridOutageAlert: true, faultAlert: true, offlineMinutes: 10,
   overloadPct: 90, channels: "in_app", quietHoursStart: null, quietHoursEnd: null,
 };
@@ -100,7 +100,7 @@ export default function SettingsPage() {
 
   const addInverter = () => {
     const item: Inverter = {
-      id: "", systemName: "منظومة جديدة", inverterModel: "Felicity", manufacturer: "Felicity",
+      id: "", systemName: "منظومة شمسك", inverterModel: "NEXT - Victor Max 8.2KW", manufacturer: "NEXT", serialNumber: "92085230517098",
       protocol: "Modbus RTU", serialPort: "", port: 502, baudRate: 9600, dataBits: 8, stopBits: 1, parity: "N",
       slaveId: 1, timeoutMs: 1000, pollingIntervalMs: 10000, gatewayUrl: "", gatewayName: "", connectionMode: "gateway",
       enabled: true, isPrimary: inverters.length === 0, lastStatus: "unknown",
@@ -218,7 +218,7 @@ export default function SettingsPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="اسم المنظومة"><input value={draft.systemName} onChange={(e) => updateDraft("systemName", e.target.value)} className={input} /></Field>
             <Field label="الرقم التسلسلي (SN)"><input dir="ltr" value={draft.serialNumber || ""} onChange={(e) => updateDraft("serialNumber", e.target.value)} placeholder="مثلاً: SN123456789" className={input} /></Field>
-            <Field label="نوع / موديل الإنفرتر"><select value={draft.inverterModel} onChange={(e) => updateDraft("inverterModel", e.target.value)} className={input}><option>Felicity</option><option>Deye</option><option>Growatt</option><option>Voltronic</option><option>غير ذلك</option></select></Field>
+            <Field label="نوع / موديل الإنفرتر"><select value={draft.inverterModel} onChange={(e) => updateDraft("inverterModel", e.target.value)} className={input}><option>NEXT - Victor Max 8.2KW</option><option>Felicity</option><option>Deye</option><option>Growatt</option><option>Voltronic</option><option>غير ذلك</option></select></Field>
             <Field label="بروتوكول الاتصال"><select value={draft.protocol} onChange={(e) => updateDraft("protocol", e.target.value as Protocol)} className={input}><option>Modbus RTU</option><option>Modbus TCP</option><option>Wi-Fi Datalogger</option></select></Field>
             <Field label="وضع الاتصال"><select value={draft.connectionMode || "gateway"} onChange={(e) => updateDraft("connectionMode", e.target.value as ConnectionMode)} className={input}><option value="gateway">عبر بوابة</option><option value="local">محلي (نفس الجهاز)</option></select></Field>
           </div>
