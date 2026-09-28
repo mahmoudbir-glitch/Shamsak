@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 
 type Model = "Deye" | "Voltronic" | "Growatt" | "Felicity" | "غير ذلك";
 type Protocol = "Modbus RTU" | "Modbus TCP" | "Wi-Fi Datalogger";
+type InverterConnectionResponse = { systemName?: string; inverterModel?: string; protocol?: string; inverterAddress?: string; serialPort?: string; port?: number; baudRate?: number; dataBits?: number; stopBits?: number; parity?: "N"|"E"|"O"; slaveId?: number; timeoutMs?: number; pollingIntervalMs?: number; gatewayUrl?: string; wifiSsid?: string; hasWifiPassword?: boolean; lastStatus?: string; lastSeenAt?: string | null; };
 
 export default function SettingsPage() {
   const [model,setModel]=useState<Model>("Felicity");
@@ -27,7 +28,7 @@ export default function SettingsPage() {
   const [saved,setSaved]=useState(false);
 
   useEffect(()=>{ void fetch("/api/inverter/connection",{cache:"no-store"}).then(r=>r.ok?r.json():null).then((d)=>{
-    const c=d?.connection; if(!c)return;
+    const c = d?.connection as InverterConnectionResponse | undefined; if(!c)return;
     if(c.systemName)setSystemName(c.systemName);
     if(c.inverterModel)setModel(c.inverterModel as Model);
     if(c.protocol)setProtocol(c.protocol as Protocol);
