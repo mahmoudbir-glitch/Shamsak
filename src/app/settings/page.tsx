@@ -27,7 +27,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     void fetch("/api/inverter/connection", { cache: "no-store" })
-      .then(async (response) => response.ok ? (await response.json()) as { connection?: { systemName?: string; inverterAddress?: string; wifiSsid?: string; hasWifiPassword?: boolean } } : null)
+      .then(async (response) => response.ok ? (await response.json()) as { connection?: { systemName?: string; inverterAddress?: string; wifiSsid?: string; hasWifiPassword?: boolean; lastStatus?: string } } : null)
       .then((data) => {
         const row = data?.connection;
         if (!row) return;
