@@ -9,7 +9,6 @@
     "dev": "next dev",
     "build": "prisma migrate deploy && node scripts/prisma-generate.mjs && next build",
     "build:ci": "node scripts/prisma-generate.mjs && next build",
-    "build:ci": "node scripts/prisma-generate.mjs && next build",
     "start": "next start",
     "verify": "npm run typecheck && npm run lint",
     "lint": "node scripts/lint.mjs",
