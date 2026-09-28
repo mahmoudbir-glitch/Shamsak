@@ -51,7 +51,7 @@ export default function BatteryPage() {
         <span className={"rounded-full border px-3 py-2 text-xs font-black " + toneBorder + " " + toneBg + " " + toneText}>
           {snapshot?.source === "live" ? "مباشر" : "بانتظار قراءة حية"}
         </span>
-      </div>
+      </div></div>
 
       <div className="energy-card overflow-hidden p-5 text-center">
         <div className="mx-auto mb-4 flex w-fit items-center gap-2 rounded-full bg-slate-50 px-3 py-1 text-xs font-extrabold text-slate-500"><BatteryCharging size={15} /> الشحن الحالي</div><span className="block text-sm font-semibold text-slate-400">نسبة الشحن الحالية (SOC)</span>
