@@ -290,34 +290,6 @@ export function SmartForecast() {
             </div>
           </section>
 
-          {surplus && (
-            <section className="rounded-3xl border border-cyan-100 bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-50 p-5 shadow-sm">
-              <div className="flex items-start gap-3">
-                <div className="rounded-2xl bg-white p-3 text-amber-600 shadow-sm"><Zap size={23} /></div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-black text-cyan-900">☀️ فائض شمسي متوقع</h2>
-                    <CheckCircle2 size={18} className="text-emerald-600" />
-                  </div>
-                  <strong className="mt-1 block text-3xl font-black text-cyan-800">{surplus.kwh} ك.و.س</strong>
-                  <p className="mt-1 text-sm font-bold text-cyan-900/70">خلال {formatHour(surplus.start)} — {formatHour(surplus.end)} • مدة تقريبية {surplus.durationHours} ساعة</p>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <div className="rounded-xl bg-white/80 p-3">
-                      <span className="block text-[11px] font-bold text-slate-500">متوسط الفائض</span>
-                      <strong className="mt-1 block text-lg font-black text-cyan-800">{surplus.averageKw} kW</strong>
-                    </div>
-                    <div className="rounded-xl bg-white/80 p-3">
-                      <span className="block text-[11px] font-bold text-slate-500">ذروة الفائض</span>
-                      <strong className="mt-1 block text-lg font-black text-cyan-800">{surplus.peakKw} kW</strong>
-                    </div>
-                  </div>
-                  <p className="mt-3 text-sm font-semibold text-slate-700">النافذة تُحسب عندما يتجاوز الإنتاج الشمسي استهلاك المنزل وما يمكن للبطارية استيعابه؛ لا تُعرض كتوصية تشغيل ثابتة.</p>
-
-                </div>
-              </div>
-            </section>
-          )}
-
           <section className="energy-card p-5">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-black text-slate-900">توزيع الطاقة الشمسية اليومية</h2>
