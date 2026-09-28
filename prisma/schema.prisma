@@ -57,7 +57,7 @@ model Site {
   region       String
   installation DateTime
   household    Household     @relation(fields: [householdId], references: [id])
-  systems      SolarSystem[]
+  systems      SolarSystem[] 
 }
 
 model SolarSystem {
@@ -134,9 +134,20 @@ model AuditLog {
   action    String
   details   String?
   timestamp DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model MonitoringEvent {
+  id        String   @id @default(uuid())
+  username  String?
+  action    String
+  success   Boolean  @default(true)
+  details   String?
+  timestamp DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([action, timestamp])
+}
 
 model InverterConnection {
   id                 String   @id @default("default")
