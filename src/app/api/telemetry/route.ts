@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { telemetryInputSchema, telemetryToSnapshot } from "@/lib/telemetry";
+import { MONITORING_ACTIONS, recordMonitoringEvent } from "@/lib/monitoring";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -182,6 +183,18 @@ export async function POST(request: NextRequest) {
     });
 
     await updateDailySummary(timestamp, latest, row);
+
+    if (input.source.toLowerCase() !== "demo") {
+      await prisma.inverterConnection.updateMany({
+        where: { id: "default" },
+        data: { lastStatus: "connected", lastSeenAt: timestamp },
+      });
+      await recordMonitoringEvent({
+        action: MONITORING_ACTIONS.TELEMETRY_RECEIVED,
+        success: true,
+        details: `source=${input.source}; timestamp=${timestamp.toISOString()}`,
+      });
+    }
 
     return NextResponse.json(
       { accepted: true, stored: true, snapshot: telemetryToSnapshot(input) },
