@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { encryptSecret, decryptSecret } from "@/lib/inverter-config-crypto";
+import { encryptSecret } from "@/lib/inverter-config-crypto";
+import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
+import { MONITORING_ACTIONS, recordMonitoringEvent } from "@/lib/monitoring";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,7 +11,9 @@ function configured() {
   return Boolean(process.env.DATABASE_URL || process.env.PRISMA_DATABASE_URL || process.env.POSTGRES_URL);
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const session = await verifySessionToken(request.cookies.get(COOKIE_NAME)?.value);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!configured()) return NextResponse.json({ error: "database_not_configured" }, { status: 503 });
   try {
     const row = await prisma.inverterConnection.findUnique({ where: { id: "default" } });
@@ -38,7 +42,10 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await verifySessionToken(request.cookies.get(COOKIE_NAME)?.value);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!configured()) return NextResponse.json({ error: "database_not_configured" }, { status: 503 });
+
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "invalid_json" }, { status: 400 }); }
 
@@ -48,21 +55,11 @@ export async function POST(request: NextRequest) {
   const panelCapacityKw = typeof input.panelCapacityKw === "number" ? input.panelCapacityKw : Number(input.panelCapacityKw);
   const batteryCapacityWh = typeof input.batteryCapacityWh === "number" ? input.batteryCapacityWh : Number(input.batteryCapacityWh);
 
-  if (!text(input.systemName)) {
-    return NextResponse.json({ error: "missing_connection_fields" }, { status: 400 });
-  }
-
-  if (
-    input.panelCapacityKw !== undefined &&
-    (!Number.isFinite(panelCapacityKw) || panelCapacityKw <= 0) 
-  ) {
+  if (!text(input.systemName)) return NextResponse.json({ error: "missing_connection_fields" }, { status: 400 });
+  if (input.panelCapacityKw !== undefined && (!Number.isFinite(panelCapacityKw) || panelCapacityKw <= 0)) {
     return NextResponse.json({ error: "invalid_panel_capacity" }, { status: 422 });
   }
-
-  if (
-    input.batteryCapacityWh !== undefined &&
-    (!Number.isFinite(batteryCapacityWh) || batteryCapacityWh <= 0)
-  ) {
+  if (input.batteryCapacityWh !== undefined && (!Number.isFinite(batteryCapacityWh) || batteryCapacityWh <= 0)) {
     return NextResponse.json({ error: "invalid_battery_capacity" }, { status: 422 });
   }
 
@@ -115,6 +112,12 @@ export async function POST(request: NextRequest) {
         row,
         preservedPassword: Boolean(existing?.wifiPasswordCipher && !wifiPassword),
       };
+    });
+
+    await recordMonitoringEvent({
+      action: MONITORING_ACTIONS.INVERTER_CONFIG_SAVED,
+      username: session.username,
+      details: `system=${result.row.systemName}; protocol=${result.row.protocol}`,
     });
 
     return NextResponse.json({
