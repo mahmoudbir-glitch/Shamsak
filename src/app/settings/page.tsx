@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-type Protocol = "Modbus RTU" | "Modbus TCP" | "MQTT" | "Cloud API";
+type Protocol = "Modbus RTU" | "Modbus TCP" | "MQTT" | "Cloud API" | "Wi-Fi Datalogger";
 type ConnectionMode = "local" | "gateway";
 type Inverter = {
   id: string; systemName: string; inverterModel: string; manufacturer?: string | null; protocol: Protocol;
@@ -223,7 +223,7 @@ export default function SettingsPage() {
             <Field label="اسم المنظومة"><input value={draft.systemName} onChange={(e) => updateDraft("systemName", e.target.value)} className={input} /></Field>
             <Field label="الرقم التسلسلي (SN)"><input dir="ltr" value={draft.serialNumber || ""} onChange={(e) => updateDraft("serialNumber", e.target.value)} placeholder="مثلاً: SN123456789" className={input} /></Field>
             <Field label="نوع / موديل الإنفرتر"><select value={draft.inverterModel} onChange={(e) => updateDraft("inverterModel", e.target.value)} className={input}><option>NEXT - Victor Max 8.2KW</option><option>Felicity</option><option>Deye</option><option>Growatt</option><option>Voltronic</option><option>غير ذلك</option></select></Field>
-            <Field label="نوع الاتصال"><select value={draft.protocol} onChange={(e) => updateDraft("protocol", e.target.value as Protocol)} className={input}><option>Modbus TCP</option><option>Modbus RTU</option><option>MQTT</option><option>Cloud API</option></select></Field>
+            <Field label="نوع الاتصال"><select value={draft.protocol} onChange={(e) => updateDraft("protocol", e.target.value as Protocol)} className={input}><option>Modbus TCP</option><option>Modbus RTU</option><option>MQTT</option><option>Cloud API</option>{draft.protocol === "Wi-Fi Datalogger" && <option>Wi-Fi Datalogger</option>}</select></Field>
             <Field label="وضع الاتصال"><select value={draft.connectionMode || "gateway"} onChange={(e) => updateDraft("connectionMode", e.target.value as ConnectionMode)} className={input}><option value="gateway">عبر بوابة</option><option value="local">محلي (نفس الجهاز)</option></select></Field>
           </div>
 
