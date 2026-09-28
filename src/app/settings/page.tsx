@@ -9,7 +9,7 @@ type Inverter = {
   inverterAddress?: string | null; serialPort?: string | null; port?: number | null; baudRate?: number;
   dataBits?: number; stopBits?: number; parity?: "N" | "E" | "O"; slaveId?: number; timeoutMs?: number;
   pollingIntervalMs?: number; gatewayUrl?: string | null; gatewayName?: string | null; connectionMode?: ConnectionMode;
-  wifiSsid?: string | null; hasWifiPassword?: boolean; enabled: boolean; isPrimary: boolean;
+  wifiSsid?: string | null; hasWifiPassword?: boolean; enabled: boolean; isPrimary: boolean; serialNumber?: string | null;
   lastStatus?: string; lastSeenAt?: string | null; lastTestResult?: string | null; lastTestLatencyMs?: number | null; lastTestReason?: string | null;
 };
 
@@ -24,7 +24,7 @@ type Settings = {
 };
 
 const defaults: Settings = {
-  panelPowerW: 6000, batteryCapacityWh: 10000, gridTariff: 0, exportTariff: 0, currency: "USD",
+  panelPowerW: 6000, batteryCapacityWh: 10000, gridTariff: 0, exportTariff: 0, currency: "SYP",
   latitude: 33.8938, longitude: 35.5018, timezone: "Asia/Beirut", panelTilt: null, panelAzimuth: null,
   batteryNominalVoltage: 48, batteryChemistry: null, batteryMinReservePct: 20, batteryMaxChargeA: null,
   batteryMaxDischargeA: null, inverterRatedPowerKw: null, gridPhase: "single", retentionDays: 365, pollIntervalSec: 10,
@@ -83,7 +83,7 @@ export default function SettingsPage() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: draft.id || undefined, systemName: draft.systemName, inverterModel: draft.inverterModel, manufacturer: draft.manufacturer,
-          protocol: draft.protocol, inverterAddress: draft.inverterAddress || "", serialPort: draft.serialPort || "",
+          protocol: draft.protocol, serialNumber: draft.serialNumber || "", inverterAddress: draft.inverterAddress || "", serialPort: draft.serialPort || "",
           port: draft.port, baudRate: draft.baudRate, dataBits: draft.dataBits, stopBits: draft.stopBits,
           parity: draft.parity, slaveId: draft.slaveId, timeoutMs: draft.timeoutMs, pollingIntervalMs: draft.pollingIntervalMs,
           gatewayUrl: draft.gatewayUrl || "", gatewayName: draft.gatewayName || "", connectionMode: draft.connectionMode || "gateway",
@@ -217,6 +217,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between gap-2"><div><h3 className="font-black text-slate-900">تفاصيل الاتصال</h3><p className="mt-0.5 text-xs font-semibold text-slate-500">البيانات الأساسية ثم الخيارات المتقدمة عند الحاجة.</p></div><span className={"rounded-full px-3 py-1.5 text-xs font-black " + (draft.lastStatus === "connected" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600")}>{draft.lastStatus === "connected" ? "متصل" : draft.lastStatus === "error" ? "غير متصل" : "غير معروف"}</span></div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="اسم المنظومة"><input value={draft.systemName} onChange={(e) => updateDraft("systemName", e.target.value)} className={input} /></Field>
+            <Field label="الرقم التسلسلي (SN)"><input dir="ltr" value={draft.serialNumber || ""} onChange={(e) => updateDraft("serialNumber", e.target.value)} placeholder="مثلاً: SN123456789" className={input} /></Field>
             <Field label="نوع / موديل الإنفرتر"><select value={draft.inverterModel} onChange={(e) => updateDraft("inverterModel", e.target.value)} className={input}><option>Felicity</option><option>Deye</option><option>Growatt</option><option>Voltronic</option><option>غير ذلك</option></select></Field>
             <Field label="بروتوكول الاتصال"><select value={draft.protocol} onChange={(e) => updateDraft("protocol", e.target.value as Protocol)} className={input}><option>Modbus RTU</option><option>Modbus TCP</option><option>Wi-Fi Datalogger</option></select></Field>
             <Field label="وضع الاتصال"><select value={draft.connectionMode || "gateway"} onChange={(e) => updateDraft("connectionMode", e.target.value as ConnectionMode)} className={input}><option value="gateway">عبر بوابة</option><option value="local">محلي (نفس الجهاز)</option></select></Field>
