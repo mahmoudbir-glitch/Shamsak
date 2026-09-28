@@ -43,6 +43,7 @@ export default function SettingsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [newToken, setNewToken] = useState("");
+  const [auditItems, setAuditItems] = useState<Array<{ id: string; action: string; details: string | null; timestamp: string }>>([]);
 
   const selected = useMemo(() => inverters.find((item) => item.id === selectedId) ?? draft, [inverters, selectedId, draft]);
 
@@ -65,7 +66,7 @@ export default function SettingsPage() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); void fetch("/api/settings/audit", { cache: "no-store" }).then((r) => r.ok ? r.json() : null).then((d) => setAuditItems(d?.items || [])).catch(() => {}); }, []);
 
   const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => setSettings((old) => ({ ...old, [key]: value }));
   const updateDraft = <K extends keyof Inverter>(key: K, value: Inverter[K]) => setDraft((old) => old ? ({ ...old, [key]: value }) : old);
@@ -220,6 +221,19 @@ export default function SettingsPage() {
         <h2 className="text-xl font-black">🧠 البيانات والذاكرة</h2>
         <div className="grid gap-4 sm:grid-cols-2"><label className="space-y-2"><span className="font-bold">مدة حفظ السجل التاريخي</span><select value={settings.retentionDays} onChange={(e) => updateSetting("retentionDays", Number(e.target.value))} className={input}><option value={30}>30 يوماً</option><option value={90}>90 يوماً</option><option value={180}>180 يوماً</option><option value={365}>365 يوماً</option><option value={0}>بلا حد</option></select></label><label className="space-y-2"><span className="font-bold">تكرار قراءة الإنفرتر</span><select value={settings.pollIntervalSec} onChange={(e) => updateSetting("pollIntervalSec", Number(e.target.value))} className={input}><option value={5}>5 ثوانٍ</option><option value={10}>10 ثوانٍ</option><option value={30}>30 ثانية</option><option value={60}>60 ثانية</option></select></label></div>
         <p className="text-sm font-semibold text-slate-500">التصدير والنسخ الاحتياطي ومسح السجل تُضاف فقط عند توفر مسارات بيانات آمنة ومكتملة؛ لن تظهر أزراراً وهمية لا تنفذ فعلياً.</p>
+      </section>
+
+      <section className="energy-card space-y-4 p-5">
+        <h2 className="text-xl font-black">📤 البيانات وسجل النشاط</h2>
+        <div className="flex flex-wrap gap-2">
+          <a href="/api/settings/export" className="rounded-xl bg-slate-900 px-4 py-3 font-black text-white">تصدير البيانات CSV</a>
+          <button type="button" onClick={async () => { if (!window.confirm("سيتم حذف سجل القياسات التاريخية نهائياً. هل أنت متأكد؟")) return; const response = await fetch("/api/settings/export", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirm: "مسح السجل" }) }); const data = await response.json().catch(() => ({})); if (!response.ok) setError(data.message || "تعذر مسح السجل."); else setMessage("تم مسح سجل القياسات التاريخية."); }} className="rounded-xl bg-rose-50 px-4 py-3 font-black text-rose-700">مسح السجل</button>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-4">
+          <h3 className="font-black">سجل النشاط</h3>
+          {auditItems.length === 0 ? <p className="mt-2 text-sm font-semibold text-slate-500">لا توجد أحداث مرتبطة بحساب قاعدة البيانات الحالي.</p> :
+            <div className="mt-3 space-y-2">{auditItems.map((item) => <div key={item.id} className="rounded-xl bg-white p-3 text-sm"><strong>{item.action}</strong><div className="text-slate-500">{new Date(item.timestamp).toLocaleString("ar")} · {item.details || "—"}</div></div>)}</div>}
+        </div>
       </section>
 
       <section className="energy-card space-y-4 p-5">
