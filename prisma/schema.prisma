@@ -3,10 +3,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-generator client { provider = "prisma-client-js" }
+generator client {
+  provider = "prisma-client-js"
+}
 
-enum Role { OWNER FAMILY_MEMBER TECHNICIAN LOCAL_ADMIN }
-enum SystemStatus { NORMAL ATTENTION_NEEDED FAULT }
+enum Role {
+  OWNER
+  FAMILY_MEMBER
+  TECHNICIAN
+  LOCAL_ADMIN
+}
+enum SystemStatus {
+  NORMAL
+  ATTENTION_NEEDED
+  FAULT
+}
 
 model User {
   id String @id @default(uuid())
