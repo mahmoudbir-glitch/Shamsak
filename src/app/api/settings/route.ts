@@ -16,7 +16,7 @@ const settingsSchema = z.object({
   longitude: z.number().finite().min(-180).max(180).optional(),
   timezone: z.string().trim().min(1).max(64).optional(),
   panelTilt: z.number().finite().min(0).max(90).nullable().optional(),
-  panelAzimuth: z.number().finite().min(-180).max(180).nullable().optional(),
+  panelAzimuth: z.number().finite().min(0).max(360).nullable().optional(),
   batteryNominalVoltage: z.number().int().refine((v) => [12, 24, 48].includes(v), "جهد البطارية يجب أن يكون 12 أو 24 أو 48 فولت.").optional(),
   batteryChemistry: z.enum(["LiFePO4", "Lithium-ion", "Lead-acid", "Gel", "AGM"]).nullable().optional(),
   batteryMinReservePct: z.number().finite().min(0).max(100).optional(),
