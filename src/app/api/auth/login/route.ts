@@ -3,6 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 import { verifyPassword } from "@/lib/auth-password";
 import { createSessionToken, sessionCookie } from "@/lib/auth-session";
 import { getAuthConfig } from "@/lib/auth-config";
+import { MONITORING_ACTIONS, recordMonitoringEvent } from "@/lib/monitoring";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +29,6 @@ export async function POST(request: NextRequest) {
 
   const input = body as { username?: unknown; password?: unknown; next?: unknown };
   const username = typeof input.username === "string" ? input.username.trim() : "";
-  // Passwords are compared exactly as entered; never trim or transform them.
   const password = typeof input.password === "string" ? input.password : "";
   const next =
     typeof input.next === "string" && input.next.startsWith("/") && !input.next.startsWith("//")
@@ -69,6 +69,12 @@ export async function POST(request: NextRequest) {
     const nextState = attempts.get(key) || { count: 0, resetAt: now + WINDOW_MS };
     nextState.count++;
     attempts.set(key, nextState);
+    await recordMonitoringEvent({
+      action: MONITORING_ACTIONS.LOGIN_FAILED,
+      username: username || null,
+      success: false,
+      details: usernameOk ? "password_mismatch" : "username_mismatch",
+    });
     return NextResponse.json(
       { error: usernameOk ? "invalid_password" : "invalid_username" },
       { status: 401 },
@@ -79,6 +85,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const token = await createSessionToken(config.username);
+    await recordMonitoringEvent({
+      action: MONITORING_ACTIONS.LOGIN_SUCCESS,
+      username: config.username,
+      success: true,
+      details: "Credentials accepted and session created.",
+    });
     const response = NextResponse.json({ ok: true, redirectTo: next });
     response.cookies.set(sessionCookie(token));
     return response;
