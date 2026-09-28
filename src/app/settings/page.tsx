@@ -19,6 +19,9 @@ type Settings = {
   panelPowerW: number; batteryCapacityWh: number; gridTariff: number; exportTariff: number; currency: string;
   latitude: number; longitude: number; timezone: string; panelTilt: number | null; panelAzimuth: number | null;
   batteryNominalVoltage: number; batteryChemistry: string | null; batteryMinReservePct: number;
+  bulkChargeVoltage: number | null; floatChargeVoltage: number | null; lowDcCutoffVoltage: number | null;
+  backToGridVoltage: number | null; maxChargeCurrentA: number | null;
+  outputSourcePriority: "SBU" | "SUB"; chargerSourcePriority: "CSO" | "SNU";
   batteryMaxChargeA: number | null; batteryMaxDischargeA: number | null; inverterRatedPowerKw: number | null;
   gridPhase: "single" | "three"; gridType: "on-grid" | "off-grid" | "hybrid"; retentionDays: number; pollIntervalSec: number;
   lowBatteryPct: number; criticalBatteryPct: number; gridOutageAlert: boolean; faultAlert: boolean;
@@ -28,8 +31,10 @@ type Settings = {
 const defaults: Settings = {
   panelPowerW: 6000, batteryCapacityWh: 10000, gridTariff: 0, exportTariff: 0, currency: "SYP",
   latitude: 33.8938, longitude: 35.5018, timezone: "Asia/Beirut", panelTilt: null, panelAzimuth: null,
-  batteryNominalVoltage: 48, batteryChemistry: "LiFePO4", batteryMinReservePct: 20, batteryMaxChargeA: null,
-  batteryMaxDischargeA: null, inverterRatedPowerKw: 8.2, gridPhase: "single", gridType: "hybrid", retentionDays: 365, pollIntervalSec: 10,
+  batteryNominalVoltage: 48, batteryChemistry: "LiFePO4", batteryMinReservePct: 20,
+  bulkChargeVoltage: 56.4, floatChargeVoltage: 54.0, lowDcCutoffVoltage: 45.0, backToGridVoltage: 46.0,
+  maxChargeCurrentA: 50, outputSourcePriority: "SBU", chargerSourcePriority: "CSO",
+  batteryMaxChargeA: 50, batteryMaxDischargeA: null, inverterRatedPowerKw: 8.2, gridPhase: "single", gridType: "hybrid", retentionDays: 365, pollIntervalSec: 10,
   lowBatteryPct: 20, criticalBatteryPct: 10, gridOutageAlert: true, faultAlert: true, offlineMinutes: 10,
   overloadPct: 90, channels: "in_app", quietHoursStart: null, quietHoursEnd: null,
 };
@@ -298,6 +303,56 @@ export default function SettingsPage() {
           <SettingsField label="طور الشبكة"><select value={settings.gridPhase} onChange={(e) => updateSetting("gridPhase", e.target.value as "single" | "three")} className={input}><option value="single">أحادية</option><option value="three">ثلاثية</option></select></SettingsField>
           <SettingsField label={<>ميل الألواح <bdi dir="ltr">(°)</bdi></>}><input type="number" min={0} max={90} value={settings.panelTilt ?? ""} onChange={(e) => updateSetting("panelTilt", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
           <SettingsField label={<>اتجاه الألواح <bdi dir="ltr">(°)</bdi></>}><input type="number" min={0} max={360} value={settings.panelAzimuth ?? ""} onChange={(e) => updateSetting("panelAzimuth", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection icon="🔋" title="الشحن والحماية — Safe Zone" subtitle="إعدادات البطارية والأولوية مع منع التعارض بين حدود الجهد">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">
+          <div className="font-black">⚠️ تنبيه مهم</div>
+          <p className="mt-1 leading-6">هذه القيم قالب مرجعي داخل شمسك وليست أمرًا عامًا لكل موديلات العواكس. في بطاريات الليثيوم يجب اعتماد مواصفات الشركة وBMS قبل إرسال أي قيمة إلى العاكس الفعلي.</p>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <SettingsField label="نوع البطارية"><select value={settings.batteryChemistry || ""} onChange={(e) => updateSetting("batteryChemistry", e.target.value || null)} className={input}><option value="">غير محدد</option><option>LiFePO4</option><option>Lithium-ion</option><option>Lead-acid</option><option>Gel</option><option>AGM</option></select></SettingsField>
+          <SettingsField label="جهد منظومة البطارية"><select value={settings.batteryNominalVoltage} onChange={(e) => updateSetting("batteryNominalVoltage", Number(e.target.value))} className={input}><option value={24}>24V</option><option value={48}>48V</option></select></SettingsField>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <SettingsField label={<>Bulk / CV <bdi dir="ltr">(V)</bdi></>}><input dir="ltr" type="number" step="0.1" min={20} max={60} value={settings.bulkChargeVoltage ?? ""} onChange={(e) => updateSetting("bulkChargeVoltage", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
+          <SettingsField label={<>Float <bdi dir="ltr">(V)</bdi></>}><input dir="ltr" type="number" step="0.1" min={20} max={60} value={settings.floatChargeVoltage ?? ""} onChange={(e) => updateSetting("floatChargeVoltage", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
+          <SettingsField label={<>Low DC Cut-off <bdi dir="ltr">(V)</bdi></>}><input dir="ltr" type="number" step="0.1" min={15} max={60} value={settings.lowDcCutoffVoltage ?? ""} onChange={(e) => updateSetting("lowDcCutoffVoltage", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
+          <SettingsField label={<>Back to Grid <bdi dir="ltr">(V)</bdi></>}><input dir="ltr" type="number" step="0.1" min={15} max={60} value={settings.backToGridVoltage ?? ""} onChange={(e) => updateSetting("backToGridVoltage", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
+          <SettingsField label={<>Max Charge Current <bdi dir="ltr">(A)</bdi></>}><input dir="ltr" type="number" step="1" min={1} max={300} value={settings.maxChargeCurrentA ?? ""} onChange={(e) => updateSetting("maxChargeCurrentA", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
+          <SettingsField label="Output Source Priority"><select value={settings.outputSourcePriority} onChange={(e) => updateSetting("outputSourcePriority", e.target.value as "SBU" | "SUB")} className={input}><option value="SBU">SBU — شمسي ← بطارية ← شبكة</option><option value="SUB">SUB — شمسي ← شبكة ← بطارية</option></select></SettingsField>
+          <SettingsField label="Charger Source Priority"><select value={settings.chargerSourcePriority} onChange={(e) => updateSetting("chargerSourcePriority", e.target.value as "CSO" | "SNU")} className={input}><option value="CSO">CSO — شمسي فقط</option><option value="SNU">SNU — شمسي + شبكة</option></select></SettingsField>
+        </div>
+        <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
+          <div className="font-black text-slate-900">القيم المرجعية</div>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <div>24V GEL/رصاص: <bdi dir="ltr">Bulk 28.2V · Float 27.0V · Cut-off 21.5V · Back to Grid 23.0V</bdi></div>
+            <div>48V GEL/رصاص: <bdi dir="ltr">Bulk 56.4V · Float 54.0V · Cut-off 43.0V · Back to Grid 46.0V</bdi></div>
+            <div>200Ah GEL/رصاص: <bdi dir="ltr">30A</bdi> كقيمة بدء محافظة.</div>
+            <div>ليثيوم: <bdi dir="ltr">50A</bdi> كقيمة مرجعية، والجهد النهائي حسب BMS/الشركة.</div>
+          </div>
+        </div>
+        <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm font-bold text-blue-900">
+          <div className="font-black">🛡️ فحص التعارض</div>
+          <p className="mt-1">Low DC Cut-off يجب أن يكون أقل من Back to Grid، وFloat أقل من Bulk / CV. شمسك سيرفض الحفظ عند وجود تعارض.</p>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button type="button" onClick={() => {
+            const v = settings.batteryNominalVoltage;
+            const lithium = settings.batteryChemistry === "LiFePO4" || settings.batteryChemistry === "Lithium-ion";
+            if (v === 24) {
+              updateSetting("bulkChargeVoltage", 28.2); updateSetting("floatChargeVoltage", 27.0);
+              updateSetting("lowDcCutoffVoltage", lithium ? 22.5 : 21.5); updateSetting("backToGridVoltage", 23.0);
+            } else {
+              updateSetting("bulkChargeVoltage", 56.4); updateSetting("floatChargeVoltage", 54.0);
+              updateSetting("lowDcCutoffVoltage", lithium ? 45.0 : 43.0); updateSetting("backToGridVoltage", 46.0);
+            }
+            updateSetting("maxChargeCurrentA", lithium ? 50 : 30); updateSetting("batteryMaxChargeA", lithium ? 50 : 30);
+            updateSetting("outputSourcePriority", "SBU"); updateSetting("chargerSourcePriority", "CSO");
+            setMessage("تم تحميل قالب Safe Zone على الحقول. اضغط «حفظ» لتطبيقه داخل شمسك."); setError("");
+          }} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white">🛡️ تحميل Safe Zone</button>
+          <button type="button" onClick={() => { setSettings(defaults); setMessage("تمت إعادة القيم الافتراضية داخل الصفحة. لم يتم حذف سجل القياسات."); setError(""); }} className="rounded-xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700">↺ إعادة القيم الافتراضية</button>
         </div>
       </SettingsSection>
 
