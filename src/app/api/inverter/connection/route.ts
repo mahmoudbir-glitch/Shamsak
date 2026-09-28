@@ -21,6 +21,7 @@ const connectionSchema = z.object({
   id: z.string().min(1).max(80).optional(),
   systemName: z.string().trim().min(1).max(120),
   inverterModel: z.string().trim().min(1).max(120),
+  serialNumber: z.string().trim().max(160).optional(),
   manufacturer: z.string().trim().max(80).optional(),
   protocol: z.enum(["Modbus RTU", "Modbus TCP", "Wi-Fi Datalogger"]),
   inverterAddress: z.string().trim().max(255).optional(),
@@ -59,7 +60,7 @@ async function audit(username: string, action: string, details: string) {
 
 function publicConnection(row: InverterConnection) {
   return {
-    id: row.id, systemName: row.systemName, inverterModel: row.inverterModel, manufacturer: row.manufacturer,
+    id: row.id, systemName: row.systemName, inverterModel: row.inverterModel, serialNumber: row.serialNumber, manufacturer: row.manufacturer,
     protocol: row.protocol, inverterAddress: row.inverterAddress, serialPort: row.serialPort, port: row.port,
     baudRate: row.baudRate, dataBits: row.dataBits, stopBits: row.stopBits, parity: row.parity,
     slaveId: row.slaveId, timeoutMs: row.timeoutMs, pollingIntervalMs: row.pollingIntervalMs,
@@ -160,6 +161,7 @@ export async function POST(request: NextRequest) {
     const data = {
       systemName: input.systemName,
       inverterModel: input.inverterModel,
+      serialNumber: input.serialNumber || null,
       manufacturer: input.manufacturer || input.inverterModel,
       protocol: input.protocol,
       inverterAddress: input.inverterAddress || null,
