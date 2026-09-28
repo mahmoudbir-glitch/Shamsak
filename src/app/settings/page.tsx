@@ -45,6 +45,8 @@ export default function SettingsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [newToken, setNewToken] = useState("");
+  const [scanningDongle, setScanningDongle] = useState(false);
+  const [scanError, setScanError] = useState("");
   const [auditItems, setAuditItems] = useState<Array<{ id: string; action: string; details: string | null; timestamp: string }>>([]);
 
   const selected = useMemo(() => inverters.find((item) => item.id === selectedId) ?? draft, [inverters, selectedId, draft]);
@@ -88,9 +90,11 @@ export default function SettingsPage() {
           protocol: draft.protocol, serialNumber: draft.serialNumber || "", inverterAddress: draft.inverterAddress || "", serialPort: draft.serialPort || "",
           port: draft.port, baudRate: draft.baudRate, dataBits: draft.dataBits, stopBits: draft.stopBits,
           parity: draft.parity, slaveId: draft.slaveId, timeoutMs: draft.timeoutMs, pollingIntervalMs: draft.pollingIntervalMs,
-          gatewayUrl: draft.gatewayUrl || "", gatewayName: draft.gatewayName || "", connectionMode: draft.connectionMode || "gateway",
+          gatewayUrl: draft.connectionMode === "local" ? "" : (draft.gatewayUrl || ""),
+          gatewayName: "",
+          connectionMode: draft.connectionMode || "gateway",
           enabled: draft.enabled, isPrimary: draft.isPrimary,
-          mqttBroker: draft.mqttBroker || "", mqttPort: draft.mqttPort, mqttTls: draft.mqttTls, mqttUsername: draft.mqttUsername || "", mqttPassword: (draft as Inverter & { mqttPassword?: string }).mqttPassword || "", mqttClientId: draft.mqttClientId || "", mqttReadTopic: draft.mqttReadTopic || "", mqttStatusTopic: draft.mqttStatusTopic || "", mqttCommandTopic: draft.mqttCommandTopic || "", mqttQos: draft.mqttQos, mqttKeepAlive: draft.mqttKeepAlive,
+          mqttBroker: draft.mqttBroker || "mqtt.shamsak.com", mqttPort: draft.mqttPort || 1883, mqttTls: draft.mqttTls, mqttUsername: draft.mqttUsername || "", mqttPassword: (draft as Inverter & { mqttPassword?: string }).mqttPassword || "", mqttClientId: draft.mqttClientId || "", mqttReadTopic: draft.mqttReadTopic || "", mqttStatusTopic: draft.mqttStatusTopic || "", mqttCommandTopic: draft.mqttCommandTopic || "", mqttQos: draft.mqttQos, mqttKeepAlive: draft.mqttKeepAlive,
           cloudApiUrl: draft.cloudApiUrl || "", cloudAuthType: draft.cloudAuthType, cloudApiKey: (draft as Inverter & { cloudApiKey?: string }).cloudApiKey || "", cloudBearerToken: (draft as Inverter & { cloudBearerToken?: string }).cloudBearerToken || "", cloudUsername: draft.cloudUsername || "", cloudPassword: (draft as Inverter & { cloudPassword?: string }).cloudPassword || "", cloudDeviceId: draft.cloudDeviceId || "", cloudReadEndpoint: draft.cloudReadEndpoint || "", cloudStatusEndpoint: draft.cloudStatusEndpoint || "", cloudTls: draft.cloudTls,
         }),
       });
@@ -105,8 +109,8 @@ export default function SettingsPage() {
   const addInverter = () => {
     const item: Inverter = {
       id: "", systemName: "منظومة شمسك", inverterModel: "NEXT - Victor Max 8.2KW", manufacturer: "NEXT", serialNumber: "92085230517098",
-      protocol: "Modbus RTU", serialPort: "", port: 502, baudRate: 9600, dataBits: 8, stopBits: 1, parity: "N",
-      slaveId: 1, timeoutMs: 1000, pollingIntervalMs: 10000, gatewayUrl: "", gatewayName: "", connectionMode: "gateway",
+      protocol: "MQTT", serialPort: "", port: 502, baudRate: 9600, dataBits: 8, stopBits: 1, parity: "N",
+      slaveId: 1, timeoutMs: 1000, pollingIntervalMs: 10000, gatewayUrl: "", gatewayName: "", connectionMode: "gateway", mqttBroker: "mqtt.shamsak.com", mqttPort: 1883,
       enabled: true, isPrimary: inverters.length === 0, lastStatus: "unknown",
     };
     setDraft(item); setSelectedId(""); setMessage(""); setError("");
@@ -148,7 +152,54 @@ export default function SettingsPage() {
       if (!response.ok || !data.ok) throw new Error(data.message || "فشل اختبار الاتصال.");
       setMessage("تم الاتصال بنجاح" + (data.latencyMs ? " — زمن الاستجابة " + data.latencyMs + " ms." : "."));
       await load();
-    } catch (e) { setError(e instanceof Error ? e.message : "تعذر اختبار الاتصال."); }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "تعذر اختبار الاتصال.");
+    }
+  };
+
+  const scanDongleBarcode = async () => {
+    setScanError("");
+    const BarcodeDetectorCtor = (window as unknown as {
+      BarcodeDetector?: new (options?: { formats?: string[] }) => {
+        detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue?: string }>>;
+      };
+    }).BarcodeDetector;
+    if (!BarcodeDetectorCtor) {
+      setScanError("المتصفح الحالي لا يدعم مسح الباركود. أدخل رقم الدونغل يدويًا.");
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setScanError("تعذر الوصول إلى الكاميرا. أدخل رقم الدونغل يدويًا.");
+      return;
+    }
+    setScanningDongle(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } });
+      const video = document.createElement("video");
+      video.setAttribute("playsinline", "true");
+      video.muted = true;
+      video.srcObject = stream;
+      await video.play();
+      const detector = new BarcodeDetectorCtor({ formats: ["qr_code", "code_128", "code_39", "ean_13", "ean_8"] });
+      const deadline = Date.now() + 12000;
+      let value = "";
+      while (Date.now() < deadline && !value) {
+        const codes = await detector.detect(video);
+        value = codes.find((code) => code.rawValue?.trim())?.rawValue?.trim() || "";
+        if (!value) await new Promise((resolve) => window.setTimeout(resolve, 250));
+      }
+      stream.getTracks().forEach((track) => track.stop());
+      if (!value) {
+        setScanError("لم يتم العثور على باركود خلال 12 ثانية.");
+        return;
+      }
+      updateDraft("serialNumber", value);
+      setMessage("تمت قراءة رقم الدونغل بنجاح.");
+    } catch {
+      setScanError("تعذر تشغيل الكاميرا أو قراءة الباركود. أدخل رقم الدونغل يدويًا.");
+    } finally {
+      setScanningDongle(false);
+    }
   };
 
   if (loading) return <div dir="rtl" className="p-6 text-center font-black text-slate-600">جاري تحميل الإعدادات…</div>;
@@ -219,20 +270,54 @@ export default function SettingsPage() {
 
         {draft && <div className="mt-4 space-y-4 rounded-2xl border border-blue-100 bg-blue-50/30 p-3 sm:p-4">
           <div className="flex items-center justify-between gap-2"><div><h3 className="font-black text-slate-900">تفاصيل الاتصال</h3><p className="mt-0.5 text-xs font-semibold text-slate-500">البيانات الأساسية ثم الخيارات المتقدمة عند الحاجة.</p></div><span className={"rounded-full px-3 py-1.5 text-xs font-black " + (draft.lastStatus === "connected" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600")}>{draft.lastStatus === "connected" ? "متصل" : draft.lastStatus === "error" ? "غير متصل" : "غير معروف"}</span></div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="اسم المنظومة"><input value={draft.systemName} onChange={(e) => updateDraft("systemName", e.target.value)} className={input} /></Field>
-            <Field label="الرقم التسلسلي (SN)"><input dir="ltr" value={draft.serialNumber || ""} onChange={(e) => updateDraft("serialNumber", e.target.value)} placeholder="مثلاً: SN123456789" className={input} /></Field>
-            <Field label="نوع / موديل الإنفرتر"><select value={draft.inverterModel} onChange={(e) => updateDraft("inverterModel", e.target.value)} className={input}><option>NEXT - Victor Max 8.2KW</option><option>Felicity</option><option>Deye</option><option>Growatt</option><option>Voltronic</option><option>غير ذلك</option></select></Field>
-            <Field label="نوع الاتصال"><select value={draft.protocol} onChange={(e) => updateDraft("protocol", e.target.value as Protocol)} className={input}><option>Modbus TCP</option><option>Modbus RTU</option><option>MQTT</option><option>Cloud API</option>{draft.protocol === "Wi-Fi Datalogger" && <option>Wi-Fi Datalogger</option>}</select></Field>
-            <Field label="وضع الاتصال"><select value={draft.connectionMode || "gateway"} onChange={(e) => updateDraft("connectionMode", e.target.value as ConnectionMode)} className={input}><option value="gateway">عبر بوابة</option><option value="local">محلي (نفس الجهاز)</option></select></Field>
+          <div className="space-y-4">
+            <div className="rounded-2xl border-2 border-blue-100 bg-white p-4">
+              <Field label="وضع الاتصال">
+                <select
+                  value={draft.connectionMode || "gateway"}
+                  onChange={(e) => {
+                    const mode = e.target.value as ConnectionMode;
+                    updateDraft("connectionMode", mode);
+                    updateDraft("protocol", mode === "local" ? "Modbus TCP" : "MQTT");
+                    if (mode === "local") updateDraft("gatewayUrl", "");
+                    else updateDraft("mqttBroker", draft.mqttBroker || "mqtt.shamsak.com");
+                  }}
+                  className={input}
+                >
+                  <option value="gateway">☁️ سحابي / إنترنت</option>
+                  <option value="local">📍 مباشر / محلي</option>
+                </select>
+              </Field>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              {draft.connectionMode === "local" ? (
+                <Field label="عنوان IP">
+                  <input dir="ltr" inputMode="decimal" value={draft.inverterAddress || ""} onChange={(e) => updateDraft("inverterAddress", e.target.value)} placeholder="192.168.1.50" className={input} />
+                </Field>
+              ) : (
+                <div className="space-y-3">
+                  <Field label="رقم الدونغل">
+                    <input dir="ltr" inputMode="numeric" value={draft.serialNumber || ""} onChange={(e) => updateDraft("serialNumber", e.target.value)} placeholder="أدخل رقم الدونغل" className={input} />
+                  </Field>
+                  <button type="button" disabled={scanningDongle} onClick={() => void scanDongleBarcode()} className="w-full rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 disabled:opacity-50">
+                    {scanningDongle ? "📷 جاري مسح الباركود…" : "📷 مسح الباركود"}
+                  </button>
+                  {scanError && <p role="alert" className="rounded-xl bg-amber-50 p-3 text-xs font-bold text-amber-700">{scanError}</p>}
+                </div>
+              )}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="اسم المنظومة"><input value={draft.systemName} onChange={(e) => updateDraft("systemName", e.target.value)} className={input} /></Field>
+              <Field label="نوع / موديل الإنفرتر"><select value={draft.inverterModel} onChange={(e) => updateDraft("inverterModel", e.target.value)} className={input}><option>NEXT - Victor Max 8.2KW</option><option>Felicity</option><option>Deye</option><option>Growatt</option><option>Voltronic</option><option>غير ذلك</option></select></Field>
+            </div>
           </div>
 
           <details className="rounded-2xl bg-white p-4">
             <summary className="cursor-pointer list-none font-black text-slate-800 [&::-webkit-details-marker]:hidden">⚙️ خيارات الاتصال المتقدمة</summary>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {draft.protocol === "Modbus TCP" && <><Field label="عنوان IP"><input dir="ltr" value={draft.inverterAddress || ""} onChange={(e) => updateDraft("inverterAddress", e.target.value)} placeholder="192.168.1.50" className={input} /></Field><Field label="منفذ TCP"><input dir="ltr" type="number" value={draft.port || 502} onChange={(e) => updateDraft("port", Number(e.target.value))} className={input} /></Field></>}
+              {draft.protocol === "Modbus TCP" && <Field label="منفذ TCP"><input dir="ltr" type="number" value={draft.port || 502} onChange={(e) => updateDraft("port", Number(e.target.value))} className={input} /></Field>}
               {draft.protocol === "Modbus RTU" && <><Field label="المنفذ التسلسلي / RS485"><input dir="ltr" value={draft.serialPort || ""} onChange={(e) => updateDraft("serialPort", e.target.value)} placeholder="COM3 أو /dev/ttyUSB0" className={input} /></Field><Field label="Baud Rate"><select value={draft.baudRate || 9600} onChange={(e) => updateDraft("baudRate", Number(e.target.value))} className={input}><option>9600</option><option>19200</option><option>38400</option><option>57600</option><option>115200</option></select></Field><Field label="Parity"><select value={draft.parity || "N"} onChange={(e) => updateDraft("parity", e.target.value as "N" | "E" | "O")} className={input}><option value="N">None</option><option value="E">Even</option><option value="O">Odd</option></select></Field><Field label="Data bits"><select value={draft.dataBits || 8} onChange={(e) => updateDraft("dataBits", Number(e.target.value))} className={input}><option>8</option><option>7</option></select></Field><Field label="Stop bits"><select value={draft.stopBits || 1} onChange={(e) => updateDraft("stopBits", Number(e.target.value))} className={input}><option>1</option><option>2</option></select></Field><Field label="Slave ID"><input dir="ltr" type="number" min={1} max={247} value={draft.slaveId || 1} onChange={(e) => updateDraft("slaveId", Number(e.target.value))} className={input} /></Field></>}
-              {draft.protocol === "MQTT" && <><Field label="عنوان Broker"><input dir="ltr" value={draft.mqttBroker || ""} onChange={(e) => updateDraft("mqttBroker", e.target.value)} placeholder="mqtt.example.com" className={input} /></Field><Field label="المنفذ"><input dir="ltr" type="number" value={draft.mqttPort || 1883} onChange={(e) => updateDraft("mqttPort", Number(e.target.value))} className={input} /></Field><Field label="اسم المستخدم"><input dir="ltr" value={draft.mqttUsername || ""} onChange={(e) => updateDraft("mqttUsername", e.target.value)} className={input} /></Field><Field label="كلمة المرور"><input dir="ltr" type="password" placeholder={draft.hasMqttPassword ? "محفوظة — أدخل قيمة جديدة فقط للتغيير" : ""} onChange={(e) => updateDraft("mqttPassword" as keyof Inverter, e.target.value)} className={input} /></Field><Field label="Client ID"><input dir="ltr" value={draft.mqttClientId || ""} onChange={(e) => updateDraft("mqttClientId", e.target.value)} className={input} /></Field><Field label="Topic القراءات"><input dir="ltr" value={draft.mqttReadTopic || ""} onChange={(e) => updateDraft("mqttReadTopic", e.target.value)} className={input} /></Field><Field label="Topic الحالة"><input dir="ltr" value={draft.mqttStatusTopic || ""} onChange={(e) => updateDraft("mqttStatusTopic", e.target.value)} className={input} /></Field><Field label="Topic الأوامر"><input dir="ltr" value={draft.mqttCommandTopic || ""} onChange={(e) => updateDraft("mqttCommandTopic", e.target.value)} className={input} /></Field><Field label="QoS"><select value={draft.mqttQos ?? 0} onChange={(e) => updateDraft("mqttQos" as keyof Inverter, Number(e.target.value))} className={input}><option>0</option><option>1</option><option>2</option></select></Field><Field label="Keep Alive (ثانية)"><input dir="ltr" type="number" value={draft.mqttKeepAlive || 60} onChange={(e) => updateDraft("mqttKeepAlive" as keyof Inverter, Number(e.target.value))} className={input} /></Field><label className="flex min-h-12 items-center justify-between rounded-xl bg-slate-50 px-4 text-sm font-bold"><span>SSL / TLS</span><input type="checkbox" checked={Boolean(draft.mqttTls)} onChange={(e) => updateDraft("mqttTls" as keyof Inverter, e.target.checked)} className="h-5 w-5" /></label></>}
+              {draft.protocol === "MQTT" && <><Field label="المنفذ"><input dir="ltr" type="number" value={draft.mqttPort || 1883} onChange={(e) => updateDraft("mqttPort", Number(e.target.value))} className={input} /></Field><Field label="اسم المستخدم"><input dir="ltr" value={draft.mqttUsername || ""} onChange={(e) => updateDraft("mqttUsername", e.target.value)} className={input} /></Field><Field label="كلمة المرور"><input dir="ltr" type="password" placeholder={draft.hasMqttPassword ? "محفوظة — أدخل قيمة جديدة فقط للتغيير" : ""} onChange={(e) => updateDraft("mqttPassword" as keyof Inverter, e.target.value)} className={input} /></Field><Field label="Client ID"><input dir="ltr" value={draft.mqttClientId || ""} onChange={(e) => updateDraft("mqttClientId", e.target.value)} className={input} /></Field><Field label="Topic القراءات"><input dir="ltr" value={draft.mqttReadTopic || ""} onChange={(e) => updateDraft("mqttReadTopic", e.target.value)} className={input} /></Field><Field label="Topic الحالة"><input dir="ltr" value={draft.mqttStatusTopic || ""} onChange={(e) => updateDraft("mqttStatusTopic", e.target.value)} className={input} /></Field><Field label="Topic الأوامر"><input dir="ltr" value={draft.mqttCommandTopic || ""} onChange={(e) => updateDraft("mqttCommandTopic", e.target.value)} className={input} /></Field><Field label="QoS"><select value={draft.mqttQos ?? 0} onChange={(e) => updateDraft("mqttQos" as keyof Inverter, Number(e.target.value))} className={input}><option>0</option><option>1</option><option>2</option></select></Field><Field label="Keep Alive (ثانية)"><input dir="ltr" type="number" value={draft.mqttKeepAlive || 60} onChange={(e) => updateDraft("mqttKeepAlive" as keyof Inverter, Number(e.target.value))} className={input} /></Field><label className="flex min-h-12 items-center justify-between rounded-xl bg-slate-50 px-4 text-sm font-bold"><span>SSL / TLS</span><input type="checkbox" checked={Boolean(draft.mqttTls)} onChange={(e) => updateDraft("mqttTls" as keyof Inverter, e.target.checked)} className="h-5 w-5" /></label></>}
               {draft.protocol === "Cloud API" && <><Field label="عنوان API"><input dir="ltr" value={draft.cloudApiUrl || ""} onChange={(e) => updateDraft("cloudApiUrl" as keyof Inverter, e.target.value)} placeholder="https://api.example.com" className={input} /></Field><Field label="نوع المصادقة"><select value={draft.cloudAuthType || "api_key"} onChange={(e) => updateDraft("cloudAuthType" as keyof Inverter, e.target.value)} className={input}><option value="api_key">API Key</option><option value="bearer">Bearer Token</option><option value="username_password">Username / Password</option></select></Field><Field label="API Key / Token"><input dir="ltr" type="password" onChange={(e) => updateDraft("cloudApiKey" as keyof Inverter, e.target.value)} className={input} /></Field><Field label="اسم المستخدم"><input dir="ltr" value={draft.cloudUsername || ""} onChange={(e) => updateDraft("cloudUsername" as keyof Inverter, e.target.value)} className={input} /></Field><Field label="كلمة المرور"><input dir="ltr" type="password" onChange={(e) => updateDraft("cloudPassword" as keyof Inverter, e.target.value)} className={input} /></Field><Field label="Device ID"><input dir="ltr" value={draft.cloudDeviceId || ""} onChange={(e) => updateDraft("cloudDeviceId" as keyof Inverter, e.target.value)} className={input} /></Field><Field label="Endpoint القراءات"><input dir="ltr" value={draft.cloudReadEndpoint || ""} onChange={(e) => updateDraft("cloudReadEndpoint" as keyof Inverter, e.target.value)} className={input} /></Field><Field label="Endpoint الحالة"><input dir="ltr" value={draft.cloudStatusEndpoint || ""} onChange={(e) => updateDraft("cloudStatusEndpoint" as keyof Inverter, e.target.value)} className={input} /></Field><label className="flex min-h-12 items-center justify-between rounded-xl bg-slate-50 px-4 text-sm font-bold"><span>SSL / TLS</span><input type="checkbox" checked={draft.cloudTls !== false} onChange={(e) => updateDraft("cloudTls" as keyof Inverter, e.target.checked)} className="h-5 w-5" /></label></>}
               <Field label={<>مهلة الاستجابة <bdi dir="ltr">(ms)</bdi></>}><input dir="ltr" type="number" min={200} max={10000} value={draft.timeoutMs || 1000} onChange={(e) => updateDraft("timeoutMs", Number(e.target.value))} className={input} /></Field>
               <Field label={<>فترة القراءة <bdi dir="ltr">(ms)</bdi></>}><input dir="ltr" type="number" min={2000} max={300000} value={draft.pollingIntervalMs || 10000} onChange={(e) => updateDraft("pollingIntervalMs", Number(e.target.value))} className={input} /></Field>
@@ -240,14 +325,20 @@ export default function SettingsPage() {
             </div>
           </details>
 
-          {draft.connectionMode === "gateway" && <details className="rounded-2xl bg-white p-4">
-            <summary className="cursor-pointer list-none font-black text-slate-800 [&::-webkit-details-marker]:hidden">🌐 إعدادات البوابة المحلية</summary>
-            <div className="mt-4 space-y-3"><Field label="اسم البوابة"><input value={draft.gatewayName || ""} onChange={(e) => updateDraft("gatewayName", e.target.value)} className={input} /></Field><Field label="عنوان البوابة"><input dir="ltr" value={draft.gatewayUrl || ""} onChange={(e) => updateDraft("gatewayUrl", e.target.value)} placeholder="https://gateway.example.com" className={input} /></Field><div className="flex flex-wrap gap-2"><button type="button" onClick={() => void rotateToken()} className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-black text-white">تدوير رمز الربط</button>{newToken && <code dir="ltr" className="w-full break-all rounded-xl bg-slate-50 p-3 text-xs">{newToken}</code>}</div><p className="text-xs font-semibold text-slate-500">رمز الربط لا يُحفظ كنص مكشوف ويظهر مرة واحدة فقط.</p></div>
-          </details>}
 
-          <div className="rounded-2xl bg-white p-4 text-xs font-bold text-slate-500">آخر قراءة: {draft.lastSeenAt ? new Date(draft.lastSeenAt).toLocaleString("ar") : "لا توجد"} · آخر اختبار: {draft.lastTestResult === "success" ? "ناجح" : draft.lastTestResult === "error" ? "فشل" : "غير معروف"} {draft.lastTestLatencyMs ? "· " + draft.lastTestLatencyMs + " ms" : ""}</div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => void testConnection()} className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-black text-white">🔌 اختبار الاتصال</button>
+
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+            {draft.connectionMode === "gateway" && <button type="button" onClick={() => void rotateToken()} className="min-w-52 rounded-xl bg-slate-900 px-5 py-3.5 text-sm font-black text-white shadow-sm">🔄 توليد / تدوير رمز الربط</button>}
+            <button type="button" onClick={() => void testConnection()} className="min-w-52 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white shadow-sm">🔌 اختبار الاتصال</button>
+          </div>
+          {newToken && draft.connectionMode === "gateway" && <div className="rounded-xl bg-slate-900 p-3 text-center text-xs font-bold text-white"><span>رمز الربط — يظهر مرة واحدة فقط:</span><code dir="ltr" className="mt-2 block break-all">{newToken}</code></div>}
+          <div className={"rounded-2xl border p-4 text-center " + (draft.lastTestResult === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : draft.lastTestResult === "error" ? "border-rose-200 bg-rose-50 text-rose-800" : "border-slate-200 bg-slate-50 text-slate-600")}>
+            <div className="text-sm font-black">{draft.lastTestResult === "success" ? "✓ الاتصال ناجح" : draft.lastTestResult === "error" ? "✕ فشل الاتصال" : "حالة الاتصال"}</div>
+            <div className="mt-1 text-xs font-bold">آخر قراءة: {draft.lastSeenAt ? new Date(draft.lastSeenAt).toLocaleString("ar") : "لا توجد"} · آخر اختبار: {draft.lastTestResult === "success" ? "ناجح" : draft.lastTestResult === "error" ? "فشل" : "لم يتم الاختبار بعد"} {draft.lastTestLatencyMs ? "· " + draft.lastTestLatencyMs + " ms" : ""}</div>
+            {draft.lastTestReason && <div className="mt-2 text-xs font-bold">{draft.lastTestReason}</div>}
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-2">
             {draft.id && !draft.isPrimary && <button type="button" onClick={() => void setPrimary()} className="rounded-xl bg-blue-100 px-4 py-3 text-sm font-black text-blue-700">تعيين كأساسي</button>}
             {draft.id && <button type="button" onClick={() => void deleteInverter()} className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-black text-rose-700">حذف</button>}
           </div>
