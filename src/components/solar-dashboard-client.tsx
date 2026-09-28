@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Activity, CloudSun, RefreshCw, ShieldCheck, WifiOff, Zap } from 'lucide-react';
+import { CloudSun } from 'lucide-react';
 import { EnergyFlow } from '@/components/energy-flow';
 import type { EnergySnapshot } from '@/lib/energy';
 
@@ -22,7 +22,6 @@ export default function SolarDashboardClient() {
   const [snapshot, setSnapshot] = useState<EnergySnapshot | null>(null);
   const [isLive, setIsLive] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   const loadTelemetry = useCallback(async () => {
     try {
@@ -39,7 +38,6 @@ export default function SolarDashboardClient() {
       setIsLive(false);
       setError('تعذر الوصول إلى بيانات الإنفرتر الحية');
     } finally {
-      setLoading(false);
     }
   }, []);
 
