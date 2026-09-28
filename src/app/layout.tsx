@@ -18,11 +18,17 @@ export const metadata: Metadata = {
   },
 };
 
+const INITIAL_BACKGROUND = "#f8fafc";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ar" dir="rtl">
-      <body className="min-h-screen w-full text-slate-900 antialiased">
+    <html lang="ar" dir="rtl" style={{ backgroundColor: INITIAL_BACKGROUND }}>
+      <body
+        className="min-h-screen w-full bg-[#f8fafc] text-slate-900 antialiased"
+        style={{ backgroundColor: INITIAL_BACKGROUND }}
+      >
         <AppShell>{children}</AppShell>
-      </body>   </html>
+      </body>
+    </html>
   );
 }
