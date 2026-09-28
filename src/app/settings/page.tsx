@@ -81,7 +81,7 @@ export default function SettingsPage() {
       const connectionResponse = await fetch("/api/inverter/connection", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: draft.id, systemName: draft.systemName, inverterModel: draft.inverterModel, manufacturer: draft.manufacturer,
+          id: draft.id || undefined, systemName: draft.systemName, inverterModel: draft.inverterModel, manufacturer: draft.manufacturer,
           protocol: draft.protocol, inverterAddress: draft.inverterAddress || "", serialPort: draft.serialPort || "",
           port: draft.port, baudRate: draft.baudRate, dataBits: draft.dataBits, stopBits: draft.stopBits,
           parity: draft.parity, slaveId: draft.slaveId, timeoutMs: draft.timeoutMs, pollingIntervalMs: draft.pollingIntervalMs,
