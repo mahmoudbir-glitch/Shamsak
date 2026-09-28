@@ -31,18 +31,18 @@ export default function MoneyDashboard() {
   const [notifyLowBattery, setNotifyLowBattery] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setTariff(Number(localStorage.getItem("shamsak_grid_tariff") || 0));
-    setExportTariff(Number(localStorage.getItem("shamsak_export_tariff") || 0));
-    setCurrency(localStorage.getItem("shamsak_currency") || "ل.س");
     const savedNotifySurplus = localStorage.getItem("shamsak_notify_surplus");
     const savedNotifyLowBattery = localStorage.getItem("shamsak_notify_low_battery");
     if (savedNotifySurplus !== null) setNotifySurplus(savedNotifySurplus !== "false");
     if (savedNotifyLowBattery !== null) setNotifyLowBattery(savedNotifyLowBattery !== "false");
-    fetch("/api/finance", { cache: "no-store" })
-      .then((response) => response.ok ? response.json() : Promise.reject(new Error("finance_unavailable")))
-      .then((value) => setData(value as FinanceData))
+    Promise.all([fetch("/api/settings", { cache: "no-store" }), fetch("/api/finance", { cache: "no-store" })])
+      .then(async ([settingsResponse, financeResponse]) => {
+        if (settingsResponse.ok) { const settings = await settingsResponse.json(); setTariff(Number(settings.gridTariff || 0)); setExportTariff(Number(settings.exportTariff || 0)); setCurrency(String(settings.currency || "ل.س")); }
+        if (financeResponse.ok) setData(await financeResponse.json()); else setData(null);
+      })
       .catch(() => setData(null))
       .finally(() => setLoading(false));
   }, []);
@@ -63,14 +63,16 @@ export default function MoneyDashboard() {
     { name: "من الشبكة", pct: data.sources.gridPct, kwh: data.sources.gridKWh, color: "bg-purple-500" },
   ] : [];
 
-  const handleSave = () => {
-    localStorage.setItem("shamsak_currency", currency);
-    localStorage.setItem("shamsak_grid_tariff", String(tariff));
-    localStorage.setItem("shamsak_export_tariff", String(exportTariff));
-    localStorage.setItem("shamsak_notify_surplus", String(notifySurplus));
-    localStorage.setItem("shamsak_notify_low_battery", String(notifyLowBattery));
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 3000);
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch("/api/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ currency, gridTariff: tariff, exportTariff }) });
+      if (!response.ok) throw new Error("settings_save_failed");
+      localStorage.setItem("shamsak_notify_surplus", String(notifySurplus));
+      localStorage.setItem("shamsak_notify_low_battery", String(notifyLowBattery));
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 3000);
+    } catch { setSaved(false); } finally { setSaving(false); }
   };
 
   const inputClass = "w-full min-h-14 rounded-xl border border-slate-200 bg-slate-50 px-4 text-lg font-bold text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
@@ -163,7 +165,7 @@ export default function MoneyDashboard() {
       {saved && <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center text-base font-black text-emerald-700">✓ تم حفظ التفضيلات المالية والتنبيهات بنجاح</div>}
 
       <button type="button" onClick={handleSave} className="mb-4 min-h-16 w-full rounded-2xl bg-slate-900 px-5 py-4 text-lg font-bold text-white shadow-md transition active:scale-95 active:bg-slate-800">
-        حفظ وتثبيت الإعدادات في ذاكرة الهاتف
+        {saving ? "جاري الحفظ…" : "حفظ وتثبيت الإعدادات"}
       </button>
     </div>
   );
