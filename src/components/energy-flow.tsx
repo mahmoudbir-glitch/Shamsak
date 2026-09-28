@@ -192,7 +192,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             style={solarActive ? { boxShadow: `0 10px 28px rgba(245,158,11,${solarGlowStrength}), 0 0 ${Math.round(18 + Math.abs(solarKw) * 3)}px rgba(245,158,11,${solarGlowStrength * 0.55})`, animation: `energy-node-pulse ${solarPulseDuration}s ease-in-out infinite` } : undefined}
           >
             <span className={solarActive ? "absolute inset-1 rounded-[1rem] border border-amber-300/50 animate-pulse" : "hidden"} />
-            <Sun className={"h-9 w-9 " + semanticIcon[solarTone(solarKw)]} strokeWidth={2.2} />
+            <Sun className="h-9 w-9 text-amber-500" strokeWidth={2.2} />
           </div>
           <div className="mt-1.5 text-xs font-black text-slate-700">الطاقة الشمسية</div>
           <div className={"text-base font-black " + solarToneClass}>{formatKw(solarKw)}</div>
@@ -216,7 +216,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             className="mx-auto flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-100"
             style={homeActive ? { boxShadow: `0 10px 24px rgba(14,165,233,${homeGlowStrength}), 0 0 ${Math.round(16 + Math.abs(homeKw) * 2.5)}px rgba(14,165,233,${homeGlowStrength * 0.5})`, animation: `energy-node-pulse ${homePulseDuration}s ease-in-out infinite` } : undefined}
           >
-            <Home className={"h-8 w-8 " + semanticIcon[loadTone(homeKw)]} strokeWidth={2.1} />
+            <Home className="h-8 w-8 text-sky-500" strokeWidth={2.1} />
           </div>
           <div className="mt-1.5 text-xs font-black text-slate-700">المنزل</div>
           <div className={"text-sm font-black " + homeToneClass}>{formatKw(homeKw)}</div>
@@ -229,7 +229,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             style={batteryCharging || batteryDischarging ? { boxShadow: `0 10px 28px rgba(16,185,129,${batteryGlowStrength}), 0 0 ${Math.round(18 + Math.abs(batteryKw) * 3)}px rgba(16,185,129,${batteryGlowStrength * 0.55})`, animation: `energy-node-pulse ${batteryPulseDuration}s ease-in-out infinite` } : undefined}
           >
             <div className="relative flex h-12 w-12 items-center justify-center rounded-full border-[5px] border-emerald-400 bg-white/80">
-              <BatteryCharging className={"absolute h-5 w-5 -translate-y-3 " + semanticIcon[batteryTone(batteryPercentage)]} strokeWidth={2.3} />
+              <BatteryCharging className="absolute h-5 w-5 -translate-y-3 text-emerald-500" strokeWidth={2.3} />
               <span className={"mt-2 text-sm font-black " + batteryToneClass}>{batteryPercentage.toFixed(0)}%</span>
             </div>
           </div>
