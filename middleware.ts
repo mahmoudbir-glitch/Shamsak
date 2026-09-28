@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
+import { COOKIE_NAME, LOGOUT_MARKER_COOKIE, verifySessionToken } from "@/lib/auth-session";
 
 const PUBLIC_PATHS = new Set(["/login"]);
 
@@ -19,7 +19,8 @@ export async function middleware(request: NextRequest) {
   // when credentials are submitted.
   if (PUBLIC_PATHS.has(pathname)) {
     const token = request.cookies.get(COOKIE_NAME)?.value;
-    const session = await verifySessionToken(token);
+    const loggedOut = request.cookies.get(LOGOUT_MARKER_COOKIE)?.value === "1";
+    const session = loggedOut ? null : await verifySessionToken(token);
 
     if (session) {
       return NextResponse.redirect(new URL("/", request.url));
@@ -32,7 +33,8 @@ export async function middleware(request: NextRequest) {
 
   // Every application page requires a valid signed session cookie.
   const token = request.cookies.get(COOKIE_NAME)?.value;
-  const session = await verifySessionToken(token);
+  const loggedOut = request.cookies.get(LOGOUT_MARKER_COOKIE)?.value === "1";
+  const session = loggedOut ? null : await verifySessionToken(token);
 
   if (session) {
     const response = NextResponse.next();
