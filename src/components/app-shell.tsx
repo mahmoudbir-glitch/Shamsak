@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { BottomNav, DesktopNav } from "@/components/bottom-nav";
 import LogoutButton from "@/components/logout-button";
@@ -8,6 +8,18 @@ import LogoutButton from "@/components/logout-button";
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isLogin = pathname === "/login";
+
+  useEffect(() => {
+    if (isLogin) return;
+    const key = "shamsak_monitoring_app_open_recorded";
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    void fetch("/api/monitoring/event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "APP_OPEN" }),
+    }).catch(() => undefined);
+  }, [isLogin]);
 
   if (isLogin) return <>{children}</>;
 
