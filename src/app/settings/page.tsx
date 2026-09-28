@@ -18,7 +18,7 @@ type Settings = {
   latitude: number; longitude: number; timezone: string; panelTilt: number | null; panelAzimuth: number | null;
   batteryNominalVoltage: number; batteryChemistry: string | null; batteryMinReservePct: number;
   batteryMaxChargeA: number | null; batteryMaxDischargeA: number | null; inverterRatedPowerKw: number | null;
-  gridPhase: "single" | "three"; retentionDays: number; pollIntervalSec: number;
+  gridPhase: "single" | "three"; gridType: "on-grid" | "off-grid" | "hybrid"; retentionDays: number; pollIntervalSec: number;
   lowBatteryPct: number; criticalBatteryPct: number; gridOutageAlert: boolean; faultAlert: boolean;
   offlineMinutes: number; overloadPct: number; channels: "in_app" | "email"; quietHoursStart: string | null; quietHoursEnd: string | null;
 };
@@ -27,7 +27,7 @@ const defaults: Settings = {
   panelPowerW: 6000, batteryCapacityWh: 10000, gridTariff: 0, exportTariff: 0, currency: "SYP",
   latitude: 33.8938, longitude: 35.5018, timezone: "Asia/Beirut", panelTilt: null, panelAzimuth: null,
   batteryNominalVoltage: 48, batteryChemistry: null, batteryMinReservePct: 20, batteryMaxChargeA: null,
-  batteryMaxDischargeA: null, inverterRatedPowerKw: null, gridPhase: "single", retentionDays: 365, pollIntervalSec: 10,
+  batteryMaxDischargeA: null, inverterRatedPowerKw: null, gridPhase: "single", gridType: "hybrid", retentionDays: 365, pollIntervalSec: 10,
   lowBatteryPct: 20, criticalBatteryPct: 10, gridOutageAlert: true, faultAlert: true, offlineMinutes: 10,
   overloadPct: 90, channels: "in_app", quietHoursStart: null, quietHoursEnd: null,
 };
@@ -259,7 +259,8 @@ export default function SettingsPage() {
           <Field label="نوع البطارية"><select value={settings.batteryChemistry || ""} onChange={(e) => updateSetting("batteryChemistry", e.target.value || null)} className={input}><option value="">غير محدد</option><option>LiFePO4</option><option>Lithium-ion</option><option>Lead-acid</option><option>Gel</option><option>AGM</option></select></Field>
           <Field label={<>حد الاحتياطي الأدنى <bdi dir="ltr">(%)</bdi></>}><input type="number" min={0} max={100} value={settings.batteryMinReservePct} onChange={(e) => updateSetting("batteryMinReservePct", Number(e.target.value))} className={input} /></Field>
           <Field label={<>قدرة الإنفرتر الاسمية <bdi dir="ltr">(kW)</bdi></>}><input type="number" min={0} value={settings.inverterRatedPowerKw ?? ""} onChange={(e) => updateSetting("inverterRatedPowerKw", e.target.value ? Number(e.target.value) : null)} className={input} /></Field>
-          <Field label="نوع الشبكة"><select value={settings.gridPhase} onChange={(e) => updateSetting("gridPhase", e.target.value as "single" | "three")} className={input}><option value="single">أحادية</option><option value="three">ثلاثية</option></select></Field>
+          <Field label="نوع الشبكة"><select value={settings.gridType} onChange={(e) => updateSetting("gridType", e.target.value as "on-grid" | "off-grid" | "hybrid")} className={input}><option value="on-grid">On-Grid — مرتبطة بالشبكة</option><option value="off-grid">Off-Grid — مستقلة</option><option value="hybrid">Hybrid — هجينة</option></select></Field>
+          <Field label="طور الشبكة"><select value={settings.gridPhase} onChange={(e) => updateSetting("gridPhase", e.target.value as "single" | "three")} className={input}><option value="single">أحادية</option><option value="three">ثلاثية</option></select></Field>
           <Field label={<>ميل الألواح <bdi dir="ltr">(°)</bdi></>}><input type="number" min={0} max={90} value={settings.panelTilt ?? ""} onChange={(e) => updateSetting("panelTilt", e.target.value ? Number(e.target.value) : null)} className={input} /></Field>
           <Field label={<>اتجاه الألواح <bdi dir="ltr">(°)</bdi></>}><input type="number" min={0} max={360} value={settings.panelAzimuth ?? ""} onChange={(e) => updateSetting("panelAzimuth", e.target.value ? Number(e.target.value) : null)} className={input} /></Field>
         </div>
