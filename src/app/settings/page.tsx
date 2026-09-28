@@ -33,8 +33,6 @@ const defaults: Settings = {
 };
 
 const input = "w-full min-h-12 rounded-xl border border-slate-200 bg-indigo-50/60 px-4 font-bold text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
-const bdi = (value: string) => <bdi dir="ltr">{value}</bdi>;
-
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>(defaults);
   const [inverters, setInverters] = useState<Inverter[]>([]);
