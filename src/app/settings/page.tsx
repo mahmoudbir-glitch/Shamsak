@@ -46,7 +46,7 @@ export default function SettingsPage() {
     setSaved(false);
     const r=await fetch("/api/inverter/connection",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       systemName,inverterModel:model,manufacturer:model==="Felicity"?"Felicity":model,protocol,inverterAddress:address,
-      serialPort,port,baudRate,dataBits,stopBits,parity,slaveId,timeoutMs,pollingIntervalMs,gatewayUrl,
+      serialPort,port,baudRate,dataBits,stopBits,parity,slaveId,timeoutMs,pollingIntervalMs:pollingMs,gatewayUrl,
       panelCapacityKw:panelCapacity,batteryCapacityWh:batteryCapacity
     })});
     const d=await r.json().catch(()=>({}));
