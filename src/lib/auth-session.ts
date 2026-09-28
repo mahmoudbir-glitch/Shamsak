@@ -57,6 +57,6 @@ export function sessionCookie(token:string){
   return {name:COOKIE_NAME,value:token,httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax" as const,path:"/",maxAge:SESSION_TTL_SECONDS};
 }
 export function clearSessionCookie(){
-  return {name:COOKIE_NAME,value:"",httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax" as const,path:"/",maxAge:0};
+  return {name:COOKIE_NAME,value:"",httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax" as const,path:"/",maxAge:0,expires:new Date(0)};
 }
 export { COOKIE_NAME };
