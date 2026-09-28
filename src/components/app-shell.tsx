@@ -19,7 +19,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <span className="flex shrink-0 items-center justify-center text-3xl leading-none" aria-hidden="true">☀️</span>
             <div className="min-w-0">
               <div className="truncate text-xl font-black tracking-tight text-slate-950 sm:text-2xl">شمسك</div>
-              <div className="mt-0.5 text-[9px] font-extrabold text-slate-800 sm:text-[10px]">الشمس تعمل من أجلك</div>
+              <div className="mt-0.5 text-[10px] font-black text-slate-900 sm:text-[11px]">الشمس تعمل من أجلك</div>
             </div>
           </div>
           <LogoutButton />
