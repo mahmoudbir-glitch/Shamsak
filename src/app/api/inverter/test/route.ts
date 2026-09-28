@@ -55,7 +55,8 @@ async function mqttPing(options: {
   keepAlive: number;
   timeoutMs: number;
 }) {
-  const flags = 0x02 | (options.username ? 0x80 : 0) | (options.password ? 0x40 : 0);
+  const hasUsername = Boolean(options.username);
+  const flags = 0x02 | (hasUsername ? 0x80 : 0) | (hasUsername && options.password ? 0x40 : 0);
   const variableHeader = Buffer.concat([
     encodeMqttString("MQTT"),
     Buffer.from([0x04, flags, (options.keepAlive >> 8) & 0xff, options.keepAlive & 0xff]),
@@ -63,7 +64,7 @@ async function mqttPing(options: {
   const payload = Buffer.concat([
     encodeMqttString(options.clientId.slice(0, 200)),
     ...(options.username ? [encodeMqttString(options.username)] : []),
-    ...(options.password ? [encodeMqttString(options.password)] : []),
+    ...(hasUsername && options.password ? [encodeMqttString(options.password)] : []),
   ]);
   const body = Buffer.concat([variableHeader, payload]);
   const packet = Buffer.concat([Buffer.from([0x10]), encodeRemainingLength(body.length), body]);
@@ -97,18 +98,28 @@ async function mqttPing(options: {
       buffer = Buffer.concat([buffer, chunk]);
       if (stage === "connect" && buffer.length >= 4) {
         const packetType = buffer[0] >> 4;
-        const remaining = buffer[1];
-        if (packetType !== 2 || remaining < 2 || buffer.length < remaining + 2) {
+        let multiplier = 1;
+        let remaining = 0;
+        let index = 1;
+        let encoded = 0;
+        do {
+          if (index >= buffer.length || encoded++ > 3) return;
+          const byte = buffer[index++];
+          remaining += (byte & 127) * multiplier;
+          multiplier *= 128;
+          if ((byte & 128) === 0) break;
+        } while (true);
+        if (packetType !== 2 || remaining < 2 || buffer.length < index + remaining) {
           fail(new Error("mqtt_invalid_connack"));
           return;
         }
-        const returnCode = buffer[3];
+        const returnCode = buffer[index + 1];
         if (returnCode !== 0) {
           fail(new Error("mqtt_connack_" + returnCode));
           return;
         }
         stage = "ping";
-        buffer = buffer.subarray(remaining + 2);
+        buffer = buffer.subarray(index + remaining);
         socket.write(ping);
         return;
       }
@@ -120,8 +131,8 @@ async function mqttPing(options: {
       }
     });
 
-    socket.once("connect", () => socket.write(packet));
-    socket.once("secureConnect", () => socket.write(packet));
+    if (options.tls) socket.once("secureConnect", () => socket.write(packet));
+    else socket.once("connect", () => socket.write(packet));
   });
 }
 
