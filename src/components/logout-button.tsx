@@ -12,6 +12,7 @@ export default function LogoutButton(){
     try{await fetch("/api/auth/logout",{method:"POST"});}finally{
       router.replace("/login");
       router.refresh();
+      window.location.href = "/login";
     }
   }
   return <button type="button" onClick={()=>void logout()} disabled={loading} aria-label="تسجيل الخروج"
