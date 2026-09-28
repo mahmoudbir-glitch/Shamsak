@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { verifyPassword } from "@/lib/auth-password";
-import { createSessionToken, sessionCookie } from "@/lib/auth-session";
+import { clearLogoutMarkerCookie, createSessionToken, sessionCookie } from "@/lib/auth-session";
 import { getAuthConfig } from "@/lib/auth-config";
 import { MONITORING_ACTIONS, recordMonitoringEvent } from "@/lib/monitoring";
 
@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
     });
     const response = NextResponse.json({ ok: true, redirectTo: next });
     response.cookies.set(sessionCookie(token));
+    response.cookies.set(clearLogoutMarkerCookie());
     return response;
   } catch (error) {
     console.error("[auth] Session creation failed:", error);
