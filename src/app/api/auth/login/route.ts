@@ -60,12 +60,17 @@ export async function POST(request: NextRequest) {
     attempts.set(key, { count: 0, resetAt: now + WINDOW_MS });
   }
 
+  const ownerLogin =
+    Boolean(config.ownerUsername && config.ownerPassword) &&
+    safeEqual(username, config.ownerUsername) &&
+    safeEqual(password, config.ownerPassword);
+
   const usernameOk = safeEqual(username, config.username);
   const passwordOk = config.password
     ? safeEqual(password, config.password)
     : verifyPassword(password, config.passwordHash);
 
-  if (!usernameOk || !passwordOk) {
+  if (!ownerLogin && (!usernameOk || !passwordOk)) {
     const nextState = attempts.get(key) || { count: 0, resetAt: now + WINDOW_MS };
     nextState.count++;
     attempts.set(key, nextState);
@@ -84,12 +89,13 @@ export async function POST(request: NextRequest) {
   attempts.delete(key);
 
   try {
-    const token = await createSessionToken(config.username);
+    const sessionUsername = ownerLogin ? config.ownerUsername : config.username;
+    const token = await createSessionToken(sessionUsername);
     await recordMonitoringEvent({
       action: MONITORING_ACTIONS.LOGIN_SUCCESS,
-      username: config.username,
+      username: sessionUsername,
       success: true,
-      details: "Credentials accepted and session created.",
+      details: ownerLogin ? "Owner session created." : "User session created.",
     });
     const response = NextResponse.json({ ok: true, redirectTo: next });
     response.cookies.set(sessionCookie(token));
