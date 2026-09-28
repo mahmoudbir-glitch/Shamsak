@@ -118,11 +118,11 @@ model EnergySettings {
   panelAzimuth Float?
   updatedAt DateTime @updatedAt
   batteryNominalVoltage Int @default(48)
-  batteryChemistry String?
+  batteryChemistry String? @default("LiFePO4")
   batteryMinReservePct Float @default(20)
   batteryMaxChargeA Float?
   batteryMaxDischargeA Float?
-  inverterRatedPowerKw Float?
+  inverterRatedPowerKw Float? @default(8.2)
   gridPhase String @default("single")
   retentionDays Int @default(365)
   pollIntervalSec Int @default(10)
