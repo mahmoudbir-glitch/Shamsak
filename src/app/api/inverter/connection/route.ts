@@ -211,9 +211,8 @@ export async function POST(request: NextRequest) {
   if (input.protocol === "Modbus RTU" && input.connectionMode === "gateway" && !input.serialPort) {
     return NextResponse.json({ error: "missing_serial_port", message: "أدخل منفذ RS485 الخاص بالبوابة المحلية مثل COM3 أو /dev/ttyUSB0." }, { status: 422 });
   }
-  if (input.protocol === "MQTT" && !input.mqttBroker) {
-    return NextResponse.json({ error: "missing_mqtt_broker", message: "أدخل عنوان MQTT Broker." }, { status: 422 });
-  }
+  // Cloud/MQTT uses the managed Shamsak broker by default; the broker is intentionally hidden from the normal UI.
+  const mqttBroker = input.mqttBroker || process.env.SHAMSAK_MQTT_BROKER || "mqtt.shamsak.com";
   if (input.protocol === "Cloud API" && !input.cloudApiUrl) {
     return NextResponse.json({ error: "missing_cloud_api", message: "أدخل عنوان Cloud API." }, { status: 422 });
   }
@@ -229,7 +228,7 @@ export async function POST(request: NextRequest) {
     if (shouldPrimary) await prisma.inverterConnection.updateMany({ data: { isPrimary: false } });
 
     const extras = input.protocol === "MQTT" ? {
-      mqttBroker: input.mqttBroker || "", mqttPort: input.mqttPort || 1883, mqttTls: input.mqttTls === true,
+      mqttBroker, mqttPort: input.mqttPort || (mqttBroker.startsWith("mqtts://") ? 8883 : 1883), mqttTls: input.mqttTls === true || mqttBroker.startsWith("mqtts://"),
       mqttUsername: input.mqttUsername || "", ...(input.mqttPassword ? { mqttPassword: input.mqttPassword } : {}),
       mqttClientId: input.mqttClientId || "", mqttReadTopic: input.mqttReadTopic || "",
       mqttStatusTopic: input.mqttStatusTopic || "", mqttCommandTopic: input.mqttCommandTopic || "",
