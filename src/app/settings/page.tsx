@@ -179,7 +179,7 @@ export default function SettingsPage() {
   if (loading) return <div dir="rtl" className="p-6 text-center font-black text-slate-600">جاري تحميل الإعدادات…</div>;
 
   return (
-    <div dir="rtl" className="w-full space-y-3 bg-slate-50/70 p-2 pb-28 sm:space-y-4 sm:p-4">
+    <div dir="rtl" className="min-h-[100dvh] w-full space-y-3 overflow-x-hidden overscroll-contain bg-slate-50/70 p-2 pb-32 scroll-pb-32 sm:space-y-4 sm:p-4">
       <header className="rounded-[1.5rem] bg-gradient-to-br from-indigo-700 via-blue-600 to-sky-500 p-5 text-white shadow-lg sm:p-6">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-2xl backdrop-blur">⚙️</div>
@@ -274,11 +274,6 @@ export default function SettingsPage() {
               <SettingsField label="عدد المحاولات"><input dir="ltr" type="number" min={1} max={10} value={draft.retryCount || 3} onChange={(e) => updateDraft("retryCount", Number(e.target.value))} className={input} /></SettingsField>
             </div>
           </details>
-
-          {draft.connectionMode === "gateway" && <details className="rounded-2xl bg-white p-4">
-            <summary className="cursor-pointer list-none font-black text-slate-800 [&::-webkit-details-marker]:hidden">🌐 إعدادات البوابة المحلية</summary>
-            <div className="mt-4 space-y-3"><SettingsField label="اسم البوابة"><input value={draft.gatewayName || ""} onChange={(e) => updateDraft("gatewayName", e.target.value)} className={input} /></SettingsField><SettingsField label="عنوان البوابة"><input dir="ltr" value={draft.gatewayUrl || ""} onChange={(e) => updateDraft("gatewayUrl", e.target.value)} placeholder="https://gateway.example.com" className={input} /></SettingsField><div className="flex flex-wrap gap-2"><button type="button" onClick={() => void rotateToken()} className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-black text-white">تدوير رمز الربط</button>{newToken && <code dir="ltr" className="w-full break-all rounded-xl bg-slate-50 p-3 text-xs">{newToken}</code>}</div><p className="text-xs font-semibold text-slate-500">رمز الربط لا يُحفظ كنص مكشوف ويظهر مرة واحدة فقط.</p></div>
-          </details>}
 
           <div className="rounded-2xl bg-white p-4 text-xs font-bold text-slate-500">آخر قراءة: {draft.lastSeenAt ? new Date(draft.lastSeenAt).toLocaleString("ar") : "لا توجد"} · آخر اختبار: {draft.lastTestResult === "success" ? "ناجح" : draft.lastTestResult === "error" ? "فشل" : "غير معروف"} {draft.lastTestLatencyMs ? "· " + draft.lastTestLatencyMs + " ms" : ""}</div>
           <div className="flex flex-wrap gap-2">
