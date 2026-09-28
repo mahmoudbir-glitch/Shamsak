@@ -14,7 +14,6 @@ function formatEnergy(value?: number) {
 export default function HomeConsumptionPage() {
   const [snapshot, setSnapshot] = useState<EnergySnapshot | null>(null);
   const [isLive, setIsLive] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -25,10 +24,8 @@ export default function HomeConsumptionPage() {
       if (data.source !== "live") throw new Error("not_live");
       setSnapshot(data);
       setIsLive(true);
-      setError(null);
     } catch {
       setIsLive(false);
-      setError("تعذر الوصول إلى بيانات الإنفرتر الحية");
       // Keep the last valid reading visible instead of replacing it with demo values.
     } finally {
       setLoading(false);
