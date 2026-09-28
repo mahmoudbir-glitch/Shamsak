@@ -100,7 +100,7 @@ model DailySummary {
   gridImportKWh Float @default(0)
   gridExportKWh Float @default(0)
   savings Float @default(0)
-  currency String @default("USD")
+  currency String @default("SYP")
   updatedAt DateTime @updatedAt
 }
 model EnergySettings {
@@ -157,6 +157,7 @@ model InverterConnection {
   id String @id @default("default")
   systemName String @default("منظومة شمسك")
   inverterModel String @default("Felicity")
+  serialNumber String?
   manufacturer String?
   protocol String @default("Modbus RTU")
   inverterAddress String?
