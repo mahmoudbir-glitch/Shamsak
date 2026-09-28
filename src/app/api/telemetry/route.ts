@@ -102,6 +102,26 @@ export async function GET(request: NextRequest) {
   const session = await verifySessionToken(request.cookies.get(COOKIE_NAME)?.value);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
+  if (process.env.SHAMSAK_MOCK_INVERTER === "true") {
+    return NextResponse.json({
+      timestamp: new Date().toISOString(),
+      solarPowerW: 4200,
+      homePowerW: 3350,
+      gridPowerW: 0,
+      batteryPowerW: -850,
+      batterySoc: 78,
+      batteryVoltage: 51.2,
+      batteryCurrent: -16.6,
+      batteryTemperature: 28,
+      gridConnected: false,
+      source: "mock",
+    }, { headers: { "Cache-Control": "no-store" } });
+  }
+
+
+  const session = await verifySessionToken(request.cookies.get(COOKIE_NAME)?.value);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   if (!configured()) {
     return NextResponse.json({ error: "database_not_configured" }, { status: 503 });
   }
