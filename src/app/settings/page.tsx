@@ -29,8 +29,8 @@ export default function SettingsPage() {
   useEffect(()=>{ void fetch("/api/inverter/connection",{cache:"no-store"}).then(r=>r.ok?r.json():null).then((d)=>{
     const c=d?.connection; if(!c)return;
     if(c.systemName)setSystemName(c.systemName);
-    if(c.inverterModel)setModel(c.inverterModel);
-    if(c.protocol)setProtocol(c.protocol);
+    if(c.inverterModel)setModel(c.inverterModel as Model);
+    if(c.protocol)setProtocol(c.protocol as Protocol);
     if(c.inverterAddress)setAddress(c.inverterAddress);
     if(c.serialPort)setSerialPort(c.serialPort);
     if(c.port)setPort(c.port); if(c.baudRate)setBaudRate(c.baudRate);
