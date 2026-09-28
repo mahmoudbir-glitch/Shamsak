@@ -1,4 +1,5 @@
 const COOKIE_NAME = "shamsak_session";
+const LOGOUT_MARKER_COOKIE = "shamsak_logged_out";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 function b64(value: string) {
@@ -59,4 +60,10 @@ export function sessionCookie(token:string){
 export function clearSessionCookie(){
   return {name:COOKIE_NAME,value:"",httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax" as const,path:"/",maxAge:0,expires:new Date(0)};
 }
-export { COOKIE_NAME };
+export function logoutMarkerCookie(){
+  return {name:LOGOUT_MARKER_COOKIE,value:"1",httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax" as const,path:"/",maxAge:60*60*24*30};
+}
+export function clearLogoutMarkerCookie(){
+  return {name:LOGOUT_MARKER_COOKIE,value:"",httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax" as const,path:"/",maxAge:0,expires:new Date(0)};
+}
+export { COOKIE_NAME, LOGOUT_MARKER_COOKIE };
