@@ -338,6 +338,12 @@ export default function SettingsPage() {
             {draft.lastTestReason && <div className="mt-2 text-xs font-bold">{draft.lastTestReason}</div>}
           </div>
 
+          {draft.connectionMode === "local" && draft.lastTestResult === "error" && (
+            <div title="مشكلة شبكة محلية" role="note" className="mx-auto max-w-xl rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center text-xs font-black text-amber-800 shadow-sm">
+              💡 يبدو أنك تستخدم بيانات الهاتف، يرجى التبديل لشبكة واي فاي محلية أو تغيير وضع الاتصال إلى (سحابي).
+            </div>
+          )}
+
           <div className="flex flex-wrap justify-center gap-2">
             {draft.id && !draft.isPrimary && <button type="button" onClick={() => void setPrimary()} className="rounded-xl bg-blue-100 px-4 py-3 text-sm font-black text-blue-700">تعيين كأساسي</button>}
             {draft.id && <button type="button" onClick={() => void deleteInverter()} className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-black text-rose-700">حذف</button>}
