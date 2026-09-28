@@ -240,7 +240,8 @@ export default function SettingsPage() {
                     value={draft.gatewayName || ""}
                     onChange={(e) => setDraft((current) => current ? { ...current, gatewayName: e.target.value } : current)}
                     autoComplete="off"
-                    className={input}
+                    className={input + " scroll-mt-24 scroll-mb-32"}
+                    onFocus={(e) => requestAnimationFrame(() => e.currentTarget.scrollIntoView({ block: "center", behavior: "smooth" }))}
                   />
                 </SettingsField>
                 <SettingsField label="عنوان البوابة">
@@ -250,7 +251,8 @@ export default function SettingsPage() {
                     onChange={(e) => setDraft((current) => current ? { ...current, gatewayUrl: e.target.value } : current)}
                     placeholder="https://gateway.example.com"
                     autoComplete="url"
-                    className={input}
+                    className={input + " scroll-mt-24 scroll-mb-32"}
+                    onFocus={(e) => requestAnimationFrame(() => e.currentTarget.scrollIntoView({ block: "center", behavior: "smooth" }))}
                   />
                 </SettingsField>
               </div>
