@@ -76,7 +76,32 @@ export async function GET(request: NextRequest) {
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!configured()) return NextResponse.json({ error: "database_not_configured" }, { status: 503 });
   try {
-    const rows = await prisma.inverterConnection.findMany({ orderBy: [{ isPrimary: "desc" }, { updatedAt: "desc" }] });
+    let rows = await prisma.inverterConnection.findMany({ orderBy: [{ isPrimary: "desc" }, { updatedAt: "desc" }] });
+    if (rows.length === 0) {
+      const created = await prisma.inverterConnection.create({
+        data: {
+          id: "default",
+          systemName: "منظومة شمسك",
+          inverterModel: "NEXT - Victor Max 8.2KW",
+          manufacturer: "NEXT",
+          protocol: "Wi-Fi Datalogger",
+          serialNumber: "92085230517098",
+          connectionMode: "gateway",
+          enabled: true,
+          isPrimary: true,
+          baudRate: 9600,
+          dataBits: 8,
+          stopBits: 1,
+          parity: "N",
+          slaveId: 1,
+          timeoutMs: 3000,
+          pollingIntervalMs: 10000,
+          lastStatus: "disconnected",
+          lastTestReason: "تمت إضافة بيانات الإنفرتر. يلزم عنوان بوابة Wi-Fi لاختبار الاتصال الفعلي.",
+        },
+      });
+      rows = [created];
+    }
     const primary = rows.find((row) => row.isPrimary) ?? rows[0] ?? null;
     return NextResponse.json({ configured: rows.length > 0, connection: primary ? publicConnection(primary) : null, connections: rows.map(publicConnection) }, { headers: { "Cache-Control": "no-store" } });
   } catch {
