@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { encryptSecret } from "@/lib/inverter-config-crypto";
+import { decryptSecret, encryptSecret } from "@/lib/inverter-config-crypto";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { MONITORING_ACTIONS, recordMonitoringEvent } from "@/lib/monitoring";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
@@ -23,7 +23,7 @@ const connectionSchema = z.object({
   inverterModel: z.string().trim().min(1).max(120),
   serialNumber: z.string().trim().max(160).optional(),
   manufacturer: z.string().trim().max(80).optional(),
-  protocol: z.enum(["Modbus RTU", "Modbus TCP", "Wi-Fi Datalogger"]),
+  protocol: z.enum(["Modbus RTU", "Modbus TCP", "MQTT", "Cloud API", "Wi-Fi Datalogger"]),
   inverterAddress: z.string().trim().max(255).optional(),
   serialPort: z.string().trim().max(255).optional(),
   port: z.number().int().min(1).max(65535).optional(),
@@ -39,6 +39,27 @@ const connectionSchema = z.object({
   connectionMode: z.enum(["local", "gateway"]).optional(),
   wifiSsid: z.string().trim().max(120).optional(),
   wifiPassword: z.string().optional(),
+  mqttBroker: z.string().trim().max(500).optional(),
+  mqttPort: z.number().int().min(1).max(65535).optional(),
+  mqttTls: z.boolean().optional(),
+  mqttUsername: z.string().trim().max(160).optional(),
+  mqttPassword: z.string().optional(),
+  mqttClientId: z.string().trim().max(160).optional(),
+  mqttReadTopic: z.string().trim().max(500).optional(),
+  mqttStatusTopic: z.string().trim().max(500).optional(),
+  mqttCommandTopic: z.string().trim().max(500).optional(),
+  mqttQos: z.number().int().min(0).max(2).optional(),
+  mqttKeepAlive: z.number().int().min(10).max(3600).optional(),
+  cloudApiUrl: z.string().trim().max(500).optional(),
+  cloudAuthType: z.enum(["api_key", "bearer", "username_password"]).optional(),
+  cloudApiKey: z.string().optional(),
+  cloudBearerToken: z.string().optional(),
+  cloudUsername: z.string().trim().max(160).optional(),
+  cloudPassword: z.string().optional(),
+  cloudDeviceId: z.string().trim().max(160).optional(),
+  cloudReadEndpoint: z.string().trim().max(500).optional(),
+  cloudStatusEndpoint: z.string().trim().max(500).optional(),
+  cloudTls: z.boolean().optional(),
   enabled: z.boolean().optional(),
   isPrimary: z.boolean().optional(),
   panelCapacityKw: z.number().finite().positive().optional(),
@@ -59,6 +80,13 @@ async function audit(username: string, action: string, details: string) {
 }
 
 function publicConnection(row: InverterConnection) {
+  let extras: Record<string, unknown> = {};
+  try {
+    const raw = row.inverterLinkCode ? decryptSecret(row.inverterLinkCode) : "";
+    if (raw) extras = JSON.parse(raw);
+  } catch {
+    extras = {};
+  }
   return {
     id: row.id, systemName: row.systemName, inverterModel: row.inverterModel, serialNumber: row.serialNumber, manufacturer: row.manufacturer,
     protocol: row.protocol, inverterAddress: row.inverterAddress, serialPort: row.serialPort, port: row.port,
@@ -66,6 +94,16 @@ function publicConnection(row: InverterConnection) {
     slaveId: row.slaveId, timeoutMs: row.timeoutMs, pollingIntervalMs: row.pollingIntervalMs,
     gatewayUrl: row.gatewayUrl, gatewayName: row.gatewayName, connectionMode: row.connectionMode,
     wifiSsid: row.wifiSsid, hasWifiPassword: Boolean(row.wifiPasswordCipher), enabled: row.enabled,
+    mqttBroker: extras.mqttBroker || null, mqttPort: extras.mqttPort || 1883, mqttTls: Boolean(extras.mqttTls),
+    mqttUsername: extras.mqttUsername || null, hasMqttPassword: Boolean(extras.mqttPassword),
+    mqttClientId: extras.mqttClientId || null, mqttReadTopic: extras.mqttReadTopic || null,
+    mqttStatusTopic: extras.mqttStatusTopic || null, mqttCommandTopic: extras.mqttCommandTopic || null,
+    mqttQos: extras.mqttQos ?? 0, mqttKeepAlive: extras.mqttKeepAlive ?? 60,
+    cloudApiUrl: extras.cloudApiUrl || null, cloudAuthType: extras.cloudAuthType || "api_key",
+    hasCloudCredential: Boolean(extras.cloudApiKey || extras.cloudBearerToken || extras.cloudPassword),
+    cloudUsername: extras.cloudUsername || null, cloudDeviceId: extras.cloudDeviceId || null,
+    cloudReadEndpoint: extras.cloudReadEndpoint || null, cloudStatusEndpoint: extras.cloudStatusEndpoint || null,
+    cloudTls: extras.cloudTls !== false,
     isPrimary: row.isPrimary, lastStatus: row.lastStatus, lastSeenAt: row.lastSeenAt?.toISOString() ?? null,
     lastTestResult: row.lastTestResult, lastTestLatencyMs: row.lastTestLatencyMs, lastTestReason: row.lastTestReason,
   };
@@ -172,6 +210,12 @@ export async function POST(request: NextRequest) {
   if (input.protocol === "Modbus RTU" && input.connectionMode === "gateway" && !input.serialPort) {
     return NextResponse.json({ error: "missing_serial_port", message: "أدخل منفذ RS485 الخاص بالبوابة المحلية مثل COM3 أو /dev/ttyUSB0." }, { status: 422 });
   }
+  if (input.protocol === "MQTT" && !input.mqttBroker) {
+    return NextResponse.json({ error: "missing_mqtt_broker", message: "أدخل عنوان MQTT Broker." }, { status: 422 });
+  }
+  if (input.protocol === "Cloud API" && !input.cloudApiUrl) {
+    return NextResponse.json({ error: "missing_cloud_api", message: "أدخل عنوان Cloud API." }, { status: 422 });
+  }
   if (input.protocol === "Modbus TCP" && !input.inverterAddress) {
     return NextResponse.json({ error: "missing_address", message: "أدخل عنوان IP للإنفرتر." }, { status: 422 });
   }
@@ -182,6 +226,21 @@ export async function POST(request: NextRequest) {
     const existing = await prisma.inverterConnection.findUnique({ where: { id } });
     const shouldPrimary = input.isPrimary === true || existingRows === 0;
     if (shouldPrimary) await prisma.inverterConnection.updateMany({ data: { isPrimary: false } });
+
+    const extras = input.protocol === "MQTT" ? {
+      mqttBroker: input.mqttBroker || "", mqttPort: input.mqttPort || 1883, mqttTls: input.mqttTls === true,
+      mqttUsername: input.mqttUsername || "", ...(input.mqttPassword ? { mqttPassword: input.mqttPassword } : {}),
+      mqttClientId: input.mqttClientId || "", mqttReadTopic: input.mqttReadTopic || "",
+      mqttStatusTopic: input.mqttStatusTopic || "", mqttCommandTopic: input.mqttCommandTopic || "",
+      mqttQos: input.mqttQos ?? 0, mqttKeepAlive: input.mqttKeepAlive ?? 60,
+    } : input.protocol === "Cloud API" ? {
+      cloudApiUrl: input.cloudApiUrl || "", cloudAuthType: input.cloudAuthType || "api_key",
+      ...(input.cloudApiKey ? { cloudApiKey: input.cloudApiKey } : {}),
+      ...(input.cloudBearerToken ? { cloudBearerToken: input.cloudBearerToken } : {}),
+      cloudUsername: input.cloudUsername || "", ...(input.cloudPassword ? { cloudPassword: input.cloudPassword } : {}),
+      cloudDeviceId: input.cloudDeviceId || "", cloudReadEndpoint: input.cloudReadEndpoint || "",
+      cloudStatusEndpoint: input.cloudStatusEndpoint || "", cloudTls: input.cloudTls !== false,
+    } : null;
 
     const data = {
       systemName: input.systemName,
@@ -206,6 +265,7 @@ export async function POST(request: NextRequest) {
       enabled: input.enabled !== false,
       isPrimary: shouldPrimary,
       ...(input.wifiPassword ? { wifiPasswordCipher: encryptSecret(input.wifiPassword) } : {}),
+      ...(extras ? { inverterLinkCode: encryptSecret(JSON.stringify(extras)) } : {}),
     };
 
     const row = existing
