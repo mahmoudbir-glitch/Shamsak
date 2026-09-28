@@ -37,7 +37,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 </span>
               </div>
               <div className="mt-0.5 truncate text-[10px] font-bold text-slate-400 sm:text-[11px]">
-                الشمس تعمل لأجلك
+                الشمس تعمل من أجلك
               </div>
             </div>
           </div>
