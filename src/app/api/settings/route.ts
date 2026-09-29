@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
       where: { id: "default" },
       create: {
         panelPowerW: 6000,
-        batteryCapacityWh: 10000,
+        batteryCapacityWh: 4800,
         batteryNominalVoltage: 48,
         batteryChemistry: "LiFePO4",
         batteryMinReservePct: 20,
