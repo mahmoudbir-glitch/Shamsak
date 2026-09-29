@@ -86,14 +86,22 @@ export default function SettingsPage() {
         fetch("/api/settings", { cache: "no-store" }),
         fetch("/api/inverter/connection", { cache: "no-store" }),
       ]);
-      const sd = await s.json(); const cd = await c.json();
+      const sd = await s.json().catch(() => ({}));
+      const cd = await c.json().catch(() => ({}));
+      const errors: string[] = [];
       if (s.ok) setSettings((value) => ({ ...value, ...sd }));
-      else throw new Error(sd.message || "تعذر تحميل إعدادات المنظومة.");
-      if (!c.ok) throw new Error(cd.message || "تعذر تحميل الإنفرترات.");
-      const list = (cd.connections || []) as Inverter[];
-      setInverters(list);
-      const primary = list.find((item) => item.isPrimary) || list[0];
-      if (primary) { setSelectedId(primary.id); setDraft({ ...primary }); }
+      else errors.push(sd.message || "تعذر تحميل إعدادات المنظومة.");
+      if (c.ok) {
+        const list = (cd.connections || []) as Inverter[];
+        setInverters(list);
+        const primary = list.find((item) => item.isPrimary) || list[0];
+        if (primary) { setSelectedId(primary.id); setDraft({ ...primary }); }
+      } else {
+        setInverters([]);
+        setDraft(null);
+        errors.push(cd.message || "تعذر تحميل إعدادات الإنفرتر.");
+      }
+      if (errors.length) setError(errors.join(" — "));
     } catch (e) { setError(e instanceof Error ? e.message : "تعذر تحميل الإعدادات."); }
     finally { setLoading(false); }
   };
@@ -139,7 +147,7 @@ export default function SettingsPage() {
 
   const addInverter = () => {
     const item: Inverter = {
-      id: "", systemName: "منظومة شمسك", inverterModel: "Felicity", manufacturer: "Felicity",       protocol: "Modbus RTU", serialPort: "", port: 502, baudRate: 9600, dataBits: 8, stopBits: 1, parity: "N",
+      id: "", systemName: "منظومة شمسك", inverterModel: "Felicity", manufacturer: "Felicity", protocol: "Modbus RTU", serialPort: "", port: 502, baudRate: 9600, dataBits: 8, stopBits: 1, parity: "N",
       slaveId: 1, timeoutMs: 1000, pollingIntervalMs: 10000, gatewayUrl: "", gatewayName: "", connectionMode: "gateway",
       enabled: true, isPrimary: inverters.length === 0, lastStatus: "unknown",
     };
@@ -199,8 +207,17 @@ export default function SettingsPage() {
         </div>
       </header>
 
+      <div className="sticky top-2 z-20 rounded-2xl border border-blue-100 bg-white/95 p-3 shadow-md backdrop-blur">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-xs font-bold text-slate-500">احفظ أي تغييرات في مربعات الإعدادات</div>
+          <button type="button" disabled={saving} onClick={() => void saveAll()} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-black text-white shadow-sm disabled:opacity-50">
+            {saving ? "جاري الحفظ…" : "💾 حفظ الإعدادات"}
+          </button>
+        </div>
+      </div>
+
       {draft && (
-        <div className="sticky top-2 z-20 rounded-2xl border border-blue-100 bg-white/95 p-3 shadow-md backdrop-blur">
+        <div className="rounded-2xl border border-blue-100 bg-white p-3">
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-black text-slate-900">{draft.systemName}</div>
@@ -208,9 +225,6 @@ export default function SettingsPage() {
                 {draft.inverterModel} · {draft.lastStatus === "connected" ? "متصل" : draft.lastStatus === "error" ? "غير متصل" : "غير معروف"}
               </div>
             </div>
-            <button type="button" disabled={saving} onClick={() => void saveAll()} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-black text-white shadow-sm disabled:opacity-50">
-              {saving ? "جاري الحفظ…" : "💾 حفظ"}
-            </button>
           </div>
         </div>
       )}
@@ -277,7 +291,7 @@ export default function SettingsPage() {
             <summary className="cursor-pointer list-none font-black text-slate-800 [&::-webkit-details-marker]:hidden">⚙️ خيارات الاتصال المتقدمة</summary>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {draft.protocol === "Modbus TCP" && <><SettingsField label="عنوان IP"><input dir="ltr" value={draft.inverterAddress || ""} onChange={(e) => updateDraft("inverterAddress", e.target.value)} placeholder="192.168.1.50" className={input} /></SettingsField><SettingsField label="منفذ TCP"><input dir="ltr" type="number" value={draft.port || 502} onChange={(e) => updateDraft("port", Number(e.target.value))} className={input} /></SettingsField></>}
-              {draft.protocol === "Modbus RTU" && <><SettingsField label="المنفذ التسلسلي / RS485"><input dir="ltr" value={draft.serialPort || ""} onChange={(e) => updateDraft("serialPort", e.target.value)} placeholder="COM3 أو /dev/ttyUSB0" className={input} /></SettingsField><SettingsField label="Baud Rate"><select value={draft.baudRate || 9600} onChange={(e) => updateDraft("baudRate", Number(e.target.value))} className={input}><option>9600</option><option>19200</option><option>38400</option><option>57600</option><option>115200</option></select></SettingsField><SettingsField label="Parity"><select value={draft.parity || "N"} onChange={(e) => updateDraft("parity", e.target.value as "N" | "E" | "O")} className={input}><option value="N">None</option><option value="E">Even</option><option value="O">Odd</option></select></SettingsField><SettingsField label="Data bits"><select value={draft.dataBits || 8} onChange={(e) => updateDraft("dataBits", Number(e.target.value))} className={input}><option>8</option><option>7</option></select></SettingsField><SettingsField label="Stop bits"><select value={draft.stopBits || 1} onChange={(e) => updateDraft("stopBits", Number(e.target.value))} className={input}><option>1</option><option>2</option></select></SettingsField><SettingsField label="Slave ID"><input dir="ltr" type="number" min={1} max={247} value={draft.slaveId || 1} onChange={(e) => updateDraft("slaveId", Number(e.target.value))} className={input} /></SettingsField></>}
+              {draft.protocol === "Modbus RTU" && draft.connectionMode === "local" && <><SettingsField label="المنفذ التسلسلي / RS485"><input dir="ltr" value={draft.serialPort || ""} onChange={(e) => updateDraft("serialPort", e.target.value)} placeholder="COM3 أو /dev/ttyUSB0" className={input} /></SettingsField><SettingsField label="Baud Rate"><select value={draft.baudRate || 9600} onChange={(e) => updateDraft("baudRate", Number(e.target.value))} className={input}><option>9600</option><option>19200</option><option>38400</option><option>57600</option><option>115200</option></select></SettingsField><SettingsField label="Parity"><select value={draft.parity || "N"} onChange={(e) => updateDraft("parity", e.target.value as "N" | "E" | "O")} className={input}><option value="N">None</option><option value="E">Even</option><option value="O">Odd</option></select></SettingsField><SettingsField label="Data bits"><select value={draft.dataBits || 8} onChange={(e) => updateDraft("dataBits", Number(e.target.value))} className={input}><option>8</option><option>7</option></select></SettingsField><SettingsField label="Stop bits"><select value={draft.stopBits || 1} onChange={(e) => updateDraft("stopBits", Number(e.target.value))} className={input}><option>1</option><option>2</option></select></SettingsField><SettingsField label="Slave ID"><input dir="ltr" type="number" min={1} max={247} value={draft.slaveId || 1} onChange={(e) => updateDraft("slaveId", Number(e.target.value))} className={input} /></SettingsField></>}
               {draft.protocol === "MQTT" && <><SettingsField label="عنوان Broker"><input dir="ltr" value={draft.mqttBroker || ""} onChange={(e) => updateDraft("mqttBroker", e.target.value)} placeholder="mqtt.example.com" className={input} /></SettingsField><SettingsField label="المنفذ"><input dir="ltr" type="number" value={draft.mqttPort || 1883} onChange={(e) => updateDraft("mqttPort", Number(e.target.value))} className={input} /></SettingsField><SettingsField label="اسم المستخدم"><input dir="ltr" value={draft.mqttUsername || ""} onChange={(e) => updateDraft("mqttUsername", e.target.value)} className={input} /></SettingsField><SettingsField label="كلمة المرور"><input dir="ltr" type="password" placeholder={draft.hasMqttPassword ? "محفوظة — أدخل قيمة جديدة فقط للتغيير" : ""} onChange={(e) => updateDraft("mqttPassword" as keyof Inverter, e.target.value)} className={input} /></SettingsField><SettingsField label="Client ID"><input dir="ltr" value={draft.mqttClientId || ""} onChange={(e) => updateDraft("mqttClientId", e.target.value)} className={input} /></SettingsField><SettingsField label="Topic القراءات"><input dir="ltr" value={draft.mqttReadTopic || ""} onChange={(e) => updateDraft("mqttReadTopic", e.target.value)} className={input} /></SettingsField><SettingsField label="Topic الحالة"><input dir="ltr" value={draft.mqttStatusTopic || ""} onChange={(e) => updateDraft("mqttStatusTopic", e.target.value)} className={input} /></SettingsField><SettingsField label="Topic الأوامر"><input dir="ltr" value={draft.mqttCommandTopic || ""} onChange={(e) => updateDraft("mqttCommandTopic", e.target.value)} className={input} /></SettingsField><SettingsField label="QoS"><select value={draft.mqttQos ?? 0} onChange={(e) => updateDraft("mqttQos" as keyof Inverter, Number(e.target.value))} className={input}><option>0</option><option>1</option><option>2</option></select></SettingsField><SettingsField label="Keep Alive (ثانية)"><input dir="ltr" type="number" value={draft.mqttKeepAlive || 60} onChange={(e) => updateDraft("mqttKeepAlive" as keyof Inverter, Number(e.target.value))} className={input} /></SettingsField><label className="flex min-h-12 items-center justify-between rounded-xl bg-slate-50 px-4 text-sm font-bold"><span>SSL / TLS</span><input type="checkbox" checked={Boolean(draft.mqttTls)} onChange={(e) => updateDraft("mqttTls" as keyof Inverter, e.target.checked)} className="h-5 w-5" /></label></>}
               {draft.protocol === "Cloud API" && <><SettingsField label="عنوان API"><input dir="ltr" value={draft.cloudApiUrl || ""} onChange={(e) => updateDraft("cloudApiUrl" as keyof Inverter, e.target.value)} placeholder="https://api.example.com" className={input} /></SettingsField><SettingsField label="نوع المصادقة"><select value={draft.cloudAuthType || "api_key"} onChange={(e) => updateDraft("cloudAuthType" as keyof Inverter, e.target.value)} className={input}><option value="api_key">API Key</option><option value="bearer">Bearer Token</option><option value="username_password">Username / Password</option></select></SettingsField><SettingsField label="API Key / Token"><input dir="ltr" type="password" onChange={(e) => updateDraft("cloudApiKey" as keyof Inverter, e.target.value)} className={input} /></SettingsField><SettingsField label="اسم المستخدم"><input dir="ltr" value={draft.cloudUsername || ""} onChange={(e) => updateDraft("cloudUsername" as keyof Inverter, e.target.value)} className={input} /></SettingsField><SettingsField label="كلمة المرور"><input dir="ltr" type="password" onChange={(e) => updateDraft("cloudPassword" as keyof Inverter, e.target.value)} className={input} /></SettingsField><SettingsField label="Device ID"><input dir="ltr" value={draft.cloudDeviceId || ""} onChange={(e) => updateDraft("cloudDeviceId" as keyof Inverter, e.target.value)} className={input} /></SettingsField><SettingsField label="Endpoint القراءات"><input dir="ltr" value={draft.cloudReadEndpoint || ""} onChange={(e) => updateDraft("cloudReadEndpoint" as keyof Inverter, e.target.value)} className={input} /></SettingsField><SettingsField label="Endpoint الحالة"><input dir="ltr" value={draft.cloudStatusEndpoint || ""} onChange={(e) => updateDraft("cloudStatusEndpoint" as keyof Inverter, e.target.value)} className={input} /></SettingsField><label className="flex min-h-12 items-center justify-between rounded-xl bg-slate-50 px-4 text-sm font-bold"><span>SSL / TLS</span><input type="checkbox" checked={draft.cloudTls !== false} onChange={(e) => updateDraft("cloudTls" as keyof Inverter, e.target.checked)} className="h-5 w-5" /></label></>}
               <SettingsField label={<>مهلة الاستجابة <bdi dir="ltr">(ms)</bdi></>}><input dir="ltr" type="number" min={200} max={10000} value={draft.timeoutMs || 1000} onChange={(e) => updateDraft("timeoutMs", Number(e.target.value))} className={input} /></SettingsField>
