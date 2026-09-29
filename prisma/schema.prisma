@@ -167,6 +167,13 @@ model InverterConnection {
   inverterModel String @default("Felicity")
   serialNumber String?
   manufacturer String?
+  dataloggerPn String?
+  dataloggerType String?
+  dataloggerFirmware String?
+  dataloggerStationName String?
+  dataloggerDeviceIdentifier String?
+  dataloggerUpdateIntervalSec Int?
+  dataloggerCloud String?
   protocol String @default("Modbus RTU")
   inverterAddress String?
   serialPort String?
