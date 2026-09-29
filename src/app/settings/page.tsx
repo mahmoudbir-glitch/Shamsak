@@ -5,7 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 type Protocol = "Modbus RTU" | "Modbus TCP" | "MQTT" | "Cloud API" | "Wi-Fi Datalogger";
 type ConnectionMode = "local" | "gateway";
 type Inverter = {
-  id: string; systemName: string; inverterModel: string; manufacturer?: string | null; protocol: Protocol;
+  id: string; systemName: string; inverterModel: string; manufacturer?: string | null;
+  dataloggerPn?: string | null; dataloggerType?: string | null; dataloggerFirmware?: string | null; dataloggerStationName?: string | null;
+  dataloggerDeviceIdentifier?: string | null; dataloggerUpdateIntervalSec?: number | null; dataloggerCloud?: string | null; protocol: Protocol;
   inverterAddress?: string | null; serialPort?: string | null; port?: number | null; baudRate?: number;
   dataBits?: number; stopBits?: number; parity?: "N" | "E" | "O"; slaveId?: number; timeoutMs?: number;
   pollingIntervalMs?: number; gatewayUrl?: string | null; gatewayName?: string | null; connectionMode?: ConnectionMode;
@@ -128,6 +130,9 @@ export default function SettingsPage() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: draft.id || undefined, systemName: draft.systemName, inverterModel: draft.inverterModel, manufacturer: draft.manufacturer,
+          dataloggerPn: draft.dataloggerPn || "", dataloggerType: draft.dataloggerType || "", dataloggerFirmware: draft.dataloggerFirmware || "",
+          dataloggerStationName: draft.dataloggerStationName || "", dataloggerDeviceIdentifier: draft.dataloggerDeviceIdentifier || "",
+          dataloggerUpdateIntervalSec: draft.dataloggerUpdateIntervalSec || 300, dataloggerCloud: draft.dataloggerCloud || "SmartESS / DESSMonitor",
           protocol: draft.protocol, serialNumber: draft.serialNumber || "", inverterAddress: draft.inverterAddress || "", serialPort: draft.serialPort || "",
           port: draft.port, baudRate: draft.baudRate, dataBits: draft.dataBits, stopBits: draft.stopBits,
           parity: draft.parity, slaveId: draft.slaveId, timeoutMs: draft.timeoutMs, pollingIntervalMs: draft.pollingIntervalMs,
@@ -147,7 +152,10 @@ export default function SettingsPage() {
 
   const addInverter = () => {
     const item: Inverter = {
-      id: "", systemName: "منظومة شمسك", inverterModel: "NEXT - Victor Max 8.2KW", manufacturer: "Next Power", protocol: "Wi-Fi Datalogger", serialPort: "", port: 502, baudRate: 9600, dataBits: 8, stopBits: 1, parity: "N",
+      id: "", systemName: "منظومة شمسك", inverterModel: "NEXT - Victor Max 8.2KW", manufacturer: "Next Power",
+      dataloggerPn: "Q3721031635481", dataloggerType: "Wi-Fi Plug Pro RTU", dataloggerFirmware: "3.1.1.0", dataloggerStationName: "home",
+      dataloggerDeviceIdentifier: "55355535553555", dataloggerUpdateIntervalSec: 300, dataloggerCloud: "SmartESS / DESSMonitor",
+      protocol: "Wi-Fi Datalogger", serialPort: "", port: 502, baudRate: 9600, dataBits: 8, stopBits: 1, parity: "N",
       slaveId: 1, timeoutMs: 1000, pollingIntervalMs: 10000, gatewayUrl: "", gatewayName: "", connectionMode: "gateway",
       enabled: true, isPrimary: inverters.length === 0, lastStatus: "unknown",
     };
@@ -249,12 +257,28 @@ export default function SettingsPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <SettingsField label="اسم المنظومة"><input value={draft.systemName} onChange={(e) => updateDraft("systemName", e.target.value)} className={input} /></SettingsField>
             <SettingsField label="الرقم التسلسلي (SN)"><input dir="ltr" value={draft.serialNumber || ""} onChange={(e) => updateDraft("serialNumber", e.target.value)} placeholder="مثلاً: SN123456789" className={input} /></SettingsField>
+            <SettingsField label="رقم Datalogger (PN)"><input dir="ltr" value={draft.dataloggerPn || ""} onChange={(e) => updateDraft("dataloggerPn", e.target.value)} className={input} /></SettingsField>
+            <SettingsField label="محطة SmartESS"><input dir="ltr" value={draft.dataloggerStationName || ""} onChange={(e) => updateDraft("dataloggerStationName", e.target.value)} className={input} /></SettingsField>
             <SettingsField label="نوع / موديل الإنفرتر"><select value={draft.inverterModel} onChange={(e) => updateDraft("inverterModel", e.target.value)} className={input}><option>NEXT - Victor Max 8.2KW</option><option>Deye</option><option>Growatt</option><option>Voltronic</option><option>غير ذلك</option></select></SettingsField>
             <SettingsField label="نوع الاتصال"><select value={draft.protocol} onChange={(e) => updateDraft("protocol", e.target.value as Protocol)} className={input}><option>Modbus TCP</option><option>Modbus RTU</option><option>MQTT</option><option>Cloud API</option><option>Wi-Fi Datalogger</option></select></SettingsField>
             <SettingsField label="وضع الاتصال"><select value={draft.connectionMode || "gateway"} onChange={(e) => updateDraft("connectionMode", e.target.value as ConnectionMode)} className={input}><option value="gateway">عبر بوابة</option><option value="local">محلي (نفس الجهاز)</option></select></SettingsField>
           </div>
 
-          {draft.connectionMode === "gateway" && (
+          {draft.protocol === "Wi-Fi Datalogger" && (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+              <h4 className="font-black text-emerald-900">☁️ بيانات SmartESS / DESSMonitor</h4>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <SettingsField label="نوع الدنجل"><input dir="ltr" value={draft.dataloggerType || ""} onChange={(e) => updateDraft("dataloggerType", e.target.value)} className={input} /></SettingsField>
+                <SettingsField label="Firmware"><input dir="ltr" value={draft.dataloggerFirmware || ""} onChange={(e) => updateDraft("dataloggerFirmware", e.target.value)} className={input} /></SettingsField>
+                <SettingsField label="معرّف الجهاز الظاهر في SmartESS"><input dir="ltr" value={draft.dataloggerDeviceIdentifier || ""} onChange={(e) => updateDraft("dataloggerDeviceIdentifier", e.target.value)} className={input} /></SettingsField>
+                <SettingsField label="تحديث الدنجل (ثانية)"><input dir="ltr" type="number" min={30} value={draft.dataloggerUpdateIntervalSec || 300} onChange={(e) => updateDraft("dataloggerUpdateIntervalSec", Number(e.target.value))} className={input} /></SettingsField>
+                <SettingsField label="المنصة"><input dir="ltr" value={draft.dataloggerCloud || "SmartESS / DESSMonitor"} onChange={(e) => updateDraft("dataloggerCloud", e.target.value)} className={input} /></SettingsField>
+              </div>
+              <p className="mt-3 text-xs font-bold leading-5 text-emerald-800">لن نستخدم معرّف الجهاز أعلاه كـ DevCode أو DevAddr إلا بعد ظهوره صراحةً في بيانات DESSMonitor.</p>
+            </div>
+          )}
+
+          {draft.connectionMode === "gateway" && draft.protocol !== "Wi-Fi Datalogger" && (
             <div className="rounded-2xl border border-slate-200 bg-white p-4">
               <h4 className="font-black text-slate-900">🌐 إعدادات البوابة المحلية</h4>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
