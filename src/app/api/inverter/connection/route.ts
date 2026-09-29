@@ -124,7 +124,6 @@ export async function GET(request: NextRequest) {
           inverterModel: "NEXT - Victor Max 8.2KW",
           manufacturer: "NEXT",
           protocol: "Wi-Fi Datalogger",
-          serialNumber: "92085230517098",
           connectionMode: "gateway",
           enabled: true,
           isPrimary: true,
