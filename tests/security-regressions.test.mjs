@@ -34,3 +34,26 @@ test("logout uses a full navigation to prevent stale protected pages", () => {
   const source = read("src/components/logout-button.tsx");
   assert.match(source, /window\.location\.replace\(["']\/login["']\)/);
 });
+
+
+test("database and inverter defaults match the real Shamsak hardware", () => {
+  const schema = read("prisma/schema.prisma");
+  const connectionRoute = read("src/app/api/inverter/connection/route.ts");
+  const migration = read("prisma/migrations/20260930123000_align_shamsak_hardware_defaults/migration.sql");
+  assert.match(schema, /batteryCapacityWh Float @default\(4800\)/);
+  assert.match(schema, /inverterModel String @default\("NEXT - Victor Max 8\.2KW"\)/);
+  assert.match(schema, /protocol String @default\("Wi-Fi Datalogger"\)/);
+  assert.match(schema, /timeoutMs Int @default\(1000\)/);
+  assert.match(connectionRoute, /batteryCapacityWh: input\.batteryCapacityWh !== undefined \? input\.batteryCapacityWh : 4800/);
+  assert.match(migration, /SET DEFAULT 4800/);
+  assert.match(migration, /NEXT - Victor Max 8\.2KW/);
+  assert.match(migration, /Wi-Fi Datalogger/);
+});
+
+test("gateway SSRF guard blocks loopback and private IPv4 ranges", () => {
+  const source = read("src/app/api/inverter/test/route.ts");
+  assert.match(source, /127\.0\.0\.1/);
+  assert.match(source, /192\.168\./);
+  assert.match(source, /169\.254\./);
+  assert.match(source, /::ffff:/);
+});
