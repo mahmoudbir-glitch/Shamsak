@@ -1,3 +1,100 @@
+-- Prisma baseline target schema for Shamsak.
+-- Existing Prisma-managed production tables were verified to contain 0 rows.
+-- Legacy inverter_readings is preserved intentionally.
+
+DO $ BEGIN
+  CREATE TYPE "Role" AS ENUM ('OWNER','FAMILY_MEMBER','TECHNICIAN','LOCAL_ADMIN');
+EXCEPTION WHEN duplicate_object THEN NULL; END $;
+DO $ BEGIN
+  CREATE TYPE "SystemStatus" AS ENUM ('NORMAL','ATTENTION_NEEDED','FAULT');
+EXCEPTION WHEN duplicate_object THEN NULL; END $;
+
+CREATE TABLE IF NOT EXISTS "EnergySettings" (
+  "id" TEXT NOT NULL DEFAULT 'default',
+  "panelPowerW" DOUBLE PRECISION NOT NULL DEFAULT 6000,
+  "batteryCapacityWh" DOUBLE PRECISION NOT NULL DEFAULT 4800,
+  "gridTariff" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  "exportTariff" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  "currency" TEXT NOT NULL DEFAULT 'SYP',
+  "gridType" TEXT NOT NULL DEFAULT 'hybrid',
+  "latitude" DOUBLE PRECISION NOT NULL DEFAULT 33.8938,
+  "longitude" DOUBLE PRECISION NOT NULL DEFAULT 35.5018,
+  "timezone" TEXT NOT NULL DEFAULT 'Asia/Beirut',
+  "panelTilt" DOUBLE PRECISION,
+  "panelAzimuth" DOUBLE PRECISION,
+  "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  "batteryNominalVoltage" INTEGER NOT NULL DEFAULT 48,
+  "batteryChemistry" TEXT DEFAULT 'LiFePO4',
+  "batteryMinReservePct" DOUBLE PRECISION NOT NULL DEFAULT 20,
+  "bulkChargeVoltage" DOUBLE PRECISION DEFAULT 56.4,
+  "floatChargeVoltage" DOUBLE PRECISION DEFAULT 54.0,
+  "lowDcCutoffVoltage" DOUBLE PRECISION DEFAULT 45.0,
+  "backToGridVoltage" DOUBLE PRECISION DEFAULT 46.0,
+  "maxChargeCurrentA" DOUBLE PRECISION DEFAULT 50,
+  "outputSourcePriority" TEXT NOT NULL DEFAULT 'SBU',
+  "chargerSourcePriority" TEXT NOT NULL DEFAULT 'CSO',
+  "batteryMaxChargeA" DOUBLE PRECISION,
+  "batteryMaxDischargeA" DOUBLE PRECISION,
+  "inverterRatedPowerKw" DOUBLE PRECISION DEFAULT 8.2,
+  "gridPhase" TEXT NOT NULL DEFAULT 'single',
+  "retentionDays" INTEGER NOT NULL DEFAULT 365,
+  "pollIntervalSec" INTEGER NOT NULL DEFAULT 10,
+  "lowBatteryPct" DOUBLE PRECISION NOT NULL DEFAULT 20,
+  "criticalBatteryPct" DOUBLE PRECISION NOT NULL DEFAULT 10,
+  "gridOutageAlert" BOOLEAN NOT NULL DEFAULT true,
+  "faultAlert" BOOLEAN NOT NULL DEFAULT true,
+  "offlineMinutes" INTEGER NOT NULL DEFAULT 10,
+  "overloadPct" DOUBLE PRECISION NOT NULL DEFAULT 90,
+  "channels" TEXT NOT NULL DEFAULT 'in_app',
+  "quietHoursStart" TEXT,
+  "quietHoursEnd" TEXT,
+  CONSTRAINT "EnergySettings_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "InverterConnection" (
+  "id" TEXT NOT NULL DEFAULT 'default',
+  "systemName" TEXT NOT NULL DEFAULT 'منظومة شمسك',
+  "inverterModel" TEXT NOT NULL DEFAULT 'NEXT - Victor Max 8.2KW',
+  "serialNumber" TEXT,
+  "manufacturer" TEXT,
+  "dataloggerPn" TEXT,
+  "dataloggerType" TEXT,
+  "dataloggerFirmware" TEXT,
+  "dataloggerStationName" TEXT,
+  "dataloggerDeviceIdentifier" TEXT,
+  "dataloggerUpdateIntervalSec" INTEGER,
+  "dataloggerCloud" TEXT,
+  "protocol" TEXT NOT NULL DEFAULT 'Wi-Fi Datalogger',
+  "inverterAddress" TEXT,
+  "serialPort" TEXT,
+  "port" INTEGER,
+  "baudRate" INTEGER NOT NULL DEFAULT 9600,
+  "dataBits" INTEGER NOT NULL DEFAULT 8,
+  "stopBits" INTEGER NOT NULL DEFAULT 1,
+  "parity" TEXT NOT NULL DEFAULT 'N',
+  "slaveId" INTEGER NOT NULL DEFAULT 1,
+  "timeoutMs" INTEGER NOT NULL DEFAULT 1000,
+  "pollingIntervalMs" INTEGER NOT NULL DEFAULT 10000,
+  "gatewayUrl" TEXT,
+  "inverterUsername" TEXT,
+  "inverterLinkCode" TEXT,
+  "wifiSsid" TEXT,
+  "wifiPasswordCipher" TEXT,
+  "enabled" BOOLEAN NOT NULL DEFAULT true,
+  "isPrimary" BOOLEAN NOT NULL DEFAULT false,
+  "connectionMode" TEXT NOT NULL DEFAULT 'gateway',
+  "gatewayName" TEXT,
+  "gatewayTokenHash" TEXT,
+  "gatewayTokenCreatedAt" TIMESTAMPTZ,
+  "lastTestResult" TEXT,
+  "lastTestLatencyMs" INTEGER,
+  "lastTestReason" TEXT,
+  "lastStatus" TEXT NOT NULL DEFAULT 'disconnected',
+  "lastSeenAt" TIMESTAMPTZ,
+  "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT "InverterConnection_pkey" PRIMARY KEY ("id")
+);
+
 -- Shamsak production baseline: target schema reconciliation.
 -- Safe for the currently verified production state: the Prisma-managed tables
 -- currently contain 0 rows. Existing legacy inverter_readings is preserved.
