@@ -1,0 +1,55 @@
+CREATE TABLE IF NOT EXISTS "TelemetryLog" (
+  "id" TEXT NOT NULL,
+  "timestamp" TIMESTAMP(3) NOT NULL,
+  "pvPowerW" DOUBLE PRECISION NOT NULL,
+  "loadPowerW" DOUBLE PRECISION NOT NULL,
+  "batterySoc" DOUBLE PRECISION NOT NULL,
+  "batteryPowerW" DOUBLE PRECISION NOT NULL,
+  "batteryVoltage" DOUBLE PRECISION,
+  "batteryCurrent" DOUBLE PRECISION,
+  "batteryTemperature" DOUBLE PRECISION,
+  "gridConnected" BOOLEAN NOT NULL,
+  "gridPowerW" DOUBLE PRECISION,
+  "source" TEXT NOT NULL DEFAULT 'inverter',
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT "TelemetryLog_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "TelemetryLog_timestamp_key" ON "TelemetryLog"("timestamp");
+CREATE INDEX IF NOT EXISTS "TelemetryLog_timestamp_idx" ON "TelemetryLog"("timestamp");
+
+CREATE TABLE IF NOT EXISTS "DailySummary" (
+  "id" TEXT NOT NULL,
+  "day" TIMESTAMP(3) NOT NULL,
+  "solarKWh" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  "homeKWh" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  "batteryChargeKWh" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  "batteryDischargeKWh" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  "gridImportKWh" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  "gridExportKWh" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  "savings" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  "currency" TEXT NOT NULL DEFAULT 'USD',
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+
+  CONSTRAINT "DailySummary_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "DailySummary_day_key" ON "DailySummary"("day");
+
+CREATE TABLE IF NOT EXISTS "EnergySettings" (
+  "id" TEXT NOT NULL DEFAULT 'default',
+  "panelPowerW" DOUBLE PRECISION NOT NULL DEFAULT 6000,
+  "batteryCapacityWh" DOUBLE PRECISION NOT NULL DEFAULT 10000,
+  "gridTariff" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  "exportTariff" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  "currency" TEXT NOT NULL DEFAULT 'USD',
+  "latitude" DOUBLE PRECISION NOT NULL DEFAULT 33.8938,
+  "longitude" DOUBLE PRECISION NOT NULL DEFAULT 35.5018,
+  "timezone" TEXT NOT NULL DEFAULT 'Asia/Beirut',
+  "panelTilt" DOUBLE PRECISION,
+  "panelAzimuth" DOUBLE PRECISION,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+
+  CONSTRAINT "EnergySettings_pkey" PRIMARY KEY ("id")
+);
