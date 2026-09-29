@@ -7,8 +7,6 @@ import { MONITORING_ACTIONS, recordMonitoringEvent } from "@/lib/monitoring";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const STORE_INTERVAL_MS = 5 * 60 * 1000;
-
 function unauthorized() {
   return NextResponse.json({ error: "telemetry_unauthorized" }, { status: 401 });
 }
@@ -24,8 +22,7 @@ function configured() {
 function validToken(request: NextRequest) {
   const expected = process.env.TELEMETRY_INGEST_TOKEN;
   if (!expected) return false;
-  return request.headers.get("authorization") === `Bearer ${expected}` ||
-    request.headers.get("x-telemetry-token") === expected;
+  return request.headers.get("authorization") === `Bearer ${expected}`;
 }
 
 function dayStart(date: Date) {
@@ -108,10 +105,10 @@ export async function GET(request: NextRequest) {
       solarPowerW: 4200,
       homePowerW: 3350,
       gridPowerW: 0,
-      batteryPowerW: -850,
+      batteryPowerW: 850,
       batterySoc: 78,
       batteryVoltage: 51.2,
-      batteryCurrent: -16.6,
+      batteryCurrent: 16.6,
       batteryTemperature: 28,
       gridConnected: false,
       source: "mock",
@@ -174,14 +171,6 @@ export async function POST(request: NextRequest) {
 
   try {
     const latest = await prisma.telemetryLog.findFirst({ orderBy: { timestamp: "desc" } });
-    if (latest && timestamp.getTime() - latest.timestamp.getTime() < STORE_INTERVAL_MS) {
-      return NextResponse.json({
-        accepted: true,
-        stored: false,
-        reason: "five_minute_sampling_window",
-        snapshot: telemetryToSnapshot(input),
-      });
-    }
 
     const row = await prisma.telemetryLog.create({
       data: {
