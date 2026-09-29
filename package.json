@@ -2,9 +2,7 @@
   "name": "shamsak-private",
   "version": "1.2.0",
   "private": true,
-  "engines": {
-    "node": ">=20.9.0"
-  },
+  "engines": { "node": ">=20.9.0" },
   "scripts": {
     "dev": "next dev",
     "build": "prisma migrate deploy && node scripts/prisma-generate.mjs && next build",
@@ -16,7 +14,7 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "5.19.0",
