@@ -7,10 +7,22 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function isPrivateIp(address: string) {
-  const normalized = address.toLowerCase();
-  if (normalized === "127.0.0.1" || normalized === "::1" || normalized.startsWith("10.") || normalized.startsWith("192.168.") || normalized.startsWith("169.254.") || normalized.startsWith("fc") || normalized.startsWith("fd") || normalized.startsWith("fe80:")) return true;
-  const match = normalized.match(/^172\.(\d+)\./);
-  return Boolean(match && Number(match[1]) >= 16 && Number(match[1]) <= 31);
+  const normalized = address.trim().toLowerCase();
+  const ipv4Mapped = normalized.startsWith("::ffff:") ? normalized.slice(7) : normalized;
+  if (
+    normalized === "::" ||
+    normalized === "::1" ||
+    normalized === "0.0.0.0" ||
+    normalized === "localhost" ||
+    ipv4Mapped === "127.0.0.1" ||
+    ipv4Mapped.startsWith("10.") ||
+    ipv4Mapped.startsWith("192.168.") ||
+    ipv4Mapped.startsWith("169.254.")
+  ) return true;
+  const match = ipv4Mapped.match(/^172\.(\d+)\./);
+  if (match && Number(match[1]) >= 16 && Number(match[1]) <= 31) return true;
+  if (/^(fc|fd|fe8[0-9a-f]:)/.test(normalized)) return true;
+  return false;
 }
 
 async function publicGateway(endpoint: string) {
@@ -101,7 +113,7 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           enabled: row.enabled,
           protocol: row.protocol === "Modbus TCP" ? "modbus-tcp" : row.protocol === "Wi-Fi Datalogger" ? "wifi-gateway" : "modbus-rtu",
-          manufacturer: row.manufacturer || "Felicity", model: row.inverterModel || "Felicity",
+          manufacturer: row.manufacturer || "Next Power", model: row.inverterModel || "NEXT - Victor Max 8.2KW",
           address: row.inverterAddress || "", port: row.port, serialPort: row.serialPort || "",
           baudRate: row.baudRate, dataBits: row.dataBits, stopBits: row.stopBits, parity: row.parity,
           slaveId: row.slaveId, timeoutMs: row.timeoutMs,
