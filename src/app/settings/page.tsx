@@ -196,7 +196,7 @@ export default function SettingsPage() {
   if (loading) return <div dir="rtl" className="p-6 text-center font-black text-slate-600">جاري تحميل الإعدادات…</div>;
 
   return (
-    <div dir="rtl" className="min-h-[100dvh] w-full space-y-3 overflow-x-hidden overscroll-y-auto bg-slate-50/70 p-2 pb-32 scroll-pb-32 sm:space-y-4 sm:p-4">
+    <div dir="rtl" className="min-h-[100dvh] w-full space-y-3 overflow-x-hidden overscroll-y-auto bg-slate-50/70 p-2 pb-[calc(12rem+env(safe-area-inset-bottom))] scroll-pb-[calc(12rem+env(safe-area-inset-bottom))] sm:space-y-4 sm:p-4 sm:pb-12">
       <header className="rounded-[1.5rem] bg-gradient-to-br from-indigo-700 via-blue-600 to-sky-500 p-5 text-white shadow-lg sm:p-6">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-2xl backdrop-blur">⚙️</div>
@@ -421,7 +421,7 @@ export default function SettingsPage() {
       {message && <div role="status" className="rounded-2xl bg-emerald-50 p-4 text-center text-sm font-black text-emerald-700">{message}</div>}
 
       {!draft && <button type="button" onClick={addInverter} className="min-h-14 w-full rounded-2xl bg-blue-600 px-5 py-4 font-black text-white shadow-lg">＋ أضف أول إنفرتر للبدء</button>}
-      <div className="h-2" />
+      <div aria-hidden="true" className="h-16" />
     </div>
   );
 }
