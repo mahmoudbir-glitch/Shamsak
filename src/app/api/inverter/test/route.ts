@@ -44,6 +44,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "serial_port_unavailable", message: "المنفذ التسلسلي غير متاح من السحابة. استخدم بوابة محلية على الجهاز المتصل بالإنفرتر." }, { status: 422 });
     }
 
+    if (row.protocol === "Wi-Fi Datalogger") {
+      const cloudUrl = process.env.SHAMSAK_DESSMONITOR_URL || "https://api.dessmonitor.com/public/";
+      const started = Date.now();
+      try {
+        const response = await fetch(cloudUrl, { method: "GET", cache: "no-store", signal: AbortSignal.timeout(row.timeoutMs) });
+        const latencyMs = Date.now() - started;
+        await prisma.inverterConnection.update({
+          where: { id: row.id },
+          data: {
+            lastStatus: response.ok ? "connected" : "error",
+            lastTestResult: response.ok ? "success" : "error",
+            lastTestLatencyMs: latencyMs,
+            lastTestReason: response.ok ? "تم الوصول إلى خادم DESSMonitor. يلزم رمز المصادقة ومعرّفات الجهاز لإجراء قراءة فعلية." : "تعذر الوصول إلى خادم DESSMonitor.",
+          },
+        });
+        if (!response.ok) return NextResponse.json({ ok: false, source: "dessmonitor", latencyMs, error: "cloud_unreachable", message: "تم إعداد الدنجل، لكن خادم DESSMonitor لم يستجب من بيئة شمسك." }, { status: 502 });
+        return NextResponse.json({
+          ok: true,
+          source: "dessmonitor",
+          latencyMs,
+          message: "تم الوصول إلى DESSMonitor بنجاح. هذا اختبار للخادم فقط؛ القراءة الفعلية تحتاج token وDevCode وDevAddr وSN من حساب SmartESS.",
+          device: {
+            dataloggerPn: row.dataloggerPn,
+            dataloggerStationName: row.dataloggerStationName,
+            dataloggerDeviceIdentifier: row.dataloggerDeviceIdentifier,
+          },
+        });
+      } catch {
+        await prisma.inverterConnection.update({ where: { id: row.id }, data: { lastStatus: "error", lastTestResult: "error", lastTestReason: "تعذر الوصول إلى DESSMonitor من بيئة شمسك." } }).catch(() => {});
+        return NextResponse.json({ ok: false, source: "dessmonitor", error: "cloud_connection_failed", message: "تعذر الوصول إلى خادم DESSMonitor من شمسك." }, { status: 502 });
+      }
+    }
+
     const gatewayUrl = row.gatewayUrl || process.env.SHAMSAK_GATEWAY_URL || "";
     if (!gatewayUrl) return NextResponse.json({ ok: false, error: "gateway_not_configured", message: "لم يتم ضبط عنوان بوابة البيانات." }, { status: 422 });
 
