@@ -43,7 +43,7 @@ const input = "w-full min-h-12 rounded-xl border border-slate-200 bg-indigo-50/6
 
 function SettingsSection({ icon, title, subtitle, children, open = false }: { icon: string; title: string; subtitle: string; children: React.ReactNode; open?: boolean }) {
   return (
-    <details open={open} className="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white shadow-sm">
+    <details open={open} className="overflow-visible rounded-[1.5rem] border border-slate-200/80 bg-white shadow-sm">
       <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 sm:px-5 [&::-webkit-details-marker]:hidden">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-xl">{icon}</span>
         <span className="min-w-0 flex-1">
@@ -196,7 +196,7 @@ export default function SettingsPage() {
   if (loading) return <div dir="rtl" className="p-6 text-center font-black text-slate-600">جاري تحميل الإعدادات…</div>;
 
   return (
-    <div dir="rtl" className="min-h-[100dvh] w-full space-y-3 overflow-x-hidden overscroll-contain bg-slate-50/70 p-2 pb-32 scroll-pb-32 sm:space-y-4 sm:p-4">
+    <div dir="rtl" className="min-h-[100dvh] w-full space-y-3 overflow-x-hidden overscroll-y-auto bg-slate-50/70 p-2 pb-32 scroll-pb-32 sm:space-y-4 sm:p-4">
       <header className="rounded-[1.5rem] bg-gradient-to-br from-indigo-700 via-blue-600 to-sky-500 p-5 text-white shadow-lg sm:p-6">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-2xl backdrop-blur">⚙️</div>
