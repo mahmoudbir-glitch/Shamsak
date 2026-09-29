@@ -1,0 +1,10 @@
+ALTER TABLE "InverterConnection" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "EnergySettings" ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Deny all to anon" ON "InverterConnection";
+DROP POLICY IF EXISTS "Deny all to authenticated" ON "InverterConnection";
+DROP POLICY IF EXISTS "Deny all to anon" ON "EnergySettings";
+DROP POLICY IF EXISTS "Deny all to authenticated" ON "EnergySettings";
+CREATE POLICY "Deny all to anon" ON "InverterConnection" FOR ALL TO anon USING (false) WITH CHECK (false);
+CREATE POLICY "Deny all to authenticated" ON "InverterConnection" FOR ALL TO authenticated USING (false) WITH CHECK (false);
+CREATE POLICY "Deny all to anon" ON "EnergySettings" FOR ALL TO anon USING (false) WITH CHECK (false);
+CREATE POLICY "Deny all to authenticated" ON "EnergySettings" FOR ALL TO authenticated USING (false) WITH CHECK (false);
