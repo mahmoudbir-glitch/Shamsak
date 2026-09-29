@@ -106,7 +106,7 @@ model DailySummary {
 model EnergySettings {
   id String @id @default("default")
   panelPowerW Float @default(6000)
-  batteryCapacityWh Float @default(10000)
+  batteryCapacityWh Float @default(4800)
   gridTariff Float @default(0)
   exportTariff Float @default(0)
   currency String @default("SYP")
@@ -164,7 +164,7 @@ model MonitoringEvent {
 model InverterConnection {
   id String @id @default("default")
   systemName String @default("منظومة شمسك")
-  inverterModel String @default("Felicity")
+  inverterModel String @default("NEXT - Victor Max 8.2KW")
   serialNumber String?
   manufacturer String?
   dataloggerPn String?
@@ -174,7 +174,7 @@ model InverterConnection {
   dataloggerDeviceIdentifier String?
   dataloggerUpdateIntervalSec Int?
   dataloggerCloud String?
-  protocol String @default("Modbus RTU")
+  protocol String @default("Wi-Fi Datalogger")
   inverterAddress String?
   serialPort String?
   port Int?
@@ -183,7 +183,7 @@ model InverterConnection {
   stopBits Int @default(1)
   parity String @default("N")
   slaveId Int @default(1)
-  timeoutMs Int @default(3000)
+  timeoutMs Int @default(1000)
   pollingIntervalMs Int @default(10000)
   gatewayUrl String?
   inverterUsername String?
