@@ -20,7 +20,7 @@ TOKEN = os.getenv("GATEWAY_TOKEN", "")
 API_URL = os.getenv("SHAMSAK_API_URL", "").rstrip("/")
 TELEMETRY_TOKEN = os.getenv("SHAMSAK_TELEMETRY_TOKEN", "")
 POLL_SECONDS = max(2, int(os.getenv("POLL_INTERVAL_SECONDS", "10")))
-PROFILE = os.getenv("FELICITY_PROFILE", "ivem6048-ii")
+PROFILE = os.getenv("FELICITY_PROFILE", "").strip()
 REGISTER_OFFSET = int(os.getenv("FELICITY_REGISTER_OFFSET", "0"))
 
 # This profile is intentionally limited to a community-documented IVEM6048-II map.
@@ -60,12 +60,18 @@ def read_register(client, address, slave):
     return read_u16(result)
 
 def read_telemetry(config):
+    if not PROFILE:
+        raise RuntimeError("inverter_profile_not_configured")
     if PROFILE not in PROFILES:
         raise RuntimeError("felicity_profile_not_supported")
     profile = PROFILES[PROFILE]
     protocol = config.get("protocol", "modbus-rtu")
     slave = int(config.get("slaveId", 1))
     timeout = max(0.5, float(config.get("timeoutMs", 3000)) / 1000)
+
+    manufacturer = str(config.get("manufacturer", "")).strip().lower()
+    if manufacturer and "felicity" not in manufacturer:
+        raise RuntimeError("unsupported_inverter_manufacturer_for_gateway")
 
     if protocol == "modbus-tcp":
         host = config.get("address", "")
