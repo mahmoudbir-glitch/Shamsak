@@ -87,25 +87,7 @@ export async function GET(request: NextRequest) {
       },
       update: {},
     });
-    const needsNormalization =
-      current.panelPowerW <= 0 ||
-      current.batteryCapacityWh <= 0 ||
-      current.batteryNominalVoltage !== 48 ||
-      !current.batteryChemistry ||
-      current.inverterRatedPowerKw == null;
-    const settings = needsNormalization
-      ? await prisma.energySettings.update({
-          where: { id: "default" },
-          data: {
-            ...(current.panelPowerW <= 0 ? { panelPowerW: 6000 } : {}),
-            ...(current.batteryCapacityWh <= 0 ? { batteryCapacityWh: 10000 } : {}),
-            ...(current.batteryNominalVoltage !== 48 ? { batteryNominalVoltage: 48 } : {}),
-            ...(!current.batteryChemistry ? { batteryChemistry: "LiFePO4" } : {}),
-            ...(current.inverterRatedPowerKw == null ? { inverterRatedPowerKw: 8.2 } : {}),
-            batteryMinReservePct: current.batteryMinReservePct ?? 20,
-          },
-        })
-      : current;
+    const settings = current;
     return NextResponse.json(settings, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return NextResponse.json({ error: "settings_read_failed" }, { status: 503 });
