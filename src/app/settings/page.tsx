@@ -185,7 +185,7 @@ export default function SettingsPage() {
   const testConnection = async () => {
     setMessage("جاري اختبار الاتصال…"); setError("");
     try {
-      const response = await fetch("/api/inverter/test", { method: "POST", cache: "no-store" });
+      const response = await fetch("/api/inverter/test", { method: "POST", cache: "no-store", headers: newToken ? { Authorization: "Bearer " + newToken } : undefined });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.message || "فشل اختبار الاتصال.");
       setMessage("تم الاتصال بنجاح" + (data.latencyMs ? " — زمن الاستجابة " + data.latencyMs + " ms." : "."));
