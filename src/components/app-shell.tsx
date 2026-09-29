@@ -11,6 +11,45 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isLogin) return;
+
+    let active = true;
+
+    const verifyStillAuthenticated = async () => {
+      try {
+        const response = await fetch('/api/auth/session', {
+          method: 'GET',
+          cache: 'no-store',
+          credentials: 'include',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+
+        if (active && response.status === 401) {
+          window.location.replace('/login?next=' + encodeURIComponent(pathname || '/'));
+        }
+      } catch {
+        // Keep the current page on transient network errors.
+      }
+    };
+
+    // Re-check whenever the user navigates between protected pages.
+    void verifyStillAuthenticated();
+
+    // Browser back/forward can restore a protected page from bfcache
+    // without a new server request. Verify the session when that happens.
+    const handlePageShow = () => {
+      void verifyStillAuthenticated();
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      active = false;
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, [isLogin, pathname]);
+
+  useEffect(() => {
+    if (isLogin) return;
     const key = 'shamsak_monitoring_app_open_recorded';
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, '1');
