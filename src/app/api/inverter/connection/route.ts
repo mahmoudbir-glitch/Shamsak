@@ -121,9 +121,9 @@ export async function GET(request: NextRequest) {
         data: {
           id: "default",
           systemName: "منظومة شمسك",
-          inverterModel: "NEXT - Victor Max 8.2KW",
-          manufacturer: "NEXT",
-          protocol: "Wi-Fi Datalogger",
+          inverterModel: "Felicity",
+          manufacturer: "Felicity",
+          protocol: "Modbus RTU",
           connectionMode: "gateway",
           enabled: true,
           isPrimary: true,
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
           timeoutMs: 3000,
           pollingIntervalMs: 10000,
           lastStatus: "disconnected",
-          lastTestReason: "تمت إضافة بيانات الإنفرتر. يلزم عنوان بوابة Wi-Fi لاختبار الاتصال الفعلي.",
+          lastTestReason: "أدخل عنوان البوابة المحلية ورمز الربط لاختبار الاتصال الفعلي.",
         },
       });
       rows = [created];
@@ -207,8 +207,11 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "invalid_connection", message: "تحقق من معاملات الاتصال والقيم المطلوبة.", issues: parsed.error.flatten() }, { status: 422 });
 
   const input = parsed.data;
-  if (input.protocol === "Modbus RTU" && input.connectionMode === "gateway" && !input.serialPort) {
-    return NextResponse.json({ error: "missing_serial_port", message: "أدخل منفذ RS485 الخاص بالبوابة المحلية مثل COM3 أو /dev/ttyUSB0." }, { status: 422 });
+  if (input.protocol === "Modbus RTU" && input.connectionMode === "local" && !input.serialPort) {
+    return NextResponse.json({ error: "missing_serial_port", message: "في الوضع المحلي أدخل منفذ RS485 مثل COM3 أو /dev/ttyUSB0." }, { status: 422 });
+  }
+  if (input.connectionMode === "gateway" && !input.gatewayUrl) {
+    return NextResponse.json({ error: "missing_gateway_url", message: "أدخل عنوان البوابة المحلية قبل الحفظ، مثل https://gateway.example.com." }, { status: 422 });
   }
   if (input.protocol === "MQTT" && !input.mqttBroker) {
     return NextResponse.json({ error: "missing_mqtt_broker", message: "أدخل عنوان MQTT Broker." }, { status: 422 });
