@@ -1,20 +1,118 @@
-# شمسك ☀️ (Shamsak Smart Solar Dashboard)
+# شمسك ☀️ — Shamsak
 
-تطبيق ذكي ومتطور لإدارة ومراقبة أنظمة الطاقة الشمسية المنزلية، مبني باستخدام **Next.js** و **Tailwind CSS**. يتميز التطبيق بواجهة مستخدم دائرية تفاعلية حركية تحاكي تدفق الأحمال اللحظية بدقة متناهية ونمط بصري فاتح (Light Mode) مريح للعين.
+تطبيق عربي RTL لإدارة ومراقبة منظومة الطاقة الشمسية المنزلية، مبني على Next.js App Router وPrisma/PostgreSQL.
 
-## 🚀 أبرز الميزات والخصائص الذكية:
-* **مخطط التدفق اللحظي الدائري (Core Node Flow):** عرض حركي انسيابي منقط يعبر عن سريان الطاقة بين الشمس، المنزل، البطارية، والشبكة.
-* **إدارة البطارية التنبؤية (Predictive Autonomy):** خوارزمية ذكية تحلل الاستهلاك والطقس لحساب ساعات الصمود الليلي للبطارية ومنع ملامسة حد الأمان (10%) لحماية الخلايا.
-* **جدولة استغلال الفائض الشمسي:** توجيه المستخدم ذكياً لاستغلال الساعات الذهبية لتشغيل الأحمال الثقيلة (كالغسالة والمضخة) بناءً على فائض الإنتاج المتوقع.
-* **التحليل المالي الدقيق:** لوحة تحكم مالية مستقلة تحسب المبالغ الموفرة بالعملة المحلية ومصادر التغذية الشهرية بدقة.
-* **الاتصال الحي بالطقس:** دمج API حقيقي (Open-Meteo) لتحديث درجات الحرارة ونسب الإشعاع الشمسي لمدينة بيروت تلقائياً.
-* **الذاكرة الذكية الذاتية (LocalStorage):** حفظ وتثبيت إعدادات المنظومة وسعة البطارية داخل ذاكرة هاتف المستخدم لضمان استقرار وتخصيص الحسابات.
+## البنية الحالية
 
-## 🛠️ التقنيات المستخدمة (Tech Stack):
-* **Framework:** Next.js (App Router)
-* **Styling:** Tailwind CSS / Custom SVG Animations
-* **Language:** TypeScript / JavaScript
-* **API:** Open-Meteo Forecasting API
+```
+الإنفرتر
+   ↓
+Gateway محلي (ESP32 / Raspberry Pi / Wi‑Fi dongle أو جهاز محلي مناسب)
+   ↓ HTTPS + Authorization: Bearer <TELEMETRY_INGEST_TOKEN>
+/api/telemetry
+   ↓
+Prisma / PostgreSQL
+   ↓
+لوحة شمسك
+```
 
-## 📱 بيئة التشغيل:
-تم تصميم وتطوير وتحسين واجهات التطبيق ومخرجاته البرمجية بالكامل لتتلاءم وتعمل بكفاءة فائقة على شاشات الهواتف المحمولة والمتصفحات الذكية.
+Vercel لا يتصل مباشرة بمنفذ USB/RS485 أو COM الموجود داخل المنزل. القراءة الفعلية من الإنفرتر تتم محلياً، والـ Gateway يحوّل القراءات إلى صيغة telemetry الموحدة ويرسلها إلى التطبيق.
+
+## Telemetry API
+
+المسار المخصص لاستقبال بيانات الـ Gateway هو:
+
+`POST /api/telemetry`
+
+يجب إرسال:
+
+```http
+Authorization: Bearer <TELEMETRY_INGEST_TOKEN>
+Content-Type: application/json
+```
+
+مثال payload:
+
+```json
+{
+  "timestamp": "2026-09-29T12:00:00.000Z",
+  "pv_power": 4200,
+  "load_power": 3350,
+  "battery_soc": 78,
+  "battery_power": 850,
+  "battery_voltage": 51.2,
+  "battery_current": 16.6,
+  "battery_temperature": 28,
+  "grid_status": false,
+  "grid_power": 0,
+  "source": "inverter"
+}
+```
+
+في شمسك، القيمة الموجبة لـ `battery_power` و`battery_current` تعني الشحن، والقيمة السالبة تعني التفريغ. يجب على الـ Gateway تطبيع إشارة الإنفرتر وفق هذه القاعدة قبل الإرسال.
+
+## المصادقة
+
+- صفحات التطبيق محمية بجلسة المتصفح.
+- `/api/auth/*` و`/api/telemetry` مستثناة من حماية middleware.
+- استقبال telemetry لا يعتمد على Cookie؛ يعتمد على Bearer Token.
+- جلسة المتصفح موقعة باستخدام Web Crypto، لذلك `verifySessionToken` متوافق مع Edge middleware.
+- صفحة تسجيل الدخول ترفض قيم `next` التي تبدأ بـ `//`، ويوجد حد لمحاولات الدخول الفاشلة.
+
+## قاعدة البيانات
+
+Prisma هو مصدر البيانات الأساسي.
+
+المتغير الأساسي هو:
+
+`DATABASE_URL`
+
+ويتم تطبيق migrations في build production قبل توليد Prisma Client وبناء Next.js:
+
+```bash
+prisma migrate deploy
+node scripts/prisma-generate.mjs
+next build
+```
+
+للتطوير:
+
+```bash
+npm run db:migrate
+npm run db:generate
+npm run typecheck
+npm run lint
+npm run build
+```
+
+المجلد `prisma/migrations` يحتوي migrations الخاصة بالطاقة، إعدادات الإنفرتر، الـ Gateway، الرقم التسلسلي، العملة SYP، وإعدادات Safe Zone.
+
+## Secrets
+
+لا تضع أي secret داخل الواجهة أو متغيرات `NEXT_PUBLIC_*`.
+
+المتغيرات الأساسية:
+
+- `AUTH_SECRET`
+- `INVERTER_CONFIG_SECRET`
+- `TELEMETRY_INGEST_TOKEN`
+- `SETTINGS_API_TOKEN`
+- `SHAMSAK_PASSWORD_HASH`
+
+استخدم قيمة مختلفة لكل secret.
+
+## Drivers والإنفرترات
+
+الـ Gateway هو المكان الصحيح لتعريف بروتوكول الإنفرتر:
+
+- `voltronic_pi30`: بروتوكول QPI/PI30 لإنفرترات Axpert/MPP/MAST المتوافقة.
+- `modbus_generic`: Modbus RTU/TCP فقط عندما يكون Register Profile الخاص بالموديل معروفاً وموثوقاً.
+
+لا يتم اعتبار نتيجة discovery الرقمية دليلاً على أن Register Map موثقة من الشركة المصنعة.
+
+## ملاحظات مهمة
+
+- لا يوجد endpoint بديل لاستقبال بيانات الإنفرتر خارج `/api/telemetry`.
+- لا تستخدم Cookie من الـ Gateway.
+- لا يتم اختراع Register Map لإنفرتر غير محدد الموديل.
+- اختبار الـ Fake Modbus لا يعني أن الاتصال بالإنفرتر الحقيقي تم اختباره.
