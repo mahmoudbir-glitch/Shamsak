@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
   if (!configured()) return NextResponse.json({ ok: false, error: "database_not_configured", message: "قاعدة البيانات غير مهيأة." }, { status: 503 });
 
   try {
+    const incomingGatewayToken = request.headers.get("authorization") || "";
     const row = await prisma.inverterConnection.findFirst({ where: { isPrimary: true } }) ?? await prisma.inverterConnection.findUnique({ where: { id: "default" } });
     if (!row) return NextResponse.json({ ok: false, error: "inverter_not_configured", message: "لم تتم إضافة إنفرتر بعد." }, { status: 422 });
 
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
     try {
       const response = await fetch(safeGateway + "/v1/inverter/test", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(process.env.SHAMSAK_GATEWAY_TOKEN ? { Authorization: "Bearer " + process.env.SHAMSAK_GATEWAY_TOKEN } : {}) },
+        headers: { "Content-Type": "application/json", ...(incomingGatewayToken ? { Authorization: incomingGatewayToken } : process.env.SHAMSAK_GATEWAY_TOKEN ? { Authorization: "Bearer " + process.env.SHAMSAK_GATEWAY_TOKEN } : {}) },
         body: JSON.stringify({
           enabled: row.enabled,
           protocol: row.protocol === "Modbus TCP" ? "modbus-tcp" : row.protocol === "Wi-Fi Datalogger" ? "wifi-gateway" : "modbus-rtu",
