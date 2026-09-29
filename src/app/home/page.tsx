@@ -15,8 +15,10 @@ export default function HomeConsumptionPage() {
   const [snapshot, setSnapshot] = useState<EnergySnapshot | null>(null);
   const [isLive, setIsLive] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (manual = false) => {
+    if (manual) setRefreshing(true);
     try {
       const response = await fetch("/api/telemetry", { cache: "no-store" });
       if (!response.ok) throw new Error("telemetry_unavailable");
@@ -29,6 +31,7 @@ export default function HomeConsumptionPage() {
       // Keep the last valid reading visible instead of replacing it with demo values.
     } finally {
       setLoading(false);
+      if (manual) setRefreshing(false);
     }
   }, []);
 
@@ -66,8 +69,8 @@ export default function HomeConsumptionPage() {
               <h1 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">حالة منزلك الآن</h1>
               <p className="mt-1 text-xs font-semibold text-slate-500 sm:text-sm">نظرة سريعة على إنتاج الشمس، استهلاك المنزل والبطارية.</p>
             </div>
-            <button type="button" onClick={() => void load()} disabled={loading} aria-label="تحديث بيانات الطاقة" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 active:scale-95 disabled:opacity-50">
-              <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+            <button type="button" onClick={() => void load(true)} disabled={refreshing} aria-label="تحديث بيانات الطاقة" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 active:scale-95 disabled:opacity-50">
+              <RefreshCw size={18} className={refreshing ? "animate-spin" : ""} />
             </button>
           </div>
           <div className="relative mt-5 grid grid-cols-3 gap-2">
