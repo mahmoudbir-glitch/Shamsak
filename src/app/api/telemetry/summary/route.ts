@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +16,9 @@ function startFor(period: Period) {
 }
 
 export async function GET(request: NextRequest) {
+  const session = await verifySessionToken(request.cookies.get(COOKIE_NAME)?.value);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "database_not_configured" }, { status: 503 });
   }
