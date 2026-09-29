@@ -24,6 +24,12 @@ test("SmartESS datalogger migration is safe when columns already exist", () => {
   assert.doesNotMatch(source, /ADD COLUMN "(?:dataloggerPn|dataloggerType|dataloggerFirmware|dataloggerStationName|dataloggerDeviceIdentifier|dataloggerUpdateIntervalSec|dataloggerCloud)"/);
 });
 
+test("login failures do not reveal whether the username exists", () => {
+  const source = read("src/app/api/auth/login/route.ts");
+  assert.match(source, /error:\s*"invalid_credentials"/);
+  assert.doesNotMatch(source, /error:\s*usernameOk\s*\?/);
+});
+
 test("logout uses a full navigation to prevent stale protected pages", () => {
   const source = read("src/components/logout-button.tsx");
   assert.match(source, /window\.location\.replace\(["']\/login["']\)/);
