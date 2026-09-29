@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       details: usernameOk ? "password_mismatch" : "username_mismatch",
     });
     return NextResponse.json(
-      { error: usernameOk ? "invalid_password" : "invalid_username" },
+      { error: "invalid_credentials" },
       { status: 401 },
     );
   }
