@@ -104,12 +104,17 @@ export default function SettingsPage() {
   const updateDraft = <K extends keyof Inverter>(key: K, value: Inverter[K]) => setDraft((old) => old ? ({ ...old, [key]: value }) : old);
 
   const saveAll = async () => {
-    if (!draft) { setError("أضف إنفرترًا أو اختر إنفرترًا قبل الحفظ."); return; }
     setSaving(true); setMessage(""); setError("");
     try {
       const settingsResponse = await fetch("/api/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(settings) });
       const settingsData = await settingsResponse.json().catch(() => ({}));
       if (!settingsResponse.ok) throw new Error(settingsData.message || "تعذر حفظ إعدادات المنظومة.");
+
+      if (!draft) {
+        setMessage("تم حفظ إعدادات المنظومة. أضف إنفرترًا لاحقاً لإعداد الاتصال.");
+        await load();
+        return;
+      }
 
       const connectionResponse = await fetch("/api/inverter/connection", {
         method: "POST", headers: { "Content-Type": "application/json" },
