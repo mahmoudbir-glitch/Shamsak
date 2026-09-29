@@ -302,7 +302,7 @@ export async function POST(request: NextRequest) {
     if (input.panelCapacityKw !== undefined || input.batteryCapacityWh !== undefined) {
       await prisma.energySettings.upsert({
         where: { id: "default" },
-        create: { id: "default", panelPowerW: input.panelCapacityKw !== undefined ? input.panelCapacityKw * 1000 : 6000, batteryCapacityWh: input.batteryCapacityWh !== undefined ? input.batteryCapacityWh : 10000 },
+        create: { id: "default", panelPowerW: input.panelCapacityKw !== undefined ? input.panelCapacityKw * 1000 : 6000, batteryCapacityWh: input.batteryCapacityWh !== undefined ? input.batteryCapacityWh : 4800 },
         update: {
           ...(input.panelCapacityKw !== undefined ? { panelPowerW: input.panelCapacityKw * 1000 } : {}),
           ...(input.batteryCapacityWh !== undefined ? { batteryCapacityWh: input.batteryCapacityWh } : {}),
