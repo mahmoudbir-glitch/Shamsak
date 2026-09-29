@@ -14,7 +14,7 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
-    "seed": "ts-node --compiler-options "{\"module\":\"CommonJS\"}" prisma/seed.ts"
+    "seed": "ts-node --project prisma/tsconfig.json prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "5.19.0",
