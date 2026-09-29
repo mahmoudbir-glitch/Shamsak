@@ -134,8 +134,7 @@ export default function SettingsPage() {
 
   const addInverter = () => {
     const item: Inverter = {
-      id: "", systemName: "منظومة شمسك", inverterModel: "NEXT - Victor Max 8.2KW", manufacturer: "NEXT", serialNumber: "92085230517098",
-      protocol: "Modbus RTU", serialPort: "", port: 502, baudRate: 9600, dataBits: 8, stopBits: 1, parity: "N",
+      id: "", systemName: "منظومة شمسك", inverterModel: "Felicity", manufacturer: "Felicity",       protocol: "Modbus RTU", serialPort: "", port: 502, baudRate: 9600, dataBits: 8, stopBits: 1, parity: "N",
       slaveId: 1, timeoutMs: 1000, pollingIntervalMs: 10000, gatewayUrl: "", gatewayName: "", connectionMode: "gateway",
       enabled: true, isPrimary: inverters.length === 0, lastStatus: "unknown",
     };
