@@ -121,9 +121,9 @@ export async function GET(request: NextRequest) {
         data: {
           id: "default",
           systemName: "منظومة شمسك",
-          inverterModel: "Felicity",
-          manufacturer: "Felicity",
-          protocol: "Modbus RTU",
+          inverterModel: "NEXT - Victor Max 8.2KW",
+          manufacturer: "Next Power",
+          protocol: "Wi-Fi Datalogger",
           connectionMode: "gateway",
           enabled: true,
           isPrimary: true,
@@ -210,8 +210,8 @@ export async function POST(request: NextRequest) {
   if (input.protocol === "Modbus RTU" && input.connectionMode === "local" && !input.serialPort) {
     return NextResponse.json({ error: "missing_serial_port", message: "في الوضع المحلي أدخل منفذ RS485 مثل COM3 أو /dev/ttyUSB0." }, { status: 422 });
   }
-  if (input.connectionMode === "gateway" && !input.gatewayUrl) {
-    return NextResponse.json({ error: "missing_gateway_url", message: "أدخل عنوان البوابة المحلية قبل الحفظ، مثل https://gateway.example.com." }, { status: 422 });
+  if (input.connectionMode === "gateway" && !input.gatewayUrl && input.protocol !== "Wi-Fi Datalogger") {
+    return NextResponse.json({ error: "missing_gateway_url", message: "أدخل عنوان البوابة المحلية قبل الحفظ، مثل https://gateway.example.com. إذا كان الاتصال عبر Wi-Fi Datalogger فسيتم حفظ إعداد الدنجل بانتظار واجهة السحابة الخاصة به." }, { status: 422 });
   }
   if (input.protocol === "MQTT" && !input.mqttBroker) {
     return NextResponse.json({ error: "missing_mqtt_broker", message: "أدخل عنوان MQTT Broker." }, { status: 422 });
