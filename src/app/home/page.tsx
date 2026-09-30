@@ -4,17 +4,34 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Home, Loader2, RefreshCw } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
 import { PageHeader } from "@/components/page-header";
+import { LoadChart, type LoadPoint } from "@/components/load-chart";
 import { loadTone, semanticText } from "@/lib/energy";
 
 const REFRESH_MS = 15_000;
+const HISTORY_REFRESH_MS = 5 * 60_000;
+
+type History = { points: LoadPoint[]; peak: { w: number; at: string } | null; inverterRatedKw: number | null; timezone: string };
 
 export default function HomeConsumptionPage() {
   const [snapshot, setSnapshot] = useState<EnergySnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [history, setHistory] = useState<History | null>(null);
+
+  const loadHistory = useCallback(async () => {
+    try {
+      const response = await fetch("/api/telemetry/history", { cache: "no-store" });
+      if (response.ok) setHistory((await response.json()) as History);
+    } catch {
+      // المنحنى اختياري؛ الصفحة تعمل بدونه.
+    }
+  }, []);
 
   const load = useCallback(async (manual = false) => {
-    if (manual) setRefreshing(true);
+    if (manual) {
+      setRefreshing(true);
+      void loadHistory();
+    }
     try {
       const response = await fetch("/api/telemetry", { cache: "no-store" });
       if (!response.ok) throw new Error("telemetry_unavailable");
@@ -27,7 +44,13 @@ export default function HomeConsumptionPage() {
       setLoading(false);
       if (manual) setRefreshing(false);
     }
-  }, []);
+  }, [loadHistory]);
+
+  useEffect(() => {
+    void loadHistory();
+    const timer = window.setInterval(() => void loadHistory(), HISTORY_REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, [loadHistory]);
 
   useEffect(() => {
     void load();
@@ -39,6 +62,21 @@ export default function HomeConsumptionPage() {
   const homeKw = homeW / 1000;
   const tone = loadTone(homeKw);
   const toneText = semanticText[tone];
+
+  // من أين يأتي حمل المنزل الآن: الشمس أولاً، ثم البطارية، والباقي من الشبكة.
+  const fromSolar = Math.min(homeW, Math.max(0, snapshot?.solarPowerW ?? 0));
+  const fromBattery = Math.min(homeW - fromSolar, Math.max(0, -(snapshot?.batteryPowerW ?? 0)));
+  const fromGrid = Math.max(0, homeW - fromSolar - fromBattery);
+  const share = (w: number) => (homeW > 0 ? Math.round((w / homeW) * 100) : 0);
+  const sources = [
+    { label: "الشمس", w: fromSolar, bar: "bg-amber-400", text: "text-amber-700" },
+    { label: "البطارية", w: fromBattery, bar: "bg-emerald-500", text: "text-emerald-700" },
+    { label: "الشبكة", w: fromGrid, bar: "bg-violet-500", text: "text-violet-700" },
+  ];
+
+  const timeZone = history?.timezone || "Asia/Beirut";
+  const peakTime = history?.peak ? new Intl.DateTimeFormat("ar-LB-u-nu-latn", { timeZone, hour: "2-digit", minute: "2-digit" }).format(new Date(history.peak.at)) : null;
+  const peakPct = history?.peak && history.inverterRatedKw ? Math.round((history.peak.w / (history.inverterRatedKw * 1000)) * 100) : null;
 
   return (
     <div className="w-full space-y-3 pb-4 text-right" dir="rtl">
@@ -68,17 +106,44 @@ export default function HomeConsumptionPage() {
         )}
       </section>
 
-      {/* ما لا تعرضه الرئيسية: استهلاك اليوم، وكم من الحمل تغطيه الشمس الآن */}
+      {/* من أين يأتي الاستهلاك الآن */}
+      <section className="energy-card space-y-3 p-4">
+        <h2 className="text-sm font-black text-slate-900">من أين يأتي استهلاكك الآن</h2>
+        <div className="flex h-3 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
+          {sources.map((source) => source.w > 0 && <div key={source.label} className={source.bar} style={{ width: `${share(source.w)}%` }} />)}
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          {sources.map((source) => (
+            <div key={source.label}>
+              <div className="text-[11px] font-bold text-slate-500">{source.label}</div>
+              <div className={"text-base font-black " + source.text}>{share(source.w)}%</div>
+              <div className="text-[11px] font-semibold text-slate-400">{Math.round(source.w)} واط</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <div className="grid grid-cols-2 gap-3">
         <div className="energy-card p-4">
           <div className="text-[11px] font-bold text-slate-500">استهلاك اليوم</div>
           <div className="mt-1 text-xl font-black text-sky-600">{snapshot?.todayHomeUsageKWh !== undefined ? snapshot.todayHomeUsageKWh.toFixed(1) : "—"} <span className="text-[11px]">ك.و.س</span></div>
         </div>
         <div className="energy-card p-4">
-          <div className="text-[11px] font-bold text-slate-500">تغطية الشمس للحمل الآن</div>
-          <div className="mt-1 text-xl font-black text-amber-600">{homeW > 0 ? Math.round(Math.min(1, (snapshot?.solarPowerW ?? 0) / homeW) * 100) : 0}%</div>
+          <div className="text-[11px] font-bold text-slate-500">أعلى حمل اليوم</div>
+          <div className="mt-1 text-xl font-black text-slate-800">{history?.peak ? (history.peak.w / 1000).toFixed(2) : "—"} <span className="text-[11px]">kW</span></div>
+          {history?.peak && <div className="text-[11px] font-semibold text-slate-400">الساعة {peakTime}{peakPct !== null ? ` · ${peakPct}% من قدرة الإنفرتر` : ""}</div>}
         </div>
       </div>
+
+      {/* منحنى آخر 24 ساعة */}
+      <section className="energy-card space-y-2 p-4">
+        <h2 className="text-sm font-black text-slate-900">آخر 24 ساعة</h2>
+        {history && history.points.length >= 2 ? (
+          <LoadChart points={history.points} timeZone={timeZone} now={Date.now()} />
+        ) : (
+          <p className="py-6 text-center text-xs font-semibold text-slate-400">يظهر المنحنى بعد تجمّع قراءات كافية (نحو ساعة من الاستخدام).</p>
+        )}
+      </section>
 
       <p className="px-1 text-[11px] font-semibold leading-5 text-slate-400">تفصيل كل غرفة أو جهاز يحتاج حساسات أحمال مستقلة، ولا نعرض أرقاماً مختلقة.</p>
     </div>

@@ -418,3 +418,10 @@ test("today's forecast simulates only the hours still ahead, with the saved rese
   assert.match(hook, /batteryCapacityWh \* site\.reservePct \/ 100/);
   assert.doesNotMatch(hook, /SAFETY_RESERVE \/ 100/);
 });
+
+test("house history endpoint requires a session and the page uses it", () => {
+  const route = read("src/app/api/telemetry/history/route.ts");
+  assert.match(route, /verifySessionToken\(request\.cookies\.get\(COOKIE_NAME\)\?\.value\)/);
+  assert.match(route, /status: 401/);
+  assert.match(read("src/app/home/page.tsx"), /fetch\("\/api\/telemetry\/history"/);
+});
