@@ -51,7 +51,8 @@ export async function GET(request: NextRequest) {
 
   if (panelTilt != null && panelAzimuth != null) {
     url.searchParams.set("tilt", String(Math.max(0, Math.min(90, panelTilt))));
-    url.searchParams.set("azimuth", String(Math.max(-180, Math.min(180, panelAzimuth))));
+    // Settings hold a compass bearing (0 = north, 180 = south); Open-Meteo counts from south.
+    url.searchParams.set("azimuth", String(Math.max(-180, Math.min(180, ((panelAzimuth % 360) + 360) % 360 - 180))));
   }
 
   try {

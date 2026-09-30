@@ -53,6 +53,7 @@ function NightCard({
   averageNightLoadW,
   confidence,
   sampleCount,
+  capacityWh,
 }: {
   title: string;
   startSoc: number;
@@ -61,10 +62,8 @@ function NightCard({
   averageNightLoadW: number | null;
   confidence: LoadStability;
   sampleCount: number;
+  capacityWh: number;
 }) {
-  const capacityWh = typeof window !== "undefined"
-    ? Number(localStorage.getItem("shamsak_battery_capacity") || 4800)
-    : 4800;
   const effectiveLoadW = averageNightLoadW ?? loadW;
   const result = calculateAutonomy(startSoc, capacityWh, effectiveLoadW, hours);
   const hasEnoughSamples = sampleCount >= 3;
@@ -115,7 +114,7 @@ function NightCard({
 }
 
 export function SmartForecast() {
-  const { forecasts, weather, snapshot, loading, isRefreshing, error, nightLoadStats, refresh } = useSmartEnergy();
+  const { forecasts, weather, snapshot, loading, isRefreshing, error, nightLoadStats, batteryCapacityWh, refresh } = useSmartEnergy();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showHourlyDetails, setShowHourlyDetails] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -285,8 +284,8 @@ export function SmartForecast() {
               </InfoTip>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {currentNight && <NightCard title="الليلة الحالية" startSoc={currentNight.startSoc} hours={currentNight.hours} loadW={loadW} averageNightLoadW={nightLoadStats.averageW} confidence={nightLoadStats.confidence} sampleCount={nightLoadStats.sampleCount} />}
-              {tomorrowNight && <NightCard title="ليلة الغد" startSoc={tomorrowNight.startSoc} hours={tomorrowNight.hours} loadW={loadW} averageNightLoadW={nightLoadStats.averageW} confidence={nightLoadStats.confidence} sampleCount={nightLoadStats.sampleCount} />}
+              {currentNight && <NightCard title="الليلة الحالية" startSoc={currentNight.startSoc} hours={currentNight.hours} loadW={loadW} averageNightLoadW={nightLoadStats.averageW} confidence={nightLoadStats.confidence} sampleCount={nightLoadStats.sampleCount} capacityWh={batteryCapacityWh} />}
+              {tomorrowNight && <NightCard title="ليلة الغد" startSoc={tomorrowNight.startSoc} hours={tomorrowNight.hours} loadW={loadW} averageNightLoadW={nightLoadStats.averageW} confidence={nightLoadStats.confidence} sampleCount={nightLoadStats.sampleCount} capacityWh={batteryCapacityWh} />}
             </div>
           </section>
 

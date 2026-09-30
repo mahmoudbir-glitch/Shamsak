@@ -13,6 +13,7 @@ type WeatherResponse = {
     cloud_cover?: number[];
     weather_code?: number[];
     shortwave_radiation?: number[];
+    global_tilted_irradiance?: number[];
     direct_radiation?: number[];
     diffuse_radiation?: number[];
   };
@@ -91,6 +92,52 @@ function dayLabel(index: number, date: string) {
   }).format(new Date(date + "T12:00:00"));
 }
 
+type SiteConfig = {
+  panelCapacityKw: number;
+  batteryCapacityWh: number;
+  latitude: number;
+  longitude: number;
+  timezone: string;
+  panelTilt: number | null;
+  panelAzimuth: number | null;
+};
+
+/**
+ * The forecast has to use what the owner saved in Settings. It used to read
+ * localStorage keys that nothing writes, so it silently ran on 6 kW / 4.8 kWh
+ * / Beirut whatever was configured. Falls back to those defaults only if the
+ * settings request fails.
+ */
+async function loadSiteConfig(): Promise<SiteConfig> {
+  const fallback: SiteConfig = {
+    panelCapacityKw: readNumber("shamsak_panel_capacity", 6),
+    batteryCapacityWh: readNumber("shamsak_battery_capacity", 4800),
+    latitude: readNumber("shamsak_latitude", DEFAULT_LAT),
+    longitude: readNumber("shamsak_longitude", DEFAULT_LON),
+    timezone: DEFAULT_TIMEZONE,
+    panelTilt: null,
+    panelAzimuth: null,
+  };
+  try {
+    const response = await fetch("/api/settings", { cache: "no-store" });
+    if (!response.ok) return fallback;
+    const data = (await response.json()) as Record<string, unknown>;
+    const num = (value: unknown, alt: number) => (typeof value === "number" && Number.isFinite(value) && value > 0 ? value : alt);
+    const opt = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : null);
+    return {
+      panelCapacityKw: num(data.panelPowerW, fallback.panelCapacityKw * 1000) / 1000,
+      batteryCapacityWh: num(data.batteryCapacityWh, fallback.batteryCapacityWh),
+      latitude: typeof data.latitude === "number" && Number.isFinite(data.latitude) ? data.latitude : fallback.latitude,
+      longitude: typeof data.longitude === "number" && Number.isFinite(data.longitude) ? data.longitude : fallback.longitude,
+      timezone: typeof data.timezone === "string" && data.timezone ? data.timezone : fallback.timezone,
+      panelTilt: opt(data.panelTilt),
+      panelAzimuth: opt(data.panelAzimuth),
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
@@ -103,6 +150,7 @@ export function useSmartEnergy() {
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [batteryCapacityWh, setBatteryCapacityWh] = useState(4800);
   const [nightLoadStats, setNightLoadStats] = useState<LoadStabilityResult>({ averageW: null, coefficientOfVariation: null, confidence: "غير كافية", sampleCount: 0 });
 
   const load = useCallback(async (mode: "initial" | "refresh" = "refresh"): Promise<boolean> => {
@@ -110,16 +158,15 @@ export function useSmartEnergy() {
     else setIsRefreshing(true);
 
     try {
-      const panelCapacityKw = readNumber("shamsak_panel_capacity", 6);
-      const latitude = readNumber("shamsak_latitude", DEFAULT_LAT);
-      const longitude = readNumber("shamsak_longitude", DEFAULT_LON);
-      const batteryCapacityWh = readNumber("shamsak_battery_capacity", 4800);
+      const site = await loadSiteConfig();
+      const { panelCapacityKw, latitude, longitude, batteryCapacityWh } = site;
+      const useTilted = site.panelTilt !== null && site.panelAzimuth !== null;
 
       const telemetryPromise = fetch("/api/telemetry", { cache: "no-store" });
       const weatherUrl = new URL("https://api.open-meteo.com/v1/forecast");
       weatherUrl.searchParams.set("latitude", String(latitude));
       weatherUrl.searchParams.set("longitude", String(longitude));
-      weatherUrl.searchParams.set("timezone", DEFAULT_TIMEZONE);
+      weatherUrl.searchParams.set("timezone", site.timezone);
       weatherUrl.searchParams.set("forecast_days", "7");
       weatherUrl.searchParams.set(
         "current",
@@ -131,8 +178,14 @@ export function useSmartEnergy() {
       );
       weatherUrl.searchParams.set(
         "hourly",
-        "temperature_2m,precipitation_probability,precipitation,cloud_cover,weather_code,shortwave_radiation,direct_radiation,diffuse_radiation",
+        "temperature_2m,precipitation_probability,precipitation,cloud_cover,weather_code,shortwave_radiation,direct_radiation,diffuse_radiation" + (useTilted ? ",global_tilted_irradiance" : ""),
       );
+      if (useTilted) {
+        // Settings store a compass bearing (0 = north, 180 = south). Open-Meteo
+        // measures from south (0 = south, -90 = east, 90 = west).
+        weatherUrl.searchParams.set("tilt", String(clamp(site.panelTilt!, 0, 90)));
+        weatherUrl.searchParams.set("azimuth", String(clamp(((site.panelAzimuth! % 360) + 360) % 360 - 180, -180, 180)));
+      }
 
       const [telemetryResponse, weatherResponse] = await Promise.all([
         telemetryPromise,
@@ -162,7 +215,7 @@ export function useSmartEnergy() {
       const nextForecasts = daily.time.slice(0, 7).map((date, dayIndex) => {
         const indexes = hourly.time!.map((time, i) => ({ time, i })).filter(({ time }) => time.startsWith(date));
         const points: HourlySolarPoint[] = indexes.map(({ time, i }) => {
-          const irradiance = hourly.shortwave_radiation?.[i] ?? 0;
+          const irradiance = (useTilted ? hourly.global_tilted_irradiance?.[i] : undefined) ?? hourly.shortwave_radiation?.[i] ?? 0;
           const solarKWh = estimateSolarKWh(irradiance, panelCapacityKw);
           return {
             time,
@@ -255,6 +308,7 @@ export function useSmartEnergy() {
       });
 
       snapshotRef.current = nextSnapshot;
+      setBatteryCapacityWh(batteryCapacityWh);
       setSnapshot(nextSnapshot);
       setNightLoadStats(updateNightLoadHistory(nextSnapshot));
       setWeather(nextWeather);
@@ -284,6 +338,7 @@ export function useSmartEnergy() {
     isRefreshing,
     error,
     nightLoadStats,
+    batteryCapacityWh,
     refresh: () => load("refresh"),
   };
 }

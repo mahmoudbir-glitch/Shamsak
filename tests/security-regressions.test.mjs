@@ -256,3 +256,24 @@ test("SmartESS login retries user-name spelling only on unknown-user errors", ()
   // A wrong password must surface at once rather than be retried with variants.
   assert.match(source, /if \(!\(error instanceof DessError\) \|\| !\/NOT_FOUND_USR\/i\.test\(error\.message\)\) throw error;/);
 });
+
+test("forecast uses the saved settings, not localStorage keys nothing writes", () => {
+  const hook = read("src/hooks/use-smart-energy.ts");
+  assert.match(hook, /fetch\("\/api\/settings"/);
+  assert.match(hook, /data\.panelPowerW/);
+  assert.match(hook, /data\.batteryCapacityWh/);
+  // The night-autonomy card must take the capacity from the hook as well.
+  const card = read("src/components/smart-forecast.tsx");
+  assert.doesNotMatch(card, /localStorage\.getItem\("shamsak_battery_capacity"\)/);
+});
+
+test("panel azimuth is converted from compass bearing to Open-Meteo's south-based scale", () => {
+  // Compass 180 (south-facing) must become 0; compass 270 (west) must become 90.
+  const convert = (az) => ((az % 360) + 360) % 360 - 180;
+  assert.equal(convert(180), 0);
+  assert.equal(convert(270), 90);
+  assert.equal(convert(90), -90);
+  for (const file of ["src/app/api/forecast/solar/route.ts", "src/hooks/use-smart-energy.ts"]) {
+    assert.match(read(file), /% 360\) \+ 360\) % 360 - 180/, `${file} must convert the bearing`);
+  }
+});
