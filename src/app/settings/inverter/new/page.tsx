@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const manufacturers = ["Growatt", "Deye-Sunsynk", "Solis", "Huawei", "أخرى"] as const;
+const manufacturers = ["Growatt", "Deye-Sunsynk", "Felicity Solar", "Solis", "Huawei", "أخرى"] as const;
 type Manufacturer = (typeof manufacturers)[number];
 
 export default function NewInverterPage() {
