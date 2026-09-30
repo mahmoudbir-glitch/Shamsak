@@ -227,3 +227,10 @@ test("connection save tolerates nulls the form echoes back", () => {
   const route = read("src/app/api/inverter/connection/route.ts");
   assert.match(route, /if \(value === null\) return false/);
 });
+
+test("datalogger identifiers have a copy button", () => {
+  const page = read("src/app/settings/page.tsx");
+  assert.match(page, /function CopyableInput/);
+  assert.match(page, /<CopyableInput value=\{draft\.dataloggerDeviceIdentifier/);
+  assert.match(page, /<CopyableInput value=\{draft\.dataloggerPn/);
+});
