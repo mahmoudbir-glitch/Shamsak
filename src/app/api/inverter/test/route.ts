@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
+import { storeReading } from "@/lib/smartess-sync";
 import { assertPublicEndpoint, PrivateEndpointError } from "@/lib/net-guard";
 import { decryptSecret } from "@/lib/inverter-config-crypto";
 import { authenticate, DessError, listDevices, readLastData } from "@/lib/dessmonitor";
@@ -115,6 +116,11 @@ export async function POST(request: NextRequest) {
         );
 
         const latencyMs = Date.now() - started;
+        // Store what the test just read so the dashboard shows it straight away.
+        const stored = await storeReading(reading).catch((error) => {
+          console.error("[inverter] store_reading_failed", error);
+          return { ok: false as const, reason: "تعذر حفظ القراءة." };
+        });
         const mapped = Object.entries(reading)
           .filter(([key, value]) => key !== "parameters" && key !== "raw" && value !== undefined)
           .map(([key]) => key);
@@ -138,6 +144,8 @@ export async function POST(request: NextRequest) {
           latencyMs,
           message: `تم تسجيل الدخول إلى SmartESS وقراءة ${Object.keys(reading.parameters).length} قيمة من الجهاز.`,
           device: { pn: device.pn, devcode: device.devcode, devaddr: device.devaddr, sn: device.sn },
+          stored: stored.ok,
+          storeProblem: stored.ok ? undefined : stored.reason,
           mappedFields: mapped,
           // Every parameter the cloud returned, so a label this build does not
           // recognise can be identified instead of silently dropped.

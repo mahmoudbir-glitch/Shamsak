@@ -200,7 +200,7 @@ export default function SettingsPage() {
       const response = await fetch("/api/inverter/test", { method: "POST", cache: "no-store", headers: newToken ? { Authorization: "Bearer " + newToken } : undefined });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.message || "فشل اختبار الاتصال.");
-      setMessage("تم الاتصال بنجاح" + (data.latencyMs ? " — زمن الاستجابة " + data.latencyMs + " ms." : "."));
+      setMessage("تم الاتصال بنجاح" + (data.latencyMs ? " — زمن الاستجابة " + data.latencyMs + " ms." : ".") + (data.stored === false && data.storeProblem ? " لكن لم تُحفظ القراءة: " + data.storeProblem : data.stored ? " تم حفظ القراءة في لوحة التحكم." : ""));
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : "تعذر اختبار الاتصال."); }
   };

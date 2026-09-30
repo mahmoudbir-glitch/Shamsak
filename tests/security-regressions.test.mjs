@@ -79,10 +79,11 @@ test("quiet hours accept real clock times", () => {
 });
 
 test("telemetry ingest keeps a stored reading even if post-processing fails", () => {
-  const source = read("src/app/api/telemetry/route.ts");
+  const store = read("src/lib/telemetry-store.ts");
+  const source = store + read("src/app/api/telemetry/route.ts");
   // The write and the summary/alert work must be in separate try blocks, and the
   // second must not return 503 — otherwise the gateway retries and duplicates rows.
-  const postProcessing = source.slice(source.indexOf("post_processing_failed") - 400);
+  const postProcessing = store.slice(store.indexOf("post_processing_failed") - 400);
   assert.match(source, /console\.error\("\[telemetry\] post_processing_failed"/);
   assert.doesNotMatch(postProcessing, /telemetry_write_failed/);
   assert.match(source, /stale: ageSeconds > STALE_AFTER_SEC/);
@@ -226,4 +227,17 @@ test("connection save tolerates nulls the form echoes back", () => {
   // and z.number() rejects null, so saving failed with 'invalid_connection'.
   const route = read("src/app/api/inverter/connection/route.ts");
   assert.match(route, /if \(value === null\) return false/);
+});
+
+test("dashboard polling refreshes readings from SmartESS without blocking", () => {
+  const route = read("src/app/api/telemetry/route.ts");
+  assert.match(route, /after\(\(\) => \{ void syncSmartEss\(\); \}\)/);
+  const sync = read("src/lib/smartess-sync.ts");
+  // An offline device's last values must not be stored as live readings.
+  assert.match(sync, /Number\(device\.status\) === 1/);
+  // Throttled so dashboard polls cannot hammer the vendor API.
+  assert.match(sync, /MIN_GAP_MS/);
+  // Both the gateway route and the cloud reader store through one function.
+  assert.match(read("src/lib/telemetry-store.ts"), /export async function ingestSample/);
+  assert.match(route, /ingestSample\(input\)/);
 });
