@@ -343,3 +343,11 @@ test("device discovery falls back beyond the energy-storage listing", () => {
   assert.match(lib, /"queryDeviceLastData", "webQueryDeviceEnergyFlowEs"/);
   assert.match(read("src/app/api/inverter/test/route.ts"), /discovery\.attempts\.join/);
 });
+
+test("a device SN is split into PN, devcode and devaddr", async () => {
+  // SN Q0045395318912094801 = PN Q0045395318912 + devcode 0x0948 (2376) + devaddr 0x01.
+  const lib = read("src/lib/dessmonitor.ts");
+  assert.match(lib, /export function deviceFromSn/);
+  assert.match(lib, /parseInt\(rest\.slice\(0, 4\), 16\)/);
+  assert.match(lib, /candidate\.pn \+ "094801"/);
+});

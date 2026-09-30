@@ -219,7 +219,8 @@ export async function discoverDevices(auth: DessAuth, baseUrl?: string, timeoutM
       const body = await authedCall(auth, action, params, baseUrl, timeoutMs);
       const before = found.size;
       collectDevices(body.dat, found);
-      attempts.push(`${label}:${found.size - before}`);
+      const shape = body.dat && typeof body.dat === "object" ? Object.keys(body.dat as object).slice(0, 12).join(",") : String(body.dat);
+      attempts.push(found.size > before ? `${label}:${found.size - before}` : `${label}:0{${shape}}`);
     } catch (error) {
       attempts.push(`${label}:${error instanceof DessError ? error.message : "error"}`);
     }
@@ -245,7 +246,31 @@ export async function discoverDevices(auth: DessAuth, baseUrl?: string, timeoutM
     await attempt("collectorDevices", "queryCollectorDevices", { pn });
     await attempt("collectorInfo", "queryCollectorInfo", { pn });
   }
+  if (!found.size) {
+    // Nothing is listed, yet the app shows the device with SN = PN + 4 hex
+    // digits of devcode + 2 hex digits of devaddr (seen: Q0045395318912 +
+    // "0948" + "01"). Offer that device, and the same shape for any SN the
+    // owner typed, so the read itself can be tried.
+    for (const candidate of [...collectors.map((entry) => ({ pn: String(entry.pn ?? "").trim(), status: entry.status }))]) {
+      if (!candidate.pn) continue;
+      const guessed = deviceFromSn(candidate.pn, candidate.pn + "094801");
+      if (guessed) {
+        found.set(guessed.sn, { ...guessed, status: candidate.status, derived: true });
+        attempts.push(`derived:${guessed.sn}`);
+      }
+    }
+  }
   return { devices: [...found.values()], collectors, attempts };
+}
+
+/** Splits a SmartESS device SN of the form PN + devcode(4 hex) + devaddr(2 hex). */
+export function deviceFromSn(pn: string, sn: string): DessDevice | null {
+  const cleanPn = pn.trim();
+  const cleanSn = sn.trim();
+  if (!cleanPn || !cleanSn.startsWith(cleanPn)) return null;
+  const rest = cleanSn.slice(cleanPn.length);
+  if (!/^[0-9a-fA-F]{6}$/.test(rest)) return null;
+  return { pn: cleanPn, sn: cleanSn, devcode: parseInt(rest.slice(0, 4), 16), devaddr: parseInt(rest.slice(4), 16) };
 }
 
 /**
@@ -405,7 +430,7 @@ export async function readLastData(
 ): Promise<DessReading> {
   const params = { source: DEFAULT_SOURCE, devcode: device.devcode, pn: device.pn, devaddr: device.devaddr, sn: device.sn, i18n: "en_US" };
   const bodies: unknown[] = [];
-  let lastError: unknown;
+  const failures: string[] = [];
   // querySPDeviceLastData covers energy-storage inverters; other device types
   // answer through queryDeviceLastData, and the energy-flow view carries the
   // headline PV/load/battery figures the app draws on its house picture.
@@ -417,10 +442,12 @@ export async function readLastData(
       const complete = [merged.solarPowerW, merged.loadPowerW, merged.batterySoc, merged.batteryPowerW, merged.gridConnected].every((value) => value !== undefined);
       if (complete) return merged;
     } catch (error) {
-      lastError = error;
+      failures.push(`${action}:${error instanceof DessError ? error.message : "error"}`);
     }
   }
-  if (!bodies.length && lastError) throw lastError;
+  if (!bodies.length) {
+    throw new DessError(`READ_FAILED devcode=${device.devcode} devaddr=${device.devaddr} sn=${device.sn} | ${failures.join(" | ")}`, "read_failed");
+  }
   return mapReading({ dat: bodies });
 }
 
@@ -428,6 +455,7 @@ export async function readLastData(
 export function describeDessError(error: unknown): string {
   if (!(error instanceof DessError)) return "تعذر الوصول إلى خادم SmartESS من شمسك.";
   const text = String(error.message || "");
+  if (/^READ_FAILED/.test(text)) return `تم الدخول ووُجد الجهاز، لكن SmartESS رفض قراءة بياناته: ${text.replace(/^READ_FAILED\s*/, "")}`;
   if (/NOT_FOUND_USR/i.test(text)) return "اسم المستخدم غير موجود في SmartESS. جرّب الإيميل الذي تسجّل به.";
   if (/PASSWORD/i.test(text)) return "كلمة مرور SmartESS غير صحيحة. إن كنت متأكداً منها فقد يكون المتصفح عبّأ كلمة أخرى تلقائياً؛ امسح الخانة واكتبها بنفسك ثم احفظ.";
   if (/NOT_FOUND_DEVICE/i.test(text)) {
