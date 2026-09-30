@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AlertCircle, Bell, CheckCircle2, ChevronDown, Cpu, Database, MapPin, Plug, Plus, Radio, RotateCcw, Save, Search, Settings as SettingsIcon, ShieldCheck, X, type LucideIcon } from "lucide-react";
 
 type Protocol = "Modbus RTU" | "Modbus TCP" | "MQTT" | "Cloud API" | "Wi-Fi Datalogger";
 type ConnectionMode = "local" | "gateway";
@@ -41,20 +42,47 @@ const defaults: Settings = {
   overloadPct: 90, channels: "in_app", quietHoursStart: null, quietHoursEnd: null,
 };
 
-const input = "w-full min-h-12 rounded-xl border border-slate-200 bg-indigo-50/60 px-4 font-bold text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
+// نمط موحّد للحقول: خلفية رمادية فاتحة، حدّ يتغيّر عند المرور، وحلقة تركيز زرقاء
+const input = "w-full min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold text-slate-800 outline-none transition hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100";
 
-function SettingsSection({ icon, title, subtitle, children, open = false }: { icon: string; title: string; subtitle: string; children: React.ReactNode; open?: boolean }) {
+/**
+ * بطاقة قسم قابلة للطي: أيقونة + عنوان + وصف، وزر «إعادة» يرجع حقول القسم لآخر قيم محفوظة.
+ * عند البحث يُخفى القسم غير المطابق ويُفتح القسم المطابق تلقائياً.
+ */
+function SettingsSection({ icon: Icon, title, subtitle, keywords = "", query = "", onReset, children, open = false }: { icon: LucideIcon; title: string; subtitle: string; keywords?: string; query?: string; onReset?: () => void; children: React.ReactNode; open?: boolean }) {
+  const q = query.trim().toLowerCase();
+  if (q && !`${title} ${subtitle} ${keywords}`.toLowerCase().includes(q)) return null;
   return (
-    <details open={open} className="overflow-visible rounded-[1.5rem] border border-slate-200/80 bg-white shadow-sm">
-      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 sm:px-5 [&::-webkit-details-marker]:hidden">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-xl">{icon}</span>
+    <details open={open || Boolean(q)} className="group overflow-visible rounded-3xl border border-slate-200/80 bg-white shadow-sm transition hover:shadow-md">
+      <summary className="flex cursor-pointer list-none items-center gap-3 rounded-3xl px-4 py-4 outline-none transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-300 sm:px-5 [&::-webkit-details-marker]:hidden">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600"><Icon className="h-5 w-5" aria-hidden="true" /></span>
         <span className="min-w-0 flex-1">
           <span className="block text-base font-black text-slate-900 sm:text-lg">{title}</span>
           <span className="mt-0.5 block text-xs font-semibold text-slate-500">{subtitle}</span>
         </span>
-        <span className="text-lg font-black text-slate-400">⌄</span>
+        <ChevronDown className="h-5 w-5 shrink-0 text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true" />
       </summary>
-      <div className="border-t border-slate-100 p-4 sm:p-5">{children}</div>
+      <div className="space-y-4 border-t border-slate-100 p-4 sm:p-5">
+        {children}
+        {onReset && (
+          <div className="flex justify-end border-t border-slate-100 pt-3">
+            <button type="button" onClick={onReset} className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-black text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 focus-visible:ring-2 focus-visible:ring-blue-300"><RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />إعادة هذا القسم لآخر قيم محفوظة</button>
+          </div>
+        )}
+      </div>
+    </details>
+  );
+}
+
+/** كتلة «متقدم» قابلة للطي للخيارات الثانوية حتى لا تزدحم الواجهة اليومية. */
+function AdvancedBlock({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <details className="group/adv rounded-2xl border border-slate-200 bg-slate-50/60">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-2xl px-4 py-3 text-sm font-black text-slate-700 outline-none transition hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-blue-300 [&::-webkit-details-marker]:hidden">
+        {title}
+        <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open/adv:rotate-180" aria-hidden="true" />
+      </summary>
+      <div className="p-4 pt-1">{children}</div>
     </details>
   );
 }
@@ -69,6 +97,9 @@ function SettingsField({ label, children, className = "" }: { label: React.React
 }
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>(defaults);
+  // آخر قيم محفوظة: أساس زر «إعادة القسم» ومؤشر التغييرات غير المحفوظة
+  const [saved, setSaved] = useState<Settings>(defaults);
+  const [query, setQuery] = useState("");
   const [inverters, setInverters] = useState<Inverter[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [draft, setDraft] = useState<Inverter | null>(null);
@@ -91,7 +122,7 @@ export default function SettingsPage() {
       const sd = await s.json().catch(() => ({}));
       const cd = await c.json().catch(() => ({}));
       const errors: string[] = [];
-      if (s.ok) setSettings((value) => ({ ...value, ...sd }));
+      if (s.ok) { setSettings((value) => ({ ...value, ...sd })); setSaved((value) => ({ ...value, ...sd })); }
       else errors.push(sd.message || "تعذر تحميل إعدادات المنظومة.");
       if (c.ok) {
         const list = (cd.connections || []) as Inverter[];
@@ -109,6 +140,28 @@ export default function SettingsPage() {
   };
 
   useEffect(() => { void load(); void fetch("/api/settings/audit", { cache: "no-store" }).then((r) => r.ok ? r.json() : null).then((d) => setAuditItems(d?.items || [])).catch(() => {}); }, []);
+
+  // إشعارات Toast: تختفي وحدها، ورسالة «جاري…» تبقى حتى تنتهي العملية
+  useEffect(() => {
+    if (!message || message.startsWith("جاري")) return;
+    const timer = setTimeout(() => setMessage(""), 12000);
+    return () => clearTimeout(timer);
+  }, [message]);
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(""), 15000);
+    return () => clearTimeout(timer);
+  }, [error]);
+
+  const dirty = useMemo(() => JSON.stringify(settings) !== JSON.stringify(saved), [settings, saved]);
+  const resetSection = (keys: Array<keyof Settings>, label: string) => {
+    setSettings((old) => {
+      const next = { ...old } as Record<string, unknown>;
+      for (const key of keys) next[key] = saved[key];
+      return next as Settings;
+    });
+    setMessage(`تمت إعادة «${label}» لآخر قيم محفوظة.`); setError("");
+  };
 
   const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => setSettings((old) => ({ ...old, [key]: value }));
   const updateDraft = <K extends keyof Inverter>(key: K, value: Inverter[K]) => setDraft((old) => old ? ({ ...old, [key]: value }) : old);
@@ -209,23 +262,20 @@ export default function SettingsPage() {
 
   return (
     <div dir="rtl" className="min-h-[100dvh] w-full space-y-3 overflow-x-hidden overscroll-y-auto bg-slate-50/70 p-2 pb-[calc(12rem+env(safe-area-inset-bottom))] scroll-pb-[calc(12rem+env(safe-area-inset-bottom))] sm:space-y-4 sm:p-4 sm:pb-12">
-      <header className="rounded-[1.5rem] bg-gradient-to-br from-indigo-700 via-blue-600 to-sky-500 p-5 text-white shadow-lg sm:p-6">
+      <header className="rounded-3xl bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 p-5 text-white shadow-lg sm:p-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-2xl backdrop-blur">⚙️</div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur"><SettingsIcon className="h-6 w-6" aria-hidden="true" /></div>
           <div className="min-w-0">
             <h1 className="text-xl font-black sm:text-2xl">إعدادات منظومة شمسك</h1>
-            <p className="mt-1 text-sm font-medium text-blue-50">كل الإعدادات مرتبة حسب وظيفتها — افتح ما تحتاجه فقط.</p>
+            <p className="mt-1 text-sm font-medium text-blue-50">الأهم أولاً: الاتصال، ثم العتاد، ثم الحماية.</p>
           </div>
         </div>
       </header>
 
-      <div className="sticky top-2 z-20 rounded-2xl border border-blue-100 bg-white/95 p-3 shadow-md backdrop-blur">
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-xs font-bold text-slate-500">احفظ أي تغييرات في مربعات الإعدادات</div>
-          <button type="button" disabled={saving} onClick={() => void saveAll()} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-black text-white shadow-sm disabled:opacity-50">
-            {saving ? "جاري الحفظ…" : "💾 حفظ الإعدادات"}
-          </button>
-        </div>
+      {/* بحث سريع: يُصفّي الأقسام حسب العنوان أو أسماء الإعدادات داخلها */}
+      <div className="relative">
+        <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ابحث عن إعداد… مثل: بطارية، تنبيه، عملة" aria-label="بحث في الإعدادات" className={input + " bg-white pr-12"} />
       </div>
 
       {draft && (
@@ -241,11 +291,11 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <SettingsSection icon="📡" title="الإنفرترات والاتصال" subtitle="إضافة الأجهزة، الاتصال، البوابة واختبار الربط" open>
+      <SettingsSection icon={Radio} query={query} keywords="إنفرتر اتصال دنجل SmartESS اسم المستخدم كلمة المرور PN بوابة MQTT Modbus" title="الإنفرترات والاتصال" subtitle="إضافة الأجهزة، الاتصال، البوابة واختبار الربط" open onReset={selectedId ? () => { const item = inverters.find((entry) => entry.id === selectedId); if (item) { setDraft({ ...item }); setMessage("تمت إعادة «الاتصال» لآخر قيم محفوظة."); setError(""); } } : undefined}>
         <div className="space-y-4">
           <div className="flex flex-col gap-3 rounded-2xl bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div><h2 className="font-black text-slate-900">الإنفرترات المضافة</h2><p className="mt-1 text-xs font-semibold text-slate-500">اختر جهازًا لتعديل إعداداته أو أضف جهازًا جديدًا.</p></div>
-            <button type="button" onClick={addInverter} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white">＋ إضافة إنفرتر</button>
+            <button type="button" onClick={addInverter} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-700"><Plus className="h-4 w-4" aria-hidden="true" />إضافة إنفرتر</button>
           </div>
           {inverters.length === 0 ? <p className="rounded-xl bg-white p-4 text-sm font-bold text-slate-500">لا توجد إنفرترات محفوظة بعد.</p> :
             <div className="grid gap-2 sm:grid-cols-2">{inverters.map((item) => (
@@ -262,32 +312,34 @@ export default function SettingsPage() {
             <SettingsField label="اسم المنظومة"><input value={draft.systemName} onChange={(e) => updateDraft("systemName", e.target.value)} className={input} /></SettingsField>
             <SettingsField label="الرقم التسلسلي (SN)"><input dir="ltr" value={draft.serialNumber || ""} onChange={(e) => updateDraft("serialNumber", e.target.value)} placeholder="مثلاً: SN123456789" className={input} /></SettingsField>
             <SettingsField label="رقم Datalogger (PN)"><input dir="ltr" value={draft.dataloggerPn || ""} onChange={(e) => updateDraft("dataloggerPn", e.target.value)} className={input} /></SettingsField>
-            <SettingsField label="محطة SmartESS"><input dir="ltr" value={draft.dataloggerStationName || ""} onChange={(e) => updateDraft("dataloggerStationName", e.target.value)} className={input} /></SettingsField>
-            <SettingsField label="نوع / موديل الإنفرتر"><select value={draft.inverterModel} onChange={(e) => updateDraft("inverterModel", e.target.value)} className={input}><option>NEXT - Victor Max 8.2KW</option><option>Deye</option><option>Growatt</option><option>Voltronic</option><option>غير ذلك</option></select></SettingsField>
-            <SettingsField label="نوع الاتصال"><select value={draft.protocol} onChange={(e) => updateDraft("protocol", e.target.value as Protocol)} className={input}><option>Modbus TCP</option><option>Modbus RTU</option><option>MQTT</option><option>Cloud API</option><option>Wi-Fi Datalogger</option></select></SettingsField>
-            <SettingsField label="وضع الاتصال"><select value={draft.connectionMode || "gateway"} onChange={(e) => updateDraft("connectionMode", e.target.value as ConnectionMode)} className={input}><option value="gateway">عبر بوابة</option><option value="local">محلي (نفس الجهاز)</option></select></SettingsField>
+            <SettingsField label="نوع / موديل الإنفرتر"><select value={draft.inverterModel} onChange={(e) => updateDraft("inverterModel", e.target.value)} className={input}><option>Deye</option><option>Growatt</option><option>NEXT - Victor Max 8.2KW</option><option>Voltronic</option><option>غير ذلك</option></select></SettingsField>
+            <SettingsField label="نوع الاتصال"><select value={draft.protocol} onChange={(e) => updateDraft("protocol", e.target.value as Protocol)} className={input}><option>Wi-Fi Datalogger</option><option>Cloud API</option><option>MQTT</option><option>Modbus RTU</option><option>Modbus TCP</option></select></SettingsField>
+            {draft.protocol !== "Wi-Fi Datalogger" && <SettingsField label="وضع الاتصال"><select value={draft.connectionMode || "gateway"} onChange={(e) => updateDraft("connectionMode", e.target.value as ConnectionMode)} className={input}><option value="gateway">عبر بوابة</option><option value="local">محلي (نفس الجهاز)</option></select></SettingsField>}
           </div>
 
           {draft.protocol === "Wi-Fi Datalogger" && (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-              <h4 className="font-black text-emerald-900">☁️ بيانات SmartESS / DESSMonitor</h4>
+              <h4 className="font-black text-emerald-900">بيانات SmartESS / DESSMonitor</h4>
               <p className="mt-1 text-xs font-semibold leading-5 text-emerald-800">اسم المستخدم وكلمة المرور هما نفسهما اللذان تدخل بهما إلى تطبيق SmartESS على هاتفك. تُحفظ كلمة المرور مشفّرة ولا تُعرض مرة أخرى.</p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <SettingsField label="اسم مستخدم SmartESS"><input dir="ltr" autoComplete="username" value={draft.cloudUsername || ""} onChange={(e) => updateDraft("cloudUsername" as keyof Inverter, e.target.value)} placeholder="اسم الحساب في تطبيق SmartESS" className={input} /></SettingsField>
                 <SettingsField label="كلمة مرور SmartESS"><input dir="ltr" type="password" autoComplete="current-password" onChange={(e) => updateDraft("cloudPassword" as keyof Inverter, e.target.value)} placeholder={draft.hasCloudCredential ? "محفوظة — اتركها فارغة للإبقاء عليها" : "كلمة مرور تطبيق SmartESS"} className={input} /></SettingsField>
+              </div>
+              <div className="mt-3"><AdvancedBlock title="تفاصيل الدنجل (متقدم)"><div className="grid gap-3 sm:grid-cols-2">
                 <SettingsField label="نوع الدنجل"><input dir="ltr" value={draft.dataloggerType || ""} onChange={(e) => updateDraft("dataloggerType", e.target.value)} className={input} /></SettingsField>
                 <SettingsField label="Firmware"><input dir="ltr" value={draft.dataloggerFirmware || ""} onChange={(e) => updateDraft("dataloggerFirmware", e.target.value)} className={input} /></SettingsField>
                 <SettingsField label="معرّف الجهاز الظاهر في SmartESS"><input dir="ltr" value={draft.dataloggerDeviceIdentifier || ""} onChange={(e) => updateDraft("dataloggerDeviceIdentifier", e.target.value)} className={input} /></SettingsField>
                 <SettingsField label="تحديث الدنجل (ثانية)"><input dir="ltr" type="number" min={30} value={draft.dataloggerUpdateIntervalSec || 300} onChange={(e) => updateDraft("dataloggerUpdateIntervalSec", Number(e.target.value))} className={input} /></SettingsField>
                 <SettingsField label="المنصة"><input dir="ltr" value={draft.dataloggerCloud || "SmartESS / DESSMonitor"} onChange={(e) => updateDraft("dataloggerCloud", e.target.value)} className={input} /></SettingsField>
-              </div>
+                <SettingsField label="محطة SmartESS"><input dir="ltr" value={draft.dataloggerStationName || ""} onChange={(e) => updateDraft("dataloggerStationName", e.target.value)} className={input} /></SettingsField>
+              </div></AdvancedBlock></div>
               <p className="mt-3 text-xs font-bold leading-5 text-emerald-800">لن نستخدم معرّف الجهاز أعلاه كـ DevCode أو DevAddr إلا بعد ظهوره صراحةً في بيانات DESSMonitor.</p>
             </div>
           )}
 
           {draft.connectionMode === "gateway" && draft.protocol !== "Wi-Fi Datalogger" && (
             <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <h4 className="font-black text-slate-900">🌐 إعدادات البوابة المحلية</h4>
+              <h4 className="font-black text-slate-900">إعدادات البوابة المحلية</h4>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <SettingsField label="اسم البوابة">
                   <input
@@ -319,7 +371,7 @@ export default function SettingsPage() {
           )}
 
           <details className="rounded-2xl bg-white p-4">
-            <summary className="cursor-pointer list-none font-black text-slate-800 [&::-webkit-details-marker]:hidden">⚙️ خيارات الاتصال المتقدمة</summary>
+            <summary className="cursor-pointer list-none font-black text-slate-800 [&::-webkit-details-marker]:hidden">خيارات الاتصال المتقدمة</summary>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {draft.protocol === "Modbus TCP" && <><SettingsField label="عنوان IP"><input dir="ltr" value={draft.inverterAddress || ""} onChange={(e) => updateDraft("inverterAddress", e.target.value)} placeholder="192.168.1.50" className={input} /></SettingsField><SettingsField label="منفذ TCP"><input dir="ltr" type="number" value={draft.port || 502} onChange={(e) => updateDraft("port", Number(e.target.value))} className={input} /></SettingsField></>}
               {draft.protocol === "Modbus RTU" && draft.connectionMode === "local" && <><SettingsField label="المنفذ التسلسلي / RS485"><input dir="ltr" value={draft.serialPort || ""} onChange={(e) => updateDraft("serialPort", e.target.value)} placeholder="COM3 أو /dev/ttyUSB0" className={input} /></SettingsField><SettingsField label="Baud Rate"><select value={draft.baudRate || 9600} onChange={(e) => updateDraft("baudRate", Number(e.target.value))} className={input}><option>9600</option><option>19200</option><option>38400</option><option>57600</option><option>115200</option></select></SettingsField><SettingsField label="Parity"><select value={draft.parity || "N"} onChange={(e) => updateDraft("parity", e.target.value as "N" | "E" | "O")} className={input}><option value="N">None</option><option value="E">Even</option><option value="O">Odd</option></select></SettingsField><SettingsField label="Data bits"><select value={draft.dataBits || 8} onChange={(e) => updateDraft("dataBits", Number(e.target.value))} className={input}><option>8</option><option>7</option></select></SettingsField><SettingsField label="Stop bits"><select value={draft.stopBits || 1} onChange={(e) => updateDraft("stopBits", Number(e.target.value))} className={input}><option>1</option><option>2</option></select></SettingsField><SettingsField label="Slave ID"><input dir="ltr" type="number" min={1} max={247} value={draft.slaveId || 1} onChange={(e) => updateDraft("slaveId", Number(e.target.value))} className={input} /></SettingsField></>}
@@ -333,14 +385,14 @@ export default function SettingsPage() {
 
           <div className="rounded-2xl bg-white p-4 text-xs font-bold text-slate-500">آخر قراءة: {draft.lastSeenAt ? new Date(draft.lastSeenAt).toLocaleString("ar") : "لا توجد"} · آخر اختبار: {draft.lastTestResult === "success" ? "ناجح" : draft.lastTestResult === "error" ? "فشل" : "غير معروف"} {draft.lastTestLatencyMs ? "· " + draft.lastTestLatencyMs + " ms" : ""}</div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => void testConnection()} className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-black text-white">🔌 اختبار الاتصال</button>
+            <button type="button" onClick={() => void testConnection()} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-700"><Plug className="h-4 w-4" aria-hidden="true" />اختبار الاتصال</button>
             {draft.id && !draft.isPrimary && <button type="button" onClick={() => void setPrimary()} className="rounded-xl bg-blue-100 px-4 py-3 text-sm font-black text-blue-700">تعيين كأساسي</button>}
             {draft.id && <button type="button" onClick={() => void deleteInverter()} className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-black text-rose-700">حذف</button>}
           </div>
         </div>}
       </SettingsSection>
 
-      <SettingsSection icon="🔧" title="مواصفات العتاد" subtitle="الألواح والبطارية والإنفرتر والشبكة والاتجاه">
+      <SettingsSection icon={Cpu} query={query} keywords="ألواح بطارية سعة جهد كيلوواط شبكة طور ميل اتجاه" onReset={() => resetSection(["panelPowerW","batteryCapacityWh","batteryNominalVoltage","batteryChemistry","batteryMinReservePct","inverterRatedPowerKw","gridType","gridPhase","panelTilt","panelAzimuth"], "مواصفات العتاد")} title="مواصفات العتاد" subtitle="الألواح والبطارية والإنفرتر والشبكة والاتجاه">
         <div className="grid gap-3 sm:grid-cols-2">
           <SettingsField label={<>إجمالي قدرة الألواح <bdi dir="ltr">(kW)</bdi></>}><input type="number" min={0.1} value={settings.panelPowerW / 1000} onChange={(e) => updateSetting("panelPowerW", Number(e.target.value) * 1000)} className={input} /></SettingsField>
           <SettingsField label={<>سعة البطاريات <bdi dir="ltr">(kWh)</bdi></>}><input type="number" min={0.1} step="0.1" value={(settings.batteryCapacityWh / 1000).toFixed(2)} onChange={(e) => updateSetting("batteryCapacityWh", Number(e.target.value) * 1000)} className={input} /></SettingsField>
@@ -355,15 +407,12 @@ export default function SettingsPage() {
         </div>
       </SettingsSection>
 
-      <SettingsSection icon="🔋" title="الشحن والحماية — Safe Zone" subtitle="إعدادات البطارية والأولوية مع منع التعارض بين حدود الجهد">
+      <SettingsSection icon={ShieldCheck} query={query} keywords="شحن جهد Bulk Float Cut-off تيار أولوية Safe Zone حماية" onReset={() => resetSection(["bulkChargeVoltage","floatChargeVoltage","lowDcCutoffVoltage","backToGridVoltage","maxChargeCurrentA","batteryMaxChargeA","outputSourcePriority","chargerSourcePriority"], "الشحن والحماية")} title="الشحن والحماية — Safe Zone" subtitle="إعدادات البطارية والأولوية مع منع التعارض بين حدود الجهد">
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">
-          <div className="font-black">⚠️ تنبيه مهم</div>
+          <div className="font-black">تنبيه مهم</div>
           <p className="mt-1 leading-6">هذه القيم قالب مرجعي داخل شمسك وليست أمرًا عامًا لكل موديلات العواكس. في بطاريات الليثيوم يجب اعتماد مواصفات الشركة وBMS قبل إرسال أي قيمة إلى العاكس الفعلي.</p>
         </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <SettingsField label="نوع البطارية"><select value={settings.batteryChemistry || ""} onChange={(e) => updateSetting("batteryChemistry", e.target.value || null)} className={input}><option value="">غير محدد</option><option>LiFePO4</option><option>Lithium-ion</option><option>Lead-acid</option><option>Gel</option><option>AGM</option></select></SettingsField>
-          <SettingsField label="جهد منظومة البطارية"><select value={settings.batteryNominalVoltage} onChange={(e) => updateSetting("batteryNominalVoltage", Number(e.target.value))} className={input}><option value={24}>24V</option><option value={48}>48V</option></select></SettingsField>
-        </div>
+        <p className="rounded-xl bg-slate-50 p-3 text-xs font-semibold text-slate-500">نوع البطارية وجهدها يُضبطان من قسم «مواصفات العتاد».</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <SettingsField label={<>Bulk / CV <bdi dir="ltr">(V)</bdi></>}><input dir="ltr" type="number" step="0.1" min={20} max={60} value={settings.bulkChargeVoltage ?? ""} onChange={(e) => updateSetting("bulkChargeVoltage", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
           <SettingsField label={<>Float <bdi dir="ltr">(V)</bdi></>}><input dir="ltr" type="number" step="0.1" min={20} max={60} value={settings.floatChargeVoltage ?? ""} onChange={(e) => updateSetting("floatChargeVoltage", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
@@ -373,8 +422,8 @@ export default function SettingsPage() {
           <SettingsField label="Output Source Priority"><select value={settings.outputSourcePriority} onChange={(e) => updateSetting("outputSourcePriority", e.target.value as "SBU" | "SUB" | "UTI")} className={input}><option value="SBU">SBU first — شمسي ← بطارية ← شبكة</option><option value="SUB">Solar first — شمسي ← شبكة ← بطارية</option><option value="UTI">Utility first — الشبكة أولاً</option></select></SettingsField>
           <SettingsField label="Charger Source Priority"><select value={settings.chargerSourcePriority} onChange={(e) => updateSetting("chargerSourcePriority", e.target.value as "CSO" | "SNU")} className={input}><option value="CSO">CSO — شمسي فقط</option><option value="SNU">SNU — شمسي + شبكة</option></select></SettingsField>
         </div>
-        <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
-          <div className="font-black text-slate-900">القيم المرجعية</div>
+        <AdvancedBlock title="القيم المرجعية (متقدم)">
+        <div className="text-sm font-bold text-slate-700">
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             <div>24V GEL/رصاص: <bdi dir="ltr">Bulk 28.2V · Float 27.0V · Cut-off 21.5V · Back to Grid 23.0V</bdi></div>
             <div>48V GEL/رصاص: <bdi dir="ltr">Bulk 56.4V · Float 54.0V · Cut-off 43.0V · Back to Grid 46.0V</bdi></div>
@@ -382,8 +431,9 @@ export default function SettingsPage() {
             <div>ليثيوم: <bdi dir="ltr">50A</bdi> كقيمة مرجعية، والجهد النهائي حسب BMS/الشركة.</div>
           </div>
         </div>
+        </AdvancedBlock>
         <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm font-bold text-blue-900">
-          <div className="font-black">🛡️ فحص التعارض</div>
+          <div className="font-black">فحص التعارض</div>
           <p className="mt-1">Low DC Cut-off يجب أن يكون أقل من Back to Grid، وFloat أقل من Bulk / CV. شمسك سيرفض الحفظ عند وجود تعارض.</p>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -400,12 +450,13 @@ export default function SettingsPage() {
             updateSetting("maxChargeCurrentA", lithium ? 50 : 30); updateSetting("batteryMaxChargeA", lithium ? 50 : 30);
             updateSetting("outputSourcePriority", "SBU"); updateSetting("chargerSourcePriority", "CSO");
             setMessage("تم تحميل قالب Safe Zone على الحقول. اضغط «حفظ» لتطبيقه داخل شمسك."); setError("");
-          }} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white">🛡️ تحميل Safe Zone</button>
-          <button type="button" onClick={() => { setSettings(defaults); setMessage("تمت إعادة القيم الافتراضية داخل الصفحة. لم يتم حذف سجل القياسات."); setError(""); }} className="rounded-xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700">↺ إعادة القيم الافتراضية</button>
+          }} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white"><ShieldCheck className="ml-1.5 inline h-4 w-4" aria-hidden="true" />تحميل Safe Zone</button>
         </div>
       </SettingsSection>
 
-      <SettingsSection icon="🔔" title="التنبيهات" subtitle="حدود البطارية والانقطاع والأعطال وساعات الهدوء">
+      {/* الأقسام الثانوية: عمودان على الشاشات الكبيرة */}
+      <div className="grid items-start gap-3 lg:grid-cols-2">
+      <SettingsSection icon={Bell} query={query} keywords="تنبيه بطارية منخفضة حرجة انقطاع تحميل زائد هدوء بريد" onReset={() => resetSection(["lowBatteryPct","criticalBatteryPct","offlineMinutes","overloadPct","gridOutageAlert","faultAlert","channels","quietHoursStart","quietHoursEnd"], "التنبيهات")} title="التنبيهات" subtitle="حدود البطارية والانقطاع والأعطال وساعات الهدوء">
         <div className="grid gap-3 sm:grid-cols-2">
           <SettingsField label={<>بطارية منخفضة <bdi dir="ltr">(%)</bdi></>}><input type="number" min={5} max={50} value={settings.lowBatteryPct} onChange={(e) => updateSetting("lowBatteryPct", Number(e.target.value))} className={input} /></SettingsField>
           <SettingsField label={<>بطارية حرجة <bdi dir="ltr">(%)</bdi></>}><input type="number" min={5} max={30} value={settings.criticalBatteryPct} onChange={(e) => updateSetting("criticalBatteryPct", Number(e.target.value))} className={input} /></SettingsField>
@@ -418,7 +469,7 @@ export default function SettingsPage() {
         <div className="mt-4 grid gap-3 sm:grid-cols-3"><SettingsField label="قناة التنبيه"><select value={settings.channels} onChange={(e) => updateSetting("channels", e.target.value as "in_app" | "email")} className={input}><option value="in_app">داخل التطبيق</option><option value="email">بريد إلكتروني</option></select></SettingsField><SettingsField label="هدوء من"><input type="time" value={settings.quietHoursStart || ""} onChange={(e) => updateSetting("quietHoursStart", e.target.value || null)} className={input} dir="ltr" /></SettingsField><SettingsField label="هدوء إلى"><input type="time" value={settings.quietHoursEnd || ""} onChange={(e) => updateSetting("quietHoursEnd", e.target.value || null)} className={input} dir="ltr" /></SettingsField></div>
       </SettingsSection>
 
-      <SettingsSection icon="📍" title="الموقع والوقت" subtitle="المنطقة الزمنية والموقع والعملة">
+      <SettingsSection icon={MapPin} query={query} keywords="موقع منطقة زمنية عملة خط العرض خط الطول" onReset={() => resetSection(["timezone","currency","latitude","longitude"], "الموقع والوقت")} title="الموقع والوقت" subtitle="المنطقة الزمنية والموقع والعملة">
         <div className="grid gap-3 sm:grid-cols-2">
           <SettingsField label="المنطقة الزمنية"><input value={settings.timezone} onChange={(e) => updateSetting("timezone", e.target.value)} className={input} dir="ltr" /></SettingsField>
           <SettingsField label="العملة"><select value={settings.currency} onChange={(e) => updateSetting("currency", e.target.value)} className={input}><option value="USD">USD</option><option value="LBP">LBP</option><option value="SYP">SYP</option></select></SettingsField>
@@ -428,15 +479,8 @@ export default function SettingsPage() {
         <p className="mt-4 rounded-xl bg-slate-50 p-3 text-xs font-semibold text-slate-500">التعرفة والعملة مصدرهما تبويب «المال» ومرتبطتان بجدول <bdi dir="ltr">EnergySettings</bdi>.</p>
       </SettingsSection>
 
-      <SettingsSection icon="🧠" title="البيانات والذاكرة" subtitle="الاحتفاظ بالبيانات وتكرار القراءة">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <SettingsField label="مدة حفظ السجل التاريخي"><select value={settings.retentionDays} onChange={(e) => updateSetting("retentionDays", Number(e.target.value))} className={input}><option value={30}>30 يوماً</option><option value={90}>90 يوماً</option><option value={180}>180 يوماً</option><option value={365}>365 يوماً</option><option value={0}>بلا حد</option></select></SettingsField>
-          <SettingsField label="تكرار قراءة الإنفرتر"><select value={settings.pollIntervalSec} onChange={(e) => updateSetting("pollIntervalSec", Number(e.target.value))} className={input}><option value={5}>5 ثوانٍ</option><option value={10}>10 ثوانٍ</option><option value={30}>30 ثانية</option><option value={60}>60 ثانية</option></select></SettingsField>
-        </div>
-        <p className="mt-4 text-xs font-semibold text-slate-500">التصدير والنسخ الاحتياطي ومسح السجل متاحة في قسم البيانات أدناه.</p>
-      </SettingsSection>
-
-      <SettingsSection icon="📤" title="البيانات وسجل النشاط" subtitle="تصدير القياسات ومراجعة العمليات ومسح السجل">
+      <SettingsSection icon={Database} query={query} keywords="بيانات تصدير CSV سجل النشاط مسح الاحتفاظ حفظ" onReset={() => resetSection(["retentionDays"], "البيانات")} title="البيانات وسجل النشاط" subtitle="مدة الحفظ، التصدير، ومراجعة العمليات">
+        <SettingsField label="مدة حفظ السجل التاريخي"><select value={settings.retentionDays} onChange={(e) => updateSetting("retentionDays", Number(e.target.value))} className={input}><option value={30}>30 يوماً</option><option value={90}>90 يوماً</option><option value={180}>180 يوماً</option><option value={365}>365 يوماً</option><option value={0}>بلا حد</option></select></SettingsField>
         <div className="flex flex-wrap gap-2">
           <a href="/api/settings/export" className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-black text-white">تصدير CSV</a>
           <button type="button" onClick={async () => { if (!window.confirm("سيتم حذف سجل القياسات التاريخية نهائياً. هل أنت متأكد؟")) return; const response = await fetch("/api/settings/export", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirm: "مسح السجل" }) }); const data = await response.json().catch(() => ({})); if (!response.ok) setError(data.message || "تعذر مسح السجل."); else setMessage("تم مسح سجل القياسات التاريخية."); }} className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-black text-rose-700">مسح السجل</button>
@@ -448,10 +492,31 @@ export default function SettingsPage() {
         </div>
       </SettingsSection>
 
-      {error && <div role="alert" className="rounded-2xl bg-rose-50 p-4 text-center text-sm font-black text-rose-700">{error}</div>}
-      {message && <div role="status" className="rounded-2xl bg-emerald-50 p-4 text-center text-sm font-black text-emerald-700">{message}</div>}
+      </div>
 
-      {!draft && <button type="button" onClick={addInverter} className="min-h-14 w-full rounded-2xl bg-blue-600 px-5 py-4 font-black text-white shadow-lg">＋ أضف أول إنفرتر للبدء</button>}
+      {/* إشعارات Toast بعد أي عملية */}
+      {(error || message) && (
+        <div className="pointer-events-none fixed inset-x-0 top-3 z-[60] flex justify-center px-3">
+          <div role={error ? "alert" : "status"} className={"pointer-events-auto flex w-full max-w-xl items-start gap-3 rounded-2xl p-4 text-sm font-black shadow-xl " + (error ? "bg-rose-600 text-white" : "bg-emerald-600 text-white")}>
+            {error ? <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" /> : <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />}
+            <span className="min-w-0 flex-1 break-words leading-6">{error || message}</span>
+            <button type="button" aria-label="إغلاق" onClick={() => { setError(""); setMessage(""); }} className="rounded-lg p-1 transition hover:bg-white/20"><X className="h-4 w-4" aria-hidden="true" /></button>
+          </div>
+        </div>
+      )}
+
+      {!draft && <button type="button" onClick={addInverter} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-4 font-black text-white shadow-lg transition hover:bg-blue-700"><Plus className="h-5 w-5" aria-hidden="true" />أضف أول إنفرتر للبدء</button>}
+      {query.trim() && <p className="rounded-2xl bg-white p-4 text-center text-sm font-bold text-slate-500">لا توجد نتائج أخرى مطابقة للبحث.</p>}
+
+      {/* شريط حفظ ثابت في الأسفل (فوق شريط التنقل على الجوال) */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 px-3 md:bottom-4">
+        <div className="pointer-events-auto mx-auto flex max-w-3xl items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-xl backdrop-blur">
+          <span className={"text-xs font-black " + (dirty ? "text-amber-600" : "text-slate-500")}>{dirty ? "● لديك تغييرات غير محفوظة" : "كل التغييرات محفوظة"}</span>
+          <button type="button" disabled={saving} onClick={() => void saveAll()} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-blue-700 focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50">
+            <Save className="h-4 w-4" aria-hidden="true" />{saving ? "جاري الحفظ…" : "حفظ التغييرات"}
+          </button>
+        </div>
+      </div>
       <div aria-hidden="true" className="h-16" />
     </div>
   );
