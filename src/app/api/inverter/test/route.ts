@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
 
         const latencyMs = Date.now() - started;
         // Store what the test just read so the dashboard shows it straight away.
-        const stored = await storeReading(reading).catch((error) => {
+        const stored = await storeReading(reading, device).catch((error) => {
           console.error("[inverter] store_reading_failed", error);
           return { ok: false as const, reason: "تعذر حفظ القراءة." };
         });

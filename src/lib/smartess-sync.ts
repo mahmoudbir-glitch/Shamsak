@@ -21,7 +21,7 @@ let lastAttemptAt = 0;
  * When mapping fails, the only way to fix it is to see what SmartESS actually
  * sent, so put the labels and values (or the payload's shape) in the message.
  */
-function describeAvailable(reading: DessReading): string {
+function describeAvailable(reading: DessReading, device?: Record<string, unknown>): string {
   const entries = Object.entries(reading.parameters);
   if (entries.length) {
     const list = entries.slice(0, 60).map(([label, { value, unit }]) => `${label}=${value}${unit}`).join(" | ");
@@ -30,11 +30,15 @@ function describeAvailable(reading: DessReading): string {
   const body = (reading.raw ?? {}) as Record<string, unknown>;
   const dat = body.dat;
   const shape = dat && typeof dat === "object" ? Object.keys(dat as object).join(",") : String(dat);
-  return `لم يُرجع SmartESS أي قيم. بنية الرد: dat{${shape}}`;
+  const parsRaw = dat && typeof dat === "object" ? (dat as Record<string, unknown>).pars : undefined;
+  const parsText = JSON.stringify(parsRaw ?? null) ?? "null";
+  const gts = dat && typeof dat === "object" ? String((dat as Record<string, unknown>).gts ?? "") : "";
+  const state = device ? ` حالة الجهاز في SmartESS: status=${String(device.status ?? "؟")}.` : "";
+  return `لم يُرجع SmartESS أي قراءات (dat{${shape}}، وقت الرفع: ${gts || "لا يوجد"}، pars=${parsText.slice(0, 120)}).${state} غالباً الدنجل غير متصل بالإنترنت فلا يرفع بيانات؛ تأكد أن ضوء الدنجل ثابت وأن الجهاز يظهر Online في SmartESS.`;
 }
 
 /** Converts a mapped reading into a stored sample, or says which fields were missing. */
-export async function storeReading(reading: DessReading): Promise<SyncResult> {
+export async function storeReading(reading: DessReading, device?: Record<string, unknown>): Promise<SyncResult> {
   const missing: string[] = [];
   if (reading.solarPowerW === undefined) missing.push("solarPowerW");
   if (reading.loadPowerW === undefined) missing.push("loadPowerW");
@@ -42,7 +46,7 @@ export async function storeReading(reading: DessReading): Promise<SyncResult> {
   if (reading.batteryPowerW === undefined) missing.push("batteryPowerW");
   if (reading.gridConnected === undefined) missing.push("gridConnected");
   if (missing.length) {
-    return { ok: false, reason: `لم تُقرأ الحقول التالية من SmartESS: ${missing.join(", ")}. ${describeAvailable(reading)}` };
+    return { ok: false, reason: `لم تُقرأ الحقول التالية من SmartESS: ${missing.join(", ")}. ${describeAvailable(reading, device)}` };
   }
 
   await ingestSample({
@@ -140,7 +144,7 @@ async function run(): Promise<SyncResult> {
       timeout,
     );
 
-    const stored = await storeReading(reading);
+    const stored = await storeReading(reading, device);
     if (!stored.ok) return await fail(stored.reason);
     return stored;
   } catch (error) {
