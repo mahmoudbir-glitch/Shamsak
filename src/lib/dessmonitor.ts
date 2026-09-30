@@ -212,6 +212,7 @@ export type DessReading = {
   batteryTemperature?: number;
   acOutputVoltage?: number;
   gridVoltage?: number;
+  gridFrequency?: number;
   gridPowerW?: number;
   gridConnected?: boolean;
   /** Every parameter the API returned, flattened to label -> value. */
@@ -239,6 +240,7 @@ const FIELD_PATTERNS: Array<[keyof DessReading, RegExp, string?]> = [
   ["batteryPowerW", /\b(battery|batt)\b.*\bpower\b/i, "W"],
   ["batteryTemperature", /\b(battery|batt)\b.*\btemp/i],
   ["acOutputVoltage", /\bac\s*output\b.*\bvoltage\b/i, "V"],
+  ["gridFrequency", /\b(grid|utility|mains|ac\s*input)\b.*\bfreq/i, "Hz"],
   ["gridVoltage", /\b(grid|utility|ac\s*input|mains)\b.*\bvoltage\b/i, "V"],
   ["gridPowerW", /\b(grid|utility|mains)\b.*\bpower\b/i, "W"],
 ];
@@ -324,6 +326,10 @@ export function mapReading(body: Record<string, unknown>): DessReading {
     // Lebanon's grid is out more often than not; a dead AC input reads 0V.
     // Anything under 50V is not a live 230V mains.
     reading.gridConnected = reading.gridVoltage > 50;
+  } else if (reading.gridFrequency !== undefined) {
+    // Some device families report the grid only as frequency (seen: "Grid
+    // Frequency 50.01 Hz"); a dead AC input reads 0 Hz.
+    reading.gridConnected = reading.gridFrequency > 45;
   }
 
   return reading;
