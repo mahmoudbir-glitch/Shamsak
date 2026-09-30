@@ -112,6 +112,31 @@ test("the test script survives the Node version CI runs", () => {
   assert.equal(pkg.scripts.test, "node --test tests/*.test.mjs");
 });
 
+test("output source priority covers every option the inverter offers", () => {
+  // SmartESS exposes three: Utility first / Solar first / SBU first. With only
+  // SBU and SUB, an installation set to Utility first could not be represented.
+  const route = read("src/app/api/settings/route.ts");
+  const page = read("src/app/settings/page.tsx");
+  assert.match(route, /outputSourcePriority: z\.enum\(\["SBU", "SUB", "UTI"\]\)/);
+  assert.match(page, /value="UTI"/);
+});
+
+test("nameplate limits match the Victor Max-8.2KW rating label", () => {
+  // Transcribed from the label: battery 40-63VDC / 190A, solar charge 160A,
+  // AC charge 140A, load cut-off 44VDC, return 52VDC, rated 8.2kW.
+  const source = read("src/lib/inverter-limits.ts");
+  for (const value of ["minVoltage: 40", "maxVoltage: 63", "maxCurrentA: 190", "maxSolarCurrentA: 160", "maxAcCurrentA: 140", "cutOffVoltage: 44", "returnVoltage: 52", "ratedPowerKw: 8.2"]) {
+    assert.ok(source.includes(value), `nameplate value missing: ${value}`);
+  }
+  assert.match(read("src/app/api/settings/route.ts"), /checkAgainstInverter\(limits, merged\)/);
+});
+
+test("stored defaults match the inverter's own load-transfer thresholds", () => {
+  const schema = read("prisma/schema.prisma");
+  assert.match(schema, /lowDcCutoffVoltage Float\? @default\(44\.0\)/);
+  assert.match(schema, /backToGridVoltage Float\? @default\(52\.0\)/);
+});
+
 test("gateway SSRF guard blocks loopback and private IPv4 ranges", () => {
   const source = read("src/lib/net-guard.ts");
   assert.match(source, /127\.0\.0\.1/);

@@ -23,7 +23,7 @@ type Settings = {
   batteryNominalVoltage: number; batteryChemistry: string | null; batteryMinReservePct: number;
   bulkChargeVoltage: number | null; floatChargeVoltage: number | null; lowDcCutoffVoltage: number | null;
   backToGridVoltage: number | null; maxChargeCurrentA: number | null;
-  outputSourcePriority: "SBU" | "SUB"; chargerSourcePriority: "CSO" | "SNU";
+  outputSourcePriority: "SBU" | "SUB" | "UTI"; chargerSourcePriority: "CSO" | "SNU";
   batteryMaxChargeA: number | null; batteryMaxDischargeA: number | null; inverterRatedPowerKw: number | null;
   gridPhase: "single" | "three"; gridType: "on-grid" | "off-grid" | "hybrid"; retentionDays: number; pollIntervalSec: number;
   lowBatteryPct: number; criticalBatteryPct: number; gridOutageAlert: boolean; faultAlert: boolean;
@@ -363,7 +363,7 @@ export default function SettingsPage() {
           <SettingsField label={<>Low DC Cut-off <bdi dir="ltr">(V)</bdi></>}><input dir="ltr" type="number" step="0.1" min={15} max={60} value={settings.lowDcCutoffVoltage ?? ""} onChange={(e) => updateSetting("lowDcCutoffVoltage", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
           <SettingsField label={<>Back to Grid <bdi dir="ltr">(V)</bdi></>}><input dir="ltr" type="number" step="0.1" min={15} max={60} value={settings.backToGridVoltage ?? ""} onChange={(e) => updateSetting("backToGridVoltage", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
           <SettingsField label={<>Max Charge Current <bdi dir="ltr">(A)</bdi></>}><input dir="ltr" type="number" step="1" min={1} max={300} value={settings.maxChargeCurrentA ?? ""} onChange={(e) => updateSetting("maxChargeCurrentA", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
-          <SettingsField label="Output Source Priority"><select value={settings.outputSourcePriority} onChange={(e) => updateSetting("outputSourcePriority", e.target.value as "SBU" | "SUB")} className={input}><option value="SBU">SBU — شمسي ← بطارية ← شبكة</option><option value="SUB">SUB — شمسي ← شبكة ← بطارية</option></select></SettingsField>
+          <SettingsField label="Output Source Priority"><select value={settings.outputSourcePriority} onChange={(e) => updateSetting("outputSourcePriority", e.target.value as "SBU" | "SUB" | "UTI")} className={input}><option value="SBU">SBU first — شمسي ← بطارية ← شبكة</option><option value="SUB">Solar first — شمسي ← شبكة ← بطارية</option><option value="UTI">Utility first — الشبكة أولاً</option></select></SettingsField>
           <SettingsField label="Charger Source Priority"><select value={settings.chargerSourcePriority} onChange={(e) => updateSetting("chargerSourcePriority", e.target.value as "CSO" | "SNU")} className={input}><option value="CSO">CSO — شمسي فقط</option><option value="SNU">SNU — شمسي + شبكة</option></select></SettingsField>
         </div>
         <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">

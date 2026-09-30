@@ -100,7 +100,7 @@ model DailySummary {
   gridImportKWh Float @default(0)
   gridExportKWh Float @default(0)
   savings Float @default(0)
-  currency String @default("SYP")
+  currency String @default("USD")
   updatedAt DateTime @updatedAt
 }
 model EnergySettings {
@@ -109,10 +109,10 @@ model EnergySettings {
   batteryCapacityWh Float @default(4800)
   gridTariff Float @default(0)
   exportTariff Float @default(0)
-  currency String @default("SYP")
+  currency String @default("USD")
   gridType String @default("hybrid")
-  latitude Float @default(33.8938)
-  longitude Float @default(35.5018)
+  latitude Float @default(33.5911)
+  longitude Float @default(35.4061)
   timezone String @default("Asia/Beirut")
   panelTilt Float?
   panelAzimuth Float?
@@ -122,8 +122,8 @@ model EnergySettings {
   batteryMinReservePct Float @default(20)
   bulkChargeVoltage Float? @default(56.4)
   floatChargeVoltage Float? @default(54.0)
-  lowDcCutoffVoltage Float? @default(45.0)
-  backToGridVoltage Float? @default(46.0)
+  lowDcCutoffVoltage Float? @default(44.0)
+  backToGridVoltage Float? @default(52.0)
   maxChargeCurrentA Float? @default(50)
   outputSourcePriority String @default("SBU")
   chargerSourcePriority String @default("CSO")

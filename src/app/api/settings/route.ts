@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
+import { checkAgainstInverter, getInverterLimits } from "@/lib/inverter-limits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +29,10 @@ const settingsSchema = z.object({
   lowDcCutoffVoltage: z.number().finite().min(10).max(70).nullable().optional(),
   backToGridVoltage: z.number().finite().min(10).max(70).nullable().optional(),
   maxChargeCurrentA: z.number().finite().positive().max(300).nullable().optional(),
-  outputSourcePriority: z.enum(["SBU", "SUB"]).optional(),
+  // The inverter offers three output priorities (SmartESS: Utility first /
+  // Solar first / SBU first). "UTI" was missing, so an installation actually
+  // set to Utility first — as this one is — could not be represented at all.
+  outputSourcePriority: z.enum(["SBU", "SUB", "UTI"]).optional(),
   chargerSourcePriority: z.enum(["CSO", "SNU"]).optional(),
   batteryMaxChargeA: z.number().finite().positive().nullable().optional(),
   batteryMaxDischargeA: z.number().finite().positive().nullable().optional(),
@@ -179,6 +183,20 @@ export async function PUT(request: NextRequest) {
 
     const invalid = validateMerged({ ...previous, ...parsed.data } as unknown as Merged);
     if (invalid) return invalid;
+
+    // Generic bounds above keep the numbers sane; this keeps them within what
+    // the installed inverter can actually honour, when its model is known.
+    const primary =
+      (await prisma.inverterConnection.findFirst({ where: { isPrimary: true } })) ??
+      (await prisma.inverterConnection.findUnique({ where: { id: "default" } }));
+    const limits = getInverterLimits(primary?.inverterModel);
+    if (limits) {
+      const merged = { ...previous, ...parsed.data } as Record<string, unknown>;
+      const violation = checkAgainstInverter(limits, merged);
+      if (violation) {
+        return NextResponse.json(violation, { status: 422 });
+      }
+    }
 
     const settings = await prisma.energySettings.update({
       where: { id: "default" },
