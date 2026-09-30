@@ -188,6 +188,20 @@ export async function listDevices(auth: DessAuth, baseUrl?: string, timeoutMs?: 
   return devices as Array<Record<string, unknown>>;
 }
 
+/**
+ * Picks the device to read. An account can hold several dataloggers (for
+ * example one that was added but never got Wi-Fi, next to the working one), and
+ * reading the first match would keep hitting the offline one. So: prefer an
+ * online device whose PN matches, then any online device, then a PN match, and
+ * only then whatever is first. status 1 means offline in SmartESS.
+ */
+export function pickDevice(devices: Array<Record<string, unknown>>, wantedPn: string) {
+  const wanted = wantedPn.trim();
+  const online = devices.filter((entry) => Number(entry.status) !== 1);
+  const matches = (entry: Record<string, unknown>) => String(entry.pn ?? "").trim() === wanted;
+  return online.find(matches) ?? online[0] ?? devices.find(matches) ?? devices[0];
+}
+
 export type DessReading = {
   solarPowerW?: number;
   loadPowerW?: number;
@@ -344,7 +358,7 @@ export function describeDessError(error: unknown): string {
   if (!(error instanceof DessError)) return "تعذر الوصول إلى خادم SmartESS من شمسك.";
   const text = String(error.message || "");
   if (/NOT_FOUND_USR/i.test(text)) return "اسم المستخدم غير موجود في SmartESS. جرّب الإيميل الذي تسجّل به.";
-  if (/PASSWORD/i.test(text)) return "كلمة مرور SmartESS غير صحيحة.";
+  if (/PASSWORD/i.test(text)) return "كلمة مرور SmartESS غير صحيحة. إن كنت متأكداً منها فقد يكون المتصفح عبّأ كلمة أخرى تلقائياً؛ امسح الخانة واكتبها بنفسك ثم احفظ.";
   if (/NOT_FOUND_DEVICE/i.test(text)) {
     return "تم تسجيل الدخول بنجاح، لكن الحساب لا يحتوي أي انفرتر مرتبط بالدنجل. أضف الانفرتر من تطبيق SmartESS (الجهاز ثم +) وتأكد أن الدنجل متصل.";
   }

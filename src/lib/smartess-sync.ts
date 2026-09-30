@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { decryptSecret, encryptSecret } from "@/lib/inverter-config-crypto";
-import { authenticate, DessError, describeDessError, listDevices, readLastData, type DessAuth, type DessReading } from "@/lib/dessmonitor";
+import { authenticate, DessError, describeDessError, listDevices, pickDevice, readLastData, type DessAuth, type DessReading } from "@/lib/dessmonitor";
 import { ingestSample } from "@/lib/telemetry-store";
 
 /**
@@ -123,7 +123,7 @@ async function run(): Promise<SyncResult> {
 
     const devices = await listDevices(auth, cloudUrl, timeout);
     const wanted = (row.dataloggerPn || "").trim();
-    const device = devices.find((entry) => String(entry.pn ?? "").trim() === wanted) ?? devices[0];
+    const device = pickDevice(devices, wanted);
     if (!device) return await fail("تم تسجيل الدخول إلى SmartESS، لكن الحساب لا يحتوي أي جهاز.");
 
     // SmartESS reports an offline device's last known values as if current.

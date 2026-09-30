@@ -304,8 +304,8 @@ export default function SettingsPage() {
               <h4 className="font-black text-emerald-900">بيانات SmartESS / DESSMonitor</h4>
               <p className="mt-1 text-xs font-semibold leading-5 text-emerald-800">اسم المستخدم وكلمة المرور هما نفسهما اللذان تدخل بهما إلى تطبيق SmartESS على هاتفك. تُحفظ كلمة المرور مشفّرة ولا تُعرض مرة أخرى.</p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <SettingsField label="اسم مستخدم SmartESS"><input dir="ltr" autoComplete="username" value={draft.cloudUsername || ""} onChange={(e) => updateDraft("cloudUsername" as keyof Inverter, e.target.value)} placeholder="اسم الحساب في تطبيق SmartESS" className={input} /></SettingsField>
-                <SettingsField label="كلمة مرور SmartESS"><input dir="ltr" type="password" autoComplete="current-password" onChange={(e) => updateDraft("cloudPassword" as keyof Inverter, e.target.value)} placeholder={draft.hasCloudCredential ? "محفوظة — اتركها فارغة للإبقاء عليها" : "كلمة مرور تطبيق SmartESS"} className={input} /></SettingsField>
+                <SettingsField label="اسم مستخدم SmartESS"><input dir="ltr" name="smartess-username" autoComplete="off" autoCapitalize="none" spellCheck={false} value={draft.cloudUsername || ""} onChange={(e) => updateDraft("cloudUsername" as keyof Inverter, e.target.value)} placeholder="اسم الحساب في تطبيق SmartESS" className={input} /></SettingsField>
+                <SettingsField label="كلمة مرور SmartESS"><input dir="ltr" type="password" name="smartess-password" autoComplete="new-password" onChange={(e) => updateDraft("cloudPassword" as keyof Inverter, e.target.value)} placeholder={draft.hasCloudCredential ? "محفوظة — اتركها فارغة للإبقاء عليها" : "كلمة مرور تطبيق SmartESS"} className={input} /></SettingsField>
               </div>
               <div className="mt-3"><AdvancedBlock title="تفاصيل الدنجل (متقدم)"><div className="grid gap-3 sm:grid-cols-2">
                 <SettingsField label="نوع الدنجل"><input dir="ltr" value={draft.dataloggerType || ""} onChange={(e) => updateDraft("dataloggerType", e.target.value)} className={input} /></SettingsField>

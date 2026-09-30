@@ -322,3 +322,12 @@ test("SmartESS login is reused so the owner's phone app is not signed out repeat
   // A timeout is not evidence of a bad token, so it must not force a new login.
   assert.match(sync, /error instanceof DessError && \/token\|sign\|expire\|auth\|secret\/i/);
 });
+
+test("the reader prefers an online device over the first PN match", () => {
+  // An account can hold a never-connected datalogger next to the working one.
+  const lib = read("src/lib/dessmonitor.ts");
+  assert.match(lib, /export function pickDevice/);
+  assert.match(lib, /Number\(entry\.status\) !== 1/);
+  assert.match(read("src/lib/smartess-sync.ts"), /pickDevice\(devices, wanted\)/);
+  assert.match(read("src/app/api/inverter/test/route.ts"), /pickDevice\(devices, wanted\)/);
+});

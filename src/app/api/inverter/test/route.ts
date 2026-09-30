@@ -4,7 +4,7 @@ import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { storeReading } from "@/lib/smartess-sync";
 import { assertPublicEndpoint, PrivateEndpointError } from "@/lib/net-guard";
 import { decryptSecret } from "@/lib/inverter-config-crypto";
-import { authenticate, describeDessError, listDevices, readLastData } from "@/lib/dessmonitor";
+import { authenticate, describeDessError, listDevices, pickDevice, readLastData } from "@/lib/dessmonitor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -92,8 +92,7 @@ export async function POST(request: NextRequest) {
         // from the account rather than asked of the user.
         const devices = await listDevices(auth, cloudUrl, remoteTimeout(row.timeoutMs));
         const wanted = (row.dataloggerPn || "").trim();
-        const device =
-          devices.find((entry) => String(entry.pn ?? "").trim() === wanted) ?? devices[0];
+        const device = pickDevice(devices, wanted);
 
         if (!device) {
           const message = "تم تسجيل الدخول إلى SmartESS، لكن الحساب لا يحتوي أي جهاز.";
