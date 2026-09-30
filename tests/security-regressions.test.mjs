@@ -277,3 +277,32 @@ test("panel azimuth is converted from compass bearing to Open-Meteo's south-base
     assert.match(read(file), /% 360\) \+ 360\) % 360 - 180/, `${file} must convert the bearing`);
   }
 });
+
+test("no component or library module is left without a user", () => {
+  // Dead modules drift out of date and hide real bugs; keep the tree honest.
+  const files = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(path.join(root, dir), { withFileTypes: true })) {
+      const rel = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(rel);
+      else if (/\.(ts|tsx)$/.test(entry.name)) files.push(rel);
+    }
+  };
+  for (const dir of ["src/lib", "src/components", "src/hooks"]) walk(dir);
+  const all = [];
+  const collect = (dir) => {
+    for (const entry of fs.readdirSync(path.join(root, dir), { withFileTypes: true })) {
+      const rel = path.join(dir, entry.name);
+      if (entry.isDirectory()) collect(rel);
+      else if (/\.(ts|tsx)$/.test(entry.name)) all.push(rel);
+    }
+  };
+  collect("src");
+  all.push("middleware.ts");
+  const orphans = files.filter((file) => {
+    const base = path.basename(file).replace(/\.tsx?$/, "");
+    const pattern = new RegExp(`[/"']${base}["']`);
+    return !all.some((other) => other !== file && pattern.test(read(other)));
+  });
+  assert.deepEqual(orphans, [], `unused modules: ${orphans.join(", ")}`);
+});
