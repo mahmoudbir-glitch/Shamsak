@@ -336,6 +336,10 @@ export async function POST(request: NextRequest) {
       timeoutMs: integer(input.timeoutMs, 1000, 200, 10000),
       pollingIntervalMs: integer(input.pollingIntervalMs, 10000, 2000, 300000),
       gatewayUrl: input.gatewayUrl || null,
+      // The gateway token must never follow the connection to a different host.
+      ...(existing && (existing.gatewayUrl || null) !== (input.gatewayUrl || null)
+        ? { gatewayTokenHash: null, gatewayTokenCipher: null }
+        : {}),
       gatewayName: input.gatewayName || null,
       connectionMode: input.connectionMode || "gateway",
       wifiSsid: input.wifiSsid || null,

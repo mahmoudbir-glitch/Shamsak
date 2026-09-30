@@ -188,12 +188,20 @@ test("saving the connection form without retyping a password keeps it", () => {
   assert.match(route, /"cloudPassword"/);
 });
 
-test("gateway SSRF guard blocks loopback and private IPv4 ranges", () => {
-  const source = read("src/lib/net-guard.ts");
-  assert.match(source, /127\.0\.0\.1/);
-  assert.match(source, /192\.168\./);
-  assert.match(source, /169\.254\./);
-  assert.match(source, /::ffff:/);
+test("gateway SSRF guard blocks private, reserved and IPv4-mapped addresses", () => {
+  // Evaluate the real function: string checks missed "::ffff:7f00:1" (127.0.0.1).
+  const source = read("src/lib/net-guard.ts")
+    .replace(/^import.*$/m, "")
+    .replace(/export /g, "")
+    .replace(/: string/g, "")
+    .replace(/async function assertPublicEndpoint[\s\S]*$/, "");
+  const isPrivateIp = new Function(`${source}; return isPrivateIp;`)();
+  for (const address of ["127.0.0.1", "::ffff:7f00:1", "::ffff:127.0.0.1", "::ffff:a9fe:a9fe", "169.254.169.254", "10.1.2.3", "172.16.0.1", "192.168.1.1", "0.1.2.3", "100.64.0.1", "::1", "fd00::1", "fe90::1", "localhost"]) {
+    assert.equal(isPrivateIp(address), true, address);
+  }
+  for (const address of ["8.8.8.8", "1.1.1.1", "2606:4700::1"]) {
+    assert.equal(isPrivateIp(address), false, address);
+  }
 });
 
 test("both outbound test routes share one SSRF guard", () => {
@@ -382,4 +390,14 @@ test("a sync cut off by the platform cannot block every later sync", () => {
   assert.match(sync, /if \(inFlight && now - inFlightSince < RUN_BUDGET_MS \+ 15_000\) return inFlight;/);
   assert.match(sync, /Promise\.race\(\[run\(\), budget\]\)/);
   assert.match(sync, /dessDevice: target \};/);
+});
+
+test("QA fixes: today totals, finance split, blank values, gateway token", () => {
+  const telemetry = read("src/app/api/telemetry/route.ts");
+  assert.match(telemetry, /todayProductionKWh: today \?/);
+  assert.match(read("src/app/api/finance/route.ts"), /totals\.solarKWh - totals\.batteryChargeKWh - totals\.gridExportKWh/);
+  assert.match(read("src/lib/dessmonitor.ts"), /if \(!\/\\d\/\.test\(cleaned\)\) return undefined;/);
+  assert.match(read("src/lib/telemetry-store.ts"), /if \(hours <= 0 \|\| hours > 0\.25\) return;/);
+  assert.match(read("src/app/api/inverter/connection/route.ts"), /gatewayTokenHash: null, gatewayTokenCipher: null/);
+  assert.match(read("src/app/api/inverter/test/route.ts"), /redirect: "manual"/);
 });

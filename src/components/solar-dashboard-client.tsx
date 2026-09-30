@@ -20,7 +20,7 @@ export default function SolarDashboardClient() {
       const data = (await response.json()) as EnergySnapshot;
       if (data.source !== "live") throw new Error("telemetry_not_live");
       setSnapshot(data);
-      setIsLive(true);
+      setIsLive(!data.stale);
     } catch {
       // نُبقي آخر قراءة صحيحة؛ حالة الاتصال يعرضها الشريط العلوي.
       setIsLive(false);
@@ -46,6 +46,7 @@ export default function SolarDashboardClient() {
         todayHomeUsageKWh={snapshot?.todayHomeUsageKWh}
         todayGridSavings={snapshot?.todayGridSavings}
         isLive={isLive}
+        savingsCurrency={snapshot?.currency ? `${snapshot.currency} ` : undefined}
       />
 
       {/* اختصار إلى توقعات الليلة والغد في تبويب الطاقة */}

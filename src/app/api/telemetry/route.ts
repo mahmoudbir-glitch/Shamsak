@@ -3,7 +3,7 @@ import { after, NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { telemetryInputSchema, telemetryToSnapshot } from "@/lib/telemetry";
-import { ingestSample } from "@/lib/telemetry-store";
+import { ingestSample, loadSettings, localDayStart } from "@/lib/telemetry-store";
 import { syncSmartEss } from "@/lib/smartess-sync";
 
 export const runtime = "nodejs";
@@ -73,6 +73,11 @@ export async function GET(request: NextRequest) {
     if (!row) return NextResponse.json({ error: "no_telemetry" }, { status: 404 });
 
     const ageSeconds = Math.max(0, Math.round((Date.now() - row.timestamp.getTime()) / 1000));
+    // Today's totals (Beirut day) for the dashboard; the pages read them from here.
+    const settings = await loadSettings().catch(() => null);
+    const today = await prisma.dailySummary
+      .findUnique({ where: { day: localDayStart(new Date(), settings?.timezone) } })
+      .catch(() => null);
 
     return NextResponse.json(
       {
@@ -90,6 +95,10 @@ export async function GET(request: NextRequest) {
         // الواجهة تستطيع الآن إظهار "غير متصل" بدل عرض قراءة قديمة كأنها لحظية
         stale: ageSeconds > STALE_AFTER_SEC,
         ageSeconds,
+        todayProductionKWh: today ? Math.round(today.solarKWh * 100) / 100 : undefined,
+        todayHomeUsageKWh: today ? Math.round(today.homeKWh * 100) / 100 : undefined,
+        todayGridSavings: today ? Math.round(today.savings * 100) / 100 : undefined,
+        currency: settings?.currency ?? undefined,
       },
       { headers: { "Cache-Control": "no-store" } },
     );

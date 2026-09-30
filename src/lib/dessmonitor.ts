@@ -319,10 +319,12 @@ export type DessReading = {
  */
 const FIELD_PATTERNS: Array<[keyof DessReading, RegExp, string?]> = [
   ["solarPowerW", /\b(pv|solar)\b.*\b(power|charging power)\b/i, "W"],
-  ["loadPowerW", /\b(load|output)\b.*\b(power|apparent|active)\b/i, "W"],
+  // "pv_output_power" must not be read as the house load.
+  ["loadPowerW", /^(?!.*\b(pv|solar)\b).*\b(load|output)\b.*\b(power|apparent|active)\b/i, "W"],
   ["batterySoc", /\b(battery|batt)\b.*\b(capacity|soc|percent|level)\b/i, "%"],
   ["batteryVoltage", /\b(battery|batt)\b.*\bvoltage\b/i, "V"],
-  ["batteryPowerW", /\b(battery|batt)\b.*\bpower\b/i, "W"],
+  // One-direction labels ("battery discharge power") carry no sign; skip them.
+  ["batteryPowerW", /^(?!.*\b(charg|discharg)\w*\b).*\b(battery|batt)\b.*\bpower\b/i, "W"],
   ["batteryTemperature", /\b(battery|batt)\b.*\btemp/i],
   ["acOutputVoltage", /\bac\s*output\b.*\bvoltage\b/i, "V"],
   ["gridFrequency", /\b(grid|utility|mains|ac\s*input)\b.*\bfreq/i, "Hz"],
@@ -339,7 +341,11 @@ const DISCHARGE_CURRENT = /\b(battery|batt)\b.*\bdischarg\w*\b.*\bcurrent\b/i;
 const GENERIC_CURRENT = /\b(battery|batt)\b.*\bcurrent\b/i;
 
 function toNumber(value: string) {
-  const parsed = Number(String(value).replace(/[^\d.+-]/g, ""));
+  const cleaned = String(value).replace(/[^\d.+-]/g, "");
+  // "", "N/A" or "--" mean "no value", not 0 (a blank grid voltage read as 0 V
+  // would report a grid outage).
+  if (!/\d/.test(cleaned)) return undefined;
+  const parsed = Number(cleaned);
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
@@ -376,7 +382,7 @@ export function mapReading(body: Record<string, unknown>): DessReading {
     if (reading[field] !== undefined) continue;
     for (const [label, { value, unit }] of entries) {
       if (!pattern.test(label.replace(/_+/g, " "))) continue;
-      if (expectedUnit && unit && !unit.includes(expectedUnit)) continue;
+      if (expectedUnit && unit && !unit.toLowerCase().includes(expectedUnit.toLowerCase())) continue;
       const numeric = toNumber(value);
       if (numeric === undefined) continue;
       // "kW".includes("W") is true, so a kilowatt value passed the unit check

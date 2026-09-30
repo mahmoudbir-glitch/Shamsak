@@ -136,6 +136,11 @@ export function SmartForecast() {
     const tomorrow = forecasts[1];
     if (!today || !tomorrow) return null;
 
+    // After midnight and before today's sunrise we are still inside last night.
+    const todaySunrise = new Date(today.sunrise).getTime();
+    if (Number.isFinite(todaySunrise) && now < todaySunrise) {
+      return { startSoc: snapshot?.batterySoc ?? today.chargeAtSunrisePct, hours: Math.max(0.5, (todaySunrise - now) / 3600000) };
+    }
     const todaySunset = new Date(today.sunset).getTime();
     if (Number.isFinite(todaySunset) && now < todaySunset) {
       return {

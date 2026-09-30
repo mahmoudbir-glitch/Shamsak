@@ -14,6 +14,10 @@ export type EnergySnapshot = {
   todayProductionKWh?: number;
   todayHomeUsageKWh?: number;
   todayGridSavings?: number;
+  /** True when the latest stored reading is older than the live window. */
+  stale?: boolean;
+  /** Currency code from the settings, for money figures. */
+  currency?: string;
 };
 
 export const demoSnapshot: EnergySnapshot = {

@@ -18,7 +18,7 @@ export function loadSettings() {
 }
 
 // بداية اليوم حسب المنطقة الزمنية للمستخدم (وليس UTC) حتى لا ينقسم اليوم عند 02:00/03:00 محلياً
-function localDayStart(date: Date, timeZone?: string | null) {
+export function localDayStart(date: Date, timeZone?: string | null) {
   try {
     const text = new Intl.DateTimeFormat("en-CA", {
       timeZone: timeZone || "UTC",
@@ -41,11 +41,11 @@ async function updateDailySummary(
 ) {
   if (!previous) return;
 
-  const hours = Math.min(
-    Math.max((timestamp.getTime() - previous.timestamp.getTime()) / 3_600_000, 0),
-    1 / 3,
-  );
-  if (hours <= 0) return;
+  // Integrate only between close readings. After an outage (app closed, dongle
+  // offline) the old reading says nothing about the gap, so it is not counted
+  // rather than averaged over an invented 20 minutes.
+  const hours = Math.max((timestamp.getTime() - previous.timestamp.getTime()) / 3_600_000, 0);
+  if (hours <= 0 || hours > 0.25) return;
 
   const avg = (a: number, b: number) => ((a + b) / 2 / 1000) * hours;
   const solarKWh = avg(previous.pvPowerW, current.pvPowerW);

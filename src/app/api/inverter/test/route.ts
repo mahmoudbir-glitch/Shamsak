@@ -209,6 +209,8 @@ export async function POST(request: NextRequest) {
     try {
       const response = await fetch(safeGateway + "/v1/inverter/test", {
         method: "POST",
+        // A redirect could point the request (and its token) at an internal host.
+        redirect: "manual",
         headers: { "Content-Type": "application/json", ...gatewayAuthHeader(row.gatewayTokenCipher, incomingGatewayToken) },
         body: JSON.stringify({
           enabled: row.enabled,

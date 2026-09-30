@@ -10,36 +10,42 @@ import { lookup } from "node:dns/promises";
  * "0.0.0.0", so a host resolving to ::ffff:127.0.0.1 slipped through there while
  * being blocked in the other route. One implementation keeps them in step.
  */
+/** "::ffff:7f00:1" and "::ffff:127.0.0.1" both mean 127.0.0.1. */
+function mappedIpv4(address: string) {
+  const match = address.match(/^(?:0{0,4}:){0,5}:?ffff:(.+)$/) ?? address.match(/^::ffff:(.+)$/);
+  if (!match) return null;
+  const tail = match[1];
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(tail)) return tail;
+  const hex = tail.match(/^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (!hex) return null;
+  const hi = parseInt(hex[1], 16);
+  const lo = parseInt(hex[2], 16);
+  return `${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`;
+}
+
 export function isPrivateIp(address: string) {
   const normalized = address.trim().toLowerCase();
-  const ipv4Mapped = normalized.startsWith("::ffff:") ? normalized.slice(7) : normalized;
+  if (normalized === "localhost" || normalized === "::" || normalized === "::1") return true;
 
-  if (
-    normalized === "::" ||
-    normalized === "::1" ||
-    normalized === "0.0.0.0" ||
-    normalized === "localhost" ||
-    ipv4Mapped === "127.0.0.1" ||
-    ipv4Mapped.startsWith("127.") ||
-    ipv4Mapped.startsWith("10.") ||
-    ipv4Mapped.startsWith("192.168.") ||
-    ipv4Mapped.startsWith("169.254.")
-  ) {
-    return true;
+  const v4 = mappedIpv4(normalized) ?? (/^\d+\.\d+\.\d+\.\d+$/.test(normalized) ? normalized : null);
+  if (v4) {
+    const [a, b] = v4.split(".").map(Number);
+    return (
+      a === 0 || // 0.0.0.0/8
+      a === 10 ||
+      a === 127 ||
+      (a === 100 && b >= 64 && b <= 127) || // carrier-grade NAT
+      (a === 169 && b === 254) || // link-local, cloud metadata
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 192 && b === 0) || // 192.0.0.0/24 special purpose
+      (a === 198 && (b === 18 || b === 19)) || // benchmarking
+      a >= 224 // multicast and reserved
+    );
   }
 
-  const privateClassB = ipv4Mapped.match(/^172\.(\d+)\./);
-  if (privateClassB && Number(privateClassB[1]) >= 16 && Number(privateClassB[1]) <= 31) {
-    return true;
-  }
-
-  // Carrier-grade NAT (100.64.0.0/10) is not routable from the public internet either.
-  const cgnat = ipv4Mapped.match(/^100\.(\d+)\./);
-  if (cgnat && Number(cgnat[1]) >= 64 && Number(cgnat[1]) <= 127) {
-    return true;
-  }
-
-  return /^(fc|fd|fe8[0-9a-f]:)/.test(normalized);
+  // IPv6: unique-local fc00::/7, link-local fe80::/10, multicast ff00::/8.
+  return /^(fc|fd|fe[89ab]|ff)/.test(normalized);
 }
 
 export class PrivateEndpointError extends Error {

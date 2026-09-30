@@ -19,16 +19,18 @@ export async function GET() {
       (acc, row) => ({
         solarKWh: acc.solarKWh + row.solarKWh,
         homeKWh: acc.homeKWh + row.homeKWh,
+        batteryChargeKWh: acc.batteryChargeKWh + row.batteryChargeKWh,
         batteryDischargeKWh: acc.batteryDischargeKWh + row.batteryDischargeKWh,
         gridImportKWh: acc.gridImportKWh + row.gridImportKWh,
         gridExportKWh: acc.gridExportKWh + row.gridExportKWh,
       }),
-      { solarKWh: 0, homeKWh: 0, batteryDischargeKWh: 0, gridImportKWh: 0, gridExportKWh: 0 },
+      { solarKWh: 0, homeKWh: 0, batteryChargeKWh: 0, batteryDischargeKWh: 0, gridImportKWh: 0, gridExportKWh: 0 },
     );
 
     const directSolarKWh = Math.max(
       0,
-      Math.min(totals.homeKWh, totals.solarKWh - totals.batteryDischargeKWh - totals.gridExportKWh),
+      // Solar used directly = produced minus what went into the battery or out to the grid.
+      Math.min(totals.homeKWh, totals.solarKWh - totals.batteryChargeKWh - totals.gridExportKWh),
     );
     const batteryKWh = Math.min(totals.homeKWh - directSolarKWh, totals.batteryDischargeKWh);
     const gridKWh = totals.gridImportKWh;

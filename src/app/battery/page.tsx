@@ -18,9 +18,11 @@ function estimate(soc: number, powerW: number, settings: BatterySettings | null)
   const capacity = settings.batteryCapacityWh;
   const charging = powerW > 0;
   const energyWh = charging ? ((100 - soc) / 100) * capacity : (Math.max(0, soc - settings.batteryMinReservePct) / 100) * capacity;
+  if (!charging && energyWh <= 0) return { charging, label: "عند حد الاحتياطي" };
   const hours = energyWh / Math.abs(powerW);
   if (!Number.isFinite(hours)) return null;
-  const label = hours > 48 ? "أكثر من 48 ساعة" : hours < 1 / 60 ? "أقل من دقيقة" : `${Math.floor(hours)} ساعة و${Math.round((hours % 1) * 60)} دقيقة`;
+  const minutes = Math.round(hours * 60);
+  const label = hours > 48 ? "أكثر من 48 ساعة" : minutes < 1 ? "أقل من دقيقة" : `${Math.floor(minutes / 60)} ساعة و${minutes % 60} دقيقة`;
   return { charging, label };
 }
 

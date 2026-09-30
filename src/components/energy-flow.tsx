@@ -295,8 +295,8 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
 
       <div className="relative border-t border-slate-100 bg-slate-50/70 px-3 py-4 sm:px-5">
         <div className="grid grid-cols-3 divide-x divide-x-reverse divide-slate-200 text-center">
-          <div className="px-2"><div className="text-[11px] font-bold text-slate-500">إنتاج اليوم</div><div className={"mt-1 text-base font-black " + semanticText[solarTone(todayProductionKWh ?? 0)] + " sm:text-lg"}>{formatKwh(todayProductionKWh)}</div></div>
-          <div className="px-2"><div className="text-[11px] font-bold text-slate-500">استهلاك اليوم</div><div className={"mt-1 text-base font-black " + semanticText[loadTone(todayHomeUsageKWh ?? 0)] + " sm:text-lg"}>{formatKwh(todayHomeUsageKWh)}</div></div>
+          <div className="px-2"><div className="text-[11px] font-bold text-slate-500">إنتاج اليوم</div><div className="mt-1 text-base font-black text-amber-600 sm:text-lg">{formatKwh(todayProductionKWh)}</div></div>
+          <div className="px-2"><div className="text-[11px] font-bold text-slate-500">استهلاك اليوم</div><div className="mt-1 text-base font-black text-sky-600 sm:text-lg">{formatKwh(todayHomeUsageKWh)}</div></div>
           <div className="px-2"><div className="text-[11px] font-bold text-slate-500">وفر اليوم</div><div className="mt-1 text-base font-black text-amber-500 sm:text-lg">{formatSavings(todayGridSavings)}</div></div>
         </div>
         {todayProductionKWh === undefined && todayHomeUsageKWh === undefined && <p className="mt-2 text-center text-[10px] font-semibold text-slate-400">تُحسب أرقام اليوم تلقائياً مع تجمّع القراءات.</p>}
