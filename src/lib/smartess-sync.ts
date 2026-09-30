@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { decryptSecret, encryptSecret } from "@/lib/inverter-config-crypto";
-import { authenticate, DessError, describeDessError, discoverDevices, pickDevice, readLastData, type DessAuth, type DessDevice, type DessReading } from "@/lib/dessmonitor";
+import { authenticate, DessError, describeDessError, discoverDevices, listCollectors, pickDevice, readLastData, type DessAuth, type DessDevice, type DessReading } from "@/lib/dessmonitor";
 import { ingestSample } from "@/lib/telemetry-store";
 
 /**
@@ -14,6 +14,54 @@ export const SMARTESS_SOURCE = "smartess-cloud";
 export type SyncResult = { ok: true; stored: true } | { ok: false; skipped?: boolean; reason: string };
 
 let cachedAuth: { key: string; auth: DessAuth } | null = null;
+let lastStatusCheckAt = 0;
+
+/** How long identical readings may repeat before they count as frozen. */
+const FROZEN_WINDOW_MS = 15 * 60_000;
+/** How often a remembered device's online status is re-checked. */
+const STATUS_CHECK_MS = 10 * 60_000;
+
+const nearlyEqual = (a: number | null | undefined, b: number | null | undefined) =>
+  a == null || b == null ? a == null && b == null : Math.abs(a - b) < 0.01;
+
+/**
+ * When the dongle stops uploading, SmartESS keeps answering with its last
+ * values. A live system never holds load, battery power and voltage exactly
+ * still for 15 minutes, so identical readings across that window mean the data
+ * is frozen and must not be stored (it would inflate today's totals).
+ */
+async function isFrozen(reading: DessReading) {
+  const select = { timestamp: true, pvPowerW: true, loadPowerW: true, batterySoc: true, batteryPowerW: true, batteryVoltage: true } as const;
+  const next = {
+    pv: Math.max(0, reading.solarPowerW ?? 0),
+    load: Math.max(0, reading.loadPowerW ?? 0),
+    soc: Math.min(100, Math.max(0, reading.batterySoc ?? 0)),
+    battery: reading.batteryPowerW ?? 0,
+    voltage: reading.batteryVoltage !== undefined ? Math.max(0, reading.batteryVoltage) : null,
+  };
+  type Row = { timestamp: Date; pvPowerW: number; loadPowerW: number; batterySoc: number; batteryPowerW: number; batteryVoltage: number | null };
+  const same = (row: Row) =>
+    nearlyEqual(row.pvPowerW, next.pv) &&
+    nearlyEqual(row.loadPowerW, next.load) &&
+    nearlyEqual(row.batterySoc, next.soc) &&
+    nearlyEqual(row.batteryPowerW, next.battery) &&
+    nearlyEqual(row.batteryVoltage, next.voltage);
+
+  // Case 1: the value was already stored more than 15 minutes ago and nothing
+  // different has arrived since (frozen values already being skipped).
+  const latest = await prisma.telemetryLog.findFirst({ where: { source: SMARTESS_SOURCE }, orderBy: { timestamp: "desc" }, select });
+  if (latest && same(latest) && Date.now() - latest.timestamp.getTime() > FROZEN_WINDOW_MS) return true;
+
+  // Case 2: every reading of the last 15 minutes is identical to this one.
+  const rows = await prisma.telemetryLog.findMany({
+    where: { source: SMARTESS_SOURCE, timestamp: { gte: new Date(Date.now() - FROZEN_WINDOW_MS) } },
+    orderBy: { timestamp: "asc" },
+    select,
+  });
+  // Need readings spread over most of the window before judging.
+  if (rows.length < 6 || Date.now() - rows[0].timestamp.getTime() < FROZEN_WINDOW_MS * 0.8) return false;
+  return rows.every(same);
+}
 let inFlight: Promise<SyncResult> | null = null;
 let lastAttemptAt = 0;
 
@@ -132,6 +180,18 @@ async function run(): Promise<SyncResult> {
     let device: Record<string, unknown> | undefined;
     if (remembered && remembered.pn && remembered.sn && Number.isFinite(Number(remembered.devcode))) {
       target = { pn: remembered.pn, sn: remembered.sn, devcode: Number(remembered.devcode), devaddr: Number(remembered.devaddr ?? 1) };
+      // The remembered path skips discovery, so re-check the datalogger's
+      // online status now and then (one call). A failed check is ignored.
+      if (Date.now() - lastStatusCheckAt > STATUS_CHECK_MS) {
+        lastStatusCheckAt = Date.now();
+        const pn = target.pn;
+        const collector = await listCollectors(auth, cloudUrl, timeout)
+          .then((list) => list.find((entry) => String(entry.pn ?? "").trim() === pn))
+          .catch(() => undefined);
+        if (collector && Number(collector.status) === 1) {
+          return await fail("الدنجل غير متصل في SmartESS (Offline)، لذلك لم تُحفظ قراءة.");
+        }
+      }
     } else {
       const { devices } = await discoverDevices(auth, cloudUrl, timeout);
       const wanted = (row.dataloggerPn || "").trim();
@@ -157,6 +217,9 @@ async function run(): Promise<SyncResult> {
     }
 
     const reading = await readLastData(auth, target, cloudUrl, timeout);
+    if (await isFrozen(reading)) {
+      return await fail("الدنجل لا يرسل قراءات جديدة: القيم نفسها منذ 15 دقيقة. تأكد أن الدنجل متصل بالواي فاي.");
+    }
     const stored = await storeReading(reading, device);
     if (!stored.ok) return await fail(stored.reason);
     await prisma.inverterConnection

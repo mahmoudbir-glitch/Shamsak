@@ -401,3 +401,12 @@ test("QA fixes: today totals, finance split, blank values, gateway token", () =>
   assert.match(read("src/app/api/inverter/connection/route.ts"), /gatewayTokenHash: null, gatewayTokenCipher: null/);
   assert.match(read("src/app/api/inverter/test/route.ts"), /redirect: "manual"/);
 });
+
+test("frozen SmartESS values are not stored as new readings", () => {
+  // An offline dongle makes SmartESS repeat its last values; storing them
+  // every minute inflated today's totals and hid the outage.
+  const sync = read("src/lib/smartess-sync.ts");
+  assert.match(sync, /async function isFrozen\(reading: DessReading\)/);
+  assert.match(sync, /if \(await isFrozen\(reading\)\) \{/);
+  assert.match(sync, /Date\.now\(\) - lastStatusCheckAt > STATUS_CHECK_MS/);
+});
