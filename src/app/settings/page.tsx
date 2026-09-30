@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, Bell, CheckCircle2, ChevronDown, Cpu, Database, MapPin, Plug, Plus, Radio, RotateCcw, Save, Search, Settings as SettingsIcon, ShieldCheck, X, type LucideIcon } from "lucide-react";
+import { AlertCircle, Bell, CheckCircle2, ChevronDown, Cpu, Database, Eye, EyeOff, MapPin, Plug, Plus, Radio, RotateCcw, Save, Search, Settings as SettingsIcon, ShieldCheck, X, type LucideIcon } from "lucide-react";
 
 type Protocol = "Modbus RTU" | "Modbus TCP" | "MQTT" | "Cloud API" | "Wi-Fi Datalogger";
 type ConnectionMode = "local" | "gateway";
@@ -100,6 +100,7 @@ export default function SettingsPage() {
   // آخر قيم محفوظة: أساس زر «إعادة القسم» ومؤشر التغييرات غير المحفوظة
   const [saved, setSaved] = useState<Settings>(defaults);
   const [query, setQuery] = useState("");
+  const [showCloudPassword, setShowCloudPassword] = useState(false);
   const [inverters, setInverters] = useState<Inverter[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [draft, setDraft] = useState<Inverter | null>(null);
@@ -305,7 +306,12 @@ export default function SettingsPage() {
               <p className="mt-1 text-xs font-semibold leading-5 text-emerald-800">اسم المستخدم وكلمة المرور هما نفسهما اللذان تدخل بهما إلى تطبيق SmartESS على هاتفك. تُحفظ كلمة المرور مشفّرة ولا تُعرض مرة أخرى.</p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <SettingsField label="اسم مستخدم SmartESS"><input dir="ltr" name="smartess-username" autoComplete="off" autoCapitalize="none" spellCheck={false} value={draft.cloudUsername || ""} onChange={(e) => updateDraft("cloudUsername" as keyof Inverter, e.target.value)} placeholder="اسم الحساب في تطبيق SmartESS" className={input} /></SettingsField>
-                <SettingsField label="كلمة مرور SmartESS"><input dir="ltr" type="password" name="smartess-password" autoComplete="new-password" onChange={(e) => updateDraft("cloudPassword" as keyof Inverter, e.target.value)} placeholder={draft.hasCloudCredential ? "محفوظة — اتركها فارغة للإبقاء عليها" : "كلمة مرور تطبيق SmartESS"} className={input} /></SettingsField>
+                <SettingsField label="كلمة مرور SmartESS">
+                  <div className="relative">
+                    <input dir="ltr" type={showCloudPassword ? "text" : "password"} name="smartess-password" autoComplete="new-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={draft.cloudPassword || ""} onChange={(e) => updateDraft("cloudPassword" as keyof Inverter, e.target.value)} placeholder={draft.hasCloudCredential ? "محفوظة — اتركها فارغة للإبقاء عليها" : "كلمة مرور تطبيق SmartESS"} className={input + " pl-12"} />
+                    <button type="button" onClick={() => setShowCloudPassword((value) => !value)} aria-label={showCloudPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"} className="absolute left-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100">{showCloudPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}</button>
+                  </div>
+                </SettingsField>
               </div>
               <div className="mt-3"><AdvancedBlock title="تفاصيل الدنجل (متقدم)"><div className="grid gap-3 sm:grid-cols-2">
                 <SettingsField label="نوع الدنجل"><input dir="ltr" value={draft.dataloggerType || ""} onChange={(e) => updateDraft("dataloggerType", e.target.value)} className={input} /></SettingsField>
