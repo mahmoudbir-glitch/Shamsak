@@ -188,12 +188,64 @@ export async function listCollectors(auth: DessAuth, baseUrl?: string, timeoutMs
   return collectors as Array<Record<string, unknown>>;
 }
 
-/** Lists the devices (inverters) reporting through the account. */
-export async function listDevices(auth: DessAuth, baseUrl?: string, timeoutMs?: number) {
-  const body = await authedCall(auth, "webQueryDeviceEs", { page: 0, pagesize: 50 }, baseUrl, timeoutMs);
-  const dat = (body.dat ?? {}) as Record<string, unknown>;
-  const devices = Array.isArray(dat.device) ? dat.device : [];
-  return devices as Array<Record<string, unknown>>;
+/** Finds every object in a response that looks like a device (has sn + devcode). */
+function collectDevices(node: unknown, out: Map<string, Record<string, unknown>>, depth = 0) {
+  if (!node || typeof node !== "object" || depth > 6) return;
+  if (Array.isArray(node)) {
+    for (const child of node) collectDevices(child, out, depth + 1);
+    return;
+  }
+  const item = node as Record<string, unknown>;
+  if (typeof item.sn === "string" && item.sn && item.devcode !== undefined) {
+    out.set(item.sn, item);
+    return;
+  }
+  for (const child of Object.values(item)) collectDevices(child, out, depth + 1);
+}
+
+/**
+ * webQueryDeviceEs only lists energy-storage devices. A device the app shows
+ * with type "Other" is missing from it and the call answers
+ * ERR_NOT_FOUND_DEVICE, although the device is online. So fall back to the
+ * account's dataloggers and ask for the devices behind each one through the
+ * other listing actions. Every attempt is recorded so an empty result can be
+ * diagnosed from the message instead of guessed at.
+ */
+export async function discoverDevices(auth: DessAuth, baseUrl?: string, timeoutMs?: number) {
+  const found = new Map<string, Record<string, unknown>>();
+  const attempts: string[] = [];
+  const attempt = async (label: string, action: string, params: Record<string, string | number | undefined>) => {
+    try {
+      const body = await authedCall(auth, action, params, baseUrl, timeoutMs);
+      const before = found.size;
+      collectDevices(body.dat, found);
+      attempts.push(`${label}:${found.size - before}`);
+    } catch (error) {
+      attempts.push(`${label}:${error instanceof DessError ? error.message : "error"}`);
+    }
+  };
+
+  await attempt("es", "webQueryDeviceEs", { page: 0, pagesize: 50 });
+  if (found.size) return { devices: [...found.values()], collectors: [] as Array<Record<string, unknown>>, attempts };
+
+  let collectors: Array<Record<string, unknown>> = [];
+  try {
+    collectors = await listCollectors(auth, baseUrl, timeoutMs);
+    attempts.push(`collectors:${collectors.length}`);
+  } catch (error) {
+    attempts.push(`collectors:${error instanceof DessError ? error.message : "error"}`);
+  }
+
+  await attempt("all", "webQueryDevice", { page: 0, pagesize: 50 });
+  await attempt("devices", "queryDevices", { page: 0, pagesize: 50 });
+  for (const collector of collectors) {
+    const pn = String(collector.pn ?? "").trim();
+    if (!pn || found.size) continue;
+    await attempt("es+pn", "webQueryDeviceEs", { page: 0, pagesize: 50, pn });
+    await attempt("collectorDevices", "queryCollectorDevices", { pn });
+    await attempt("collectorInfo", "queryCollectorInfo", { pn });
+  }
+  return { devices: [...found.values()], collectors, attempts };
 }
 
 /**
@@ -298,7 +350,7 @@ export function mapReading(body: Record<string, unknown>): DessReading {
   for (const [field, pattern, expectedUnit] of FIELD_PATTERNS) {
     if (reading[field] !== undefined) continue;
     for (const [label, { value, unit }] of entries) {
-      if (!pattern.test(label)) continue;
+      if (!pattern.test(label.replace(/_+/g, " "))) continue;
       if (expectedUnit && unit && !unit.includes(expectedUnit)) continue;
       const numeric = toNumber(value);
       if (numeric === undefined) continue;
@@ -316,9 +368,10 @@ export function mapReading(body: Record<string, unknown>): DessReading {
   for (const [label, { value }] of entries) {
     const numeric = toNumber(value);
     if (numeric === undefined) continue;
-    if (DISCHARGE_CURRENT.test(label)) discharge ??= numeric;
-    else if (CHARGE_CURRENT.test(label)) charge ??= numeric;
-    else if (GENERIC_CURRENT.test(label)) generic ??= numeric;
+    const words = label.replace(/_+/g, " ");
+    if (DISCHARGE_CURRENT.test(words)) discharge ??= numeric;
+    else if (CHARGE_CURRENT.test(words)) charge ??= numeric;
+    else if (GENERIC_CURRENT.test(words)) generic ??= numeric;
   }
   if (charge !== undefined && charge !== 0) reading.batteryCurrent = Math.abs(charge);
   else if (discharge !== undefined && discharge !== 0) reading.batteryCurrent = -Math.abs(discharge);
@@ -350,21 +403,25 @@ export async function readLastData(
   baseUrl?: string,
   timeoutMs?: number,
 ): Promise<DessReading> {
-  const body = await authedCall(
-    auth,
-    "querySPDeviceLastData",
-    {
-      source: DEFAULT_SOURCE,
-      devcode: device.devcode,
-      pn: device.pn,
-      devaddr: device.devaddr,
-      sn: device.sn,
-      i18n: "en_US",
-    },
-    baseUrl,
-    timeoutMs,
-  );
-  return mapReading(body);
+  const params = { source: DEFAULT_SOURCE, devcode: device.devcode, pn: device.pn, devaddr: device.devaddr, sn: device.sn, i18n: "en_US" };
+  const bodies: unknown[] = [];
+  let lastError: unknown;
+  // querySPDeviceLastData covers energy-storage inverters; other device types
+  // answer through queryDeviceLastData, and the energy-flow view carries the
+  // headline PV/load/battery figures the app draws on its house picture.
+  for (const action of ["querySPDeviceLastData", "queryDeviceLastData", "webQueryDeviceEnergyFlowEs"]) {
+    try {
+      const body = await authedCall(auth, action, params, baseUrl, timeoutMs);
+      bodies.push(body.dat);
+      const merged = mapReading({ dat: bodies });
+      const complete = [merged.solarPowerW, merged.loadPowerW, merged.batterySoc, merged.batteryPowerW, merged.gridConnected].every((value) => value !== undefined);
+      if (complete) return merged;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (!bodies.length && lastError) throw lastError;
+  return mapReading({ dat: bodies });
 }
 
 /** Plain-language (Arabic) explanation of the vendor's error codes. */

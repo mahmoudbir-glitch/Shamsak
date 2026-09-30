@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { decryptSecret, encryptSecret } from "@/lib/inverter-config-crypto";
-import { authenticate, DessError, describeDessError, listDevices, pickDevice, readLastData, type DessAuth, type DessReading } from "@/lib/dessmonitor";
+import { authenticate, DessError, describeDessError, discoverDevices, pickDevice, readLastData, type DessAuth, type DessReading } from "@/lib/dessmonitor";
 import { ingestSample } from "@/lib/telemetry-store";
 
 /**
@@ -121,7 +121,7 @@ async function run(): Promise<SyncResult> {
     }
     cachedAuth = { key, auth };
 
-    const devices = await listDevices(auth, cloudUrl, timeout);
+    const { devices } = await discoverDevices(auth, cloudUrl, timeout);
     const wanted = (row.dataloggerPn || "").trim();
     const device = pickDevice(devices, wanted);
     if (!device) return await fail("تم تسجيل الدخول إلى SmartESS، لكن الحساب لا يحتوي أي جهاز.");

@@ -4,7 +4,7 @@ import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { storeReading } from "@/lib/smartess-sync";
 import { assertPublicEndpoint, PrivateEndpointError } from "@/lib/net-guard";
 import { decryptSecret, encryptSecret } from "@/lib/inverter-config-crypto";
-import { authenticate, describeDessError, listDevices, pickDevice, readLastData } from "@/lib/dessmonitor";
+import { authenticate, describeDessError, discoverDevices, pickDevice, readLastData } from "@/lib/dessmonitor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -98,12 +98,14 @@ export async function POST(request: NextRequest) {
 
         // devcode/devaddr are not printed on the dongle, so they are discovered
         // from the account rather than asked of the user.
-        const devices = await listDevices(auth, cloudUrl, remoteTimeout(row.timeoutMs));
+        const discovery = await discoverDevices(auth, cloudUrl, remoteTimeout(row.timeoutMs));
+        const devices = discovery.devices;
         const wanted = (row.dataloggerPn || "").trim();
         const device = pickDevice(devices, wanted);
 
         if (!device) {
-          const message = "تم تسجيل الدخول إلى SmartESS، لكن الحساب لا يحتوي أي جهاز.";
+          const pns = discovery.collectors.map((entry) => String(entry.pn ?? "")).filter(Boolean).join("، ") || "لا يوجد";
+          const message = `تم تسجيل الدخول إلى SmartESS، لكن لم نجد جهازاً قابلاً للقراءة. جوامع البيانات في الحساب: ${pns}. المحاولات: ${discovery.attempts.join(" | ")}`;
           await prisma.inverterConnection
             .update({ where: { id: row.id }, data: { lastStatus: "error", lastTestResult: "error", lastTestReason: message } })
             .catch(() => {});

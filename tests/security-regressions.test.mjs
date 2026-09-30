@@ -333,3 +333,13 @@ test("the reader prefers an online device over the first PN match", () => {
   assert.match(read("src/lib/smartess-sync.ts"), /pickDevice\(devices, wanted\)/);
   assert.match(read("src/app/api/inverter/test/route.ts"), /pickDevice\(devices, wanted\)/);
 });
+
+test("device discovery falls back beyond the energy-storage listing", () => {
+  // A device of type "Other" is missing from webQueryDeviceEs (ERR_NOT_FOUND_DEVICE)
+  // while it is online; discovery must try the datalogger-based listings too.
+  const lib = read("src/lib/dessmonitor.ts");
+  assert.match(lib, /export async function discoverDevices/);
+  assert.match(lib, /listCollectors\(auth, baseUrl, timeoutMs\)/);
+  assert.match(lib, /"queryDeviceLastData", "webQueryDeviceEnergyFlowEs"/);
+  assert.match(read("src/app/api/inverter/test/route.ts"), /discovery\.attempts\.join/);
+});
