@@ -88,14 +88,6 @@ export async function POST(request: NextRequest) {
           remoteTimeout(row.timeoutMs),
         );
 
-        // If a different spelling of the user name is the one SmartESS accepted,
-        // store it so later logins (and the background sync) use it directly.
-        if (auth.usr && auth.usr !== username) {
-          await prisma.inverterConnection
-            .update({ where: { id: row.id }, data: { inverterLinkCode: encryptSecret(JSON.stringify({ ...extras, cloudUsername: auth.usr })) } })
-            .catch((error) => console.error("[inverter] username_update_failed", error));
-        }
-
         // devcode/devaddr are not printed on the dongle, so they are discovered
         // from the account rather than asked of the user.
         const discovery = await discoverDevices(auth, cloudUrl, remoteTimeout(row.timeoutMs));
@@ -122,17 +114,24 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: false, source: "dessmonitor", error: "device_offline", message }, { status: 502 });
         }
 
-        const reading = await readLastData(
-          auth,
-          {
-            pn: String(device.pn ?? wanted),
-            devcode: Number(device.devcode ?? 0),
-            devaddr: Number(device.devaddr ?? 1),
-            sn: String(device.sn ?? row.dataloggerDeviceIdentifier ?? ""),
-          },
-          cloudUrl,
-          remoteTimeout(row.timeoutMs),
-        );
+        const target = {
+          pn: String(device.pn ?? wanted),
+          devcode: Number(device.devcode ?? 0),
+          devaddr: Number(device.devaddr ?? 1),
+          sn: String(device.sn ?? row.dataloggerDeviceIdentifier ?? ""),
+        };
+        const reading = await readLastData(auth, target, cloudUrl, remoteTimeout(row.timeoutMs));
+
+        // Remember what worked — the accepted user-name spelling, the login and
+        // the device — so the background sync makes one read call instead of
+        // repeating login and discovery against a slow server.
+        const acceptedUser = auth.usr || username;
+        await prisma.inverterConnection
+          .update({
+            where: { id: row.id },
+            data: { inverterLinkCode: encryptSecret(JSON.stringify({ ...extras, cloudUsername: acceptedUser, dessAuth: { username: acceptedUser, auth }, dessDevice: target })) },
+          })
+          .catch((error) => console.error("[inverter] remember_device_failed", error));
 
         const latencyMs = Date.now() - started;
         // Store what the test just read so the dashboard shows it straight away.

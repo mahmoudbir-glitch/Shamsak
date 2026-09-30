@@ -256,7 +256,7 @@ test("SmartESS login retries user-name spellings on unknown-user or wrong-passwo
   // the owner's is "Plugpro"; network or server errors must not be retried.
   assert.match(source, /if \(!\(error instanceof DessError\) \|\| !\/NOT_FOUND_USR\|PASSWORD\/i\.test\(error\.message\)\) throw error;/);
   // The spelling SmartESS accepted is stored for later logins.
-  assert.match(read("src/app/api/inverter/test/route.ts"), /cloudUsername: auth\.usr/);
+  assert.match(read("src/app/api/inverter/test/route.ts"), /const acceptedUser = auth\.usr || username;/);
 });
 
 test("forecast uses the saved settings, not localStorage keys nothing writes", () => {
@@ -350,4 +350,15 @@ test("a device SN is split into PN, devcode and devaddr", async () => {
   assert.match(lib, /export function deviceFromSn/);
   assert.match(lib, /parseInt\(rest\.slice\(0, 4\), 16\)/);
   assert.match(lib, /candidate\.pn \+ "094801"/);
+});
+
+test("background sync reuses the remembered device and survives a slow SmartESS", () => {
+  // Discovery took up to seven calls and timed out, flipping the badge to
+  // "not connected" right after a successful test.
+  const sync = read("src/lib/smartess-sync.ts");
+  assert.match(sync, /extras\.dessDevice as DessDevice/);
+  assert.match(sync, /if \(!\(error instanceof DessError\)\) \{/);
+  assert.match(sync, /lastStatus: "connected", lastSeenAt: new Date\(\)/);
+  assert.match(read("src/app/api/inverter/test/route.ts"), /dessDevice: target/);
+  assert.match(read("src/app/api/inverter/connection/route.ts"), /merged\.dessDevice = stored\.dessDevice/);
 });

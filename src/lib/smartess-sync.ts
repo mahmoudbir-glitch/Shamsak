@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { decryptSecret, encryptSecret } from "@/lib/inverter-config-crypto";
-import { authenticate, DessError, describeDessError, discoverDevices, pickDevice, readLastData, type DessAuth, type DessReading } from "@/lib/dessmonitor";
+import { authenticate, DessError, describeDessError, discoverDevices, pickDevice, readLastData, type DessAuth, type DessDevice, type DessReading } from "@/lib/dessmonitor";
 import { ingestSample } from "@/lib/telemetry-store";
 
 /**
@@ -91,7 +91,7 @@ async function run(): Promise<SyncResult> {
 
   const cloudUrl = process.env.SHAMSAK_DESSMONITOR_URL || undefined;
   // Kept short: this runs in the background of a dashboard request.
-  const timeout = 8000;
+  const timeout = 12000;
 
   // Logging in from here can end the session of the owner's phone app, so a
   // login is reused for as long as SmartESS honours it: first from memory, then
@@ -121,33 +121,46 @@ async function run(): Promise<SyncResult> {
     }
     cachedAuth = { key, auth };
 
-    const { devices } = await discoverDevices(auth, cloudUrl, timeout);
-    const wanted = (row.dataloggerPn || "").trim();
-    const device = pickDevice(devices, wanted);
-    if (!device) return await fail("تم تسجيل الدخول إلى SmartESS، لكن الحساب لا يحتوي أي جهاز.");
+    // The connection test stores the device that worked; reuse it so each sync
+    // is a single read instead of up to seven discovery calls.
+    const remembered = extras.dessDevice as DessDevice | undefined;
+    let target: DessDevice;
+    let device: Record<string, unknown> | undefined;
+    if (remembered && remembered.pn && remembered.sn && Number.isFinite(Number(remembered.devcode))) {
+      target = { pn: remembered.pn, sn: remembered.sn, devcode: Number(remembered.devcode), devaddr: Number(remembered.devaddr ?? 1) };
+    } else {
+      const { devices } = await discoverDevices(auth, cloudUrl, timeout);
+      const wanted = (row.dataloggerPn || "").trim();
+      device = pickDevice(devices, wanted);
+      if (!device) return await fail("تم تسجيل الدخول إلى SmartESS، لكن الحساب لا يحتوي أي جهاز.");
 
-    // SmartESS reports an offline device's last known values as if current.
-    // Storing them would show hours-old numbers as live, so refuse.
-    if (Number(device.status) === 1) {
-      return await fail("الجهاز غير متصل في SmartESS (Offline)، لذلك لم تُحفظ قراءة.");
-    }
-
-    const reading = await readLastData(
-      auth,
-      {
+      // SmartESS reports an offline device's last known values as if current.
+      // Storing them would show hours-old numbers as live, so refuse.
+      if (Number(device.status) === 1) {
+        return await fail("الجهاز غير متصل في SmartESS (Offline)، لذلك لم تُحفظ قراءة.");
+      }
+      target = {
         pn: String(device.pn ?? wanted),
         devcode: Number(device.devcode ?? 0),
         devaddr: Number(device.devaddr ?? 1),
         sn: String(device.sn ?? row.dataloggerDeviceIdentifier ?? ""),
-      },
-      cloudUrl,
-      timeout,
-    );
+      };
+    }
 
+    const reading = await readLastData(auth, target, cloudUrl, timeout);
     const stored = await storeReading(reading, device);
     if (!stored.ok) return await fail(stored.reason);
+    await prisma.inverterConnection
+      .update({ where: { id: row.id }, data: { lastStatus: "connected", lastSeenAt: new Date(), lastTestReason: null } })
+      .catch(() => {});
     return stored;
   } catch (error) {
+    // A slow or unreachable SmartESS is not a broken connection: keep the
+    // current status instead of flipping the badge to "not connected".
+    if (!(error instanceof DessError)) {
+      console.error("[smartess] sync_transient", error);
+      return { ok: false, reason: "transient" };
+    }
     // A rejected login must be retried with fresh credentials, not a cached token.
     cachedAuth = null;
     // Only a rejected token justifies signing in again; a timeout must not

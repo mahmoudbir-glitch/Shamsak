@@ -91,8 +91,16 @@ function preserveSecrets(storedCipher: string | null | undefined, next: Record<s
     return next;
   }
   const merged = { ...next };
+  const passwordRetyped = Boolean(next.cloudPassword);
   for (const key of SECRET_KEYS) {
     if (!merged[key] && typeof stored[key] === "string" && stored[key]) merged[key] = stored[key];
+  }
+  // Keep the remembered SmartESS login and device while the account is the same,
+  // so saving other settings does not force a new login (which can sign the
+  // owner's phone app out) or a slow device discovery.
+  if (merged.cloudUsername && merged.cloudUsername === stored.cloudUsername) {
+    if (stored.dessDevice) merged.dessDevice = stored.dessDevice;
+    if (stored.dessAuth && !passwordRetyped) merged.dessAuth = stored.dessAuth;
   }
   return merged;
 }
