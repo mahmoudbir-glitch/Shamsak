@@ -93,13 +93,13 @@ npm run build
 
 المتغيرات الأساسية:
 
-- `AUTH_SECRET`
-- `INVERTER_CONFIG_SECRET`
-- `TELEMETRY_INGEST_TOKEN`
-- `SETTINGS_API_TOKEN`
-- `SHAMSAK_PASSWORD_HASH`
+- `SHAMSAK_USER` و`SHAMSAK_PASSWORD` — بيانات تسجيل الدخول. إلزامية، وبدونها يرد `/api/auth/login` بـ 503.
+- `AUTH_SECRET` — مفتاح توقيع الجلسات. إلزامي: بدونه يعود التوقيع إلى `SHAMSAK_PASSWORD`، فيخرج كل المستخدمين عند تغيير كلمة المرور.
+- `INVERTER_CONFIG_SECRET` — مفتاح تشفير أسرار الإنفرتر (كلمة Wi-Fi ورمز البوابة). تغييره يجعل القيم المخزّنة غير قابلة للقراءة.
+- `TELEMETRY_INGEST_TOKEN` — إلزامي لاستقبال القراءات. بدونه يرد `POST /api/telemetry` بـ 503 ولا تصل أي بيانات من الإنفرتر.
+- `SHAMSAK_PASSWORD_HASH` — بديل اختياري عن `SHAMSAK_PASSWORD`.
 
-استخدم قيمة مختلفة لكل secret.
+استخدم قيمة مختلفة لكل secret. القيمة نفسها لـ `TELEMETRY_INGEST_TOKEN` يجب أن توضع في الـ Gateway تحت `SHAMSAK_TELEMETRY_TOKEN`.
 
 ## Drivers والإنفرترات
 

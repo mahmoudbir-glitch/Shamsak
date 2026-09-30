@@ -6,6 +6,9 @@ import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// إصلاح: كانت \\d داخل regex literal تعني "شرطة مائلة + d" فترفض أي وقت صحيح مثل 08:30
+const TIME_HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 const settingsSchema = z.object({
   panelPowerW: z.number().finite().positive().optional(),
   batteryCapacityWh: z.number().finite().positive().optional(),
@@ -41,9 +44,59 @@ const settingsSchema = z.object({
   offlineMinutes: z.number().int().min(2).max(120).optional(),
   overloadPct: z.number().finite().min(50).max(100).optional(),
   channels: z.enum(["in_app", "email"]).optional(),
-  quietHoursStart: z.string().regex(/^([01]\\d|2[0-3]):[0-5]\\d$/).nullable().optional(),
-  quietHoursEnd: z.string().regex(/^([01]\\d|2[0-3]):[0-5]\\d$/).nullable().optional(),
+  quietHoursStart: z.string().regex(TIME_HHMM).nullable().optional(),
+  quietHoursEnd: z.string().regex(TIME_HHMM).nullable().optional(),
 });
+
+type Merged = {
+  batteryNominalVoltage?: number | null;
+  batteryChemistry?: string | null;
+  bulkChargeVoltage?: number | null;
+  floatChargeVoltage?: number | null;
+  lowDcCutoffVoltage?: number | null;
+  backToGridVoltage?: number | null;
+  lowBatteryPct?: number | null;
+  criticalBatteryPct?: number | null;
+};
+
+function hasDatabase() {
+  return Boolean(process.env.DATABASE_URL || process.env.PRISMA_DATABASE_URL || process.env.POSTGRES_URL);
+}
+
+function fail(error: string, message: string) {
+  return NextResponse.json({ error, message }, { status: 422 });
+}
+
+// التحقق على القيم "بعد الدمج" مع المخزنة، لأن الطلب قد يحتوي حقلاً واحداً فقط
+function validateMerged(m: Merged) {
+  const { lowDcCutoffVoltage: low, backToGridVoltage: back, floatChargeVoltage: float, bulkChargeVoltage: bulk } = m;
+  const nominal = m.batteryNominalVoltage;
+
+  if (low != null && back != null && low >= back) {
+    return fail("invalid_voltage_thresholds", "Low DC Cut-off يجب أن يكون أقل من Back to Grid لتجنب التعارض بين الفصل والعودة إلى الشبكة.");
+  }
+  if (float != null && bulk != null && float >= bulk) {
+    return fail("invalid_charge_voltages", "Float يجب أن يكون أقل من Bulk / CV.");
+  }
+  if (nominal && low != null && low > nominal * 1.35) {
+    return fail("invalid_cutoff_voltage", "قيمة Low DC Cut-off لا تبدو مناسبة لجهد البطارية الاسمي المحدد.");
+  }
+  if (m.criticalBatteryPct != null && m.lowBatteryPct != null && m.criticalBatteryPct > m.lowBatteryPct) {
+    return fail("invalid_battery_thresholds", "حد البطارية الحرجة يجب ألا يتجاوز حد البطارية المنخفضة.");
+  }
+  // حماية خلايا LiFePO4: 3.65V كحد أعلى و2.5V كحد أدنى لكل خلية (16 خلية = 48V)
+  if (nominal && m.batteryChemistry === "LiFePO4") {
+    const maxV = (nominal / 12) * 14.6;
+    const minV = (nominal / 12) * 10;
+    if (bulk != null && bulk > maxV) {
+      return fail("invalid_bulk_for_lifepo4", `Bulk للبطارية LiFePO4 ${nominal}V يجب ألا يتجاوز ${maxV.toFixed(1)}V.`);
+    }
+    if (low != null && low < minV) {
+      return fail("invalid_cutoff_for_lifepo4", `Low DC Cut-off للبطارية LiFePO4 ${nominal}V يجب ألا يقل عن ${minV.toFixed(1)}V.`);
+    }
+  }
+  return null;
+}
 
 async function getSession(request: NextRequest) {
   return verifySessionToken(request.cookies.get(COOKIE_NAME)?.value);
@@ -52,7 +105,11 @@ async function getSession(request: NextRequest) {
 async function writeAudit(username: string, action: string, before: Record<string, unknown>, after: Record<string, unknown>) {
   try {
     const user = await prisma.user.findUnique({ where: { email: username } });
-    if (!user) return;
+    if (!user) {
+      // الدخول عبر SHAMSAK_USER من env لا يملك سجلاً في جدول users، فلا يُسجَّل التدقيق
+      console.warn("[settings] audit_skipped_no_user_record");
+      return;
+    }
     const sensitive = new Set(["password", "passwordHash", "gatewayTokenHash", "wifiPasswordCipher"]);
     const clean = (value: Record<string, unknown>) =>
       Object.fromEntries(Object.entries(value).filter(([key]) => !sensitive.has(key)));
@@ -71,11 +128,11 @@ async function writeAudit(username: string, action: string, before: Record<strin
 export async function GET(request: NextRequest) {
   const session = await getSession(request);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(process.env.DATABASE_URL || process.env.PRISMA_DATABASE_URL || process.env.POSTGRES_URL)) {
+  if (!hasDatabase()) {
     return NextResponse.json({ error: "database_not_configured" }, { status: 503 });
   }
   try {
-    const current = await prisma.energySettings.upsert({
+    const settings = await prisma.energySettings.upsert({
       where: { id: "default" },
       create: {
         panelPowerW: 6000,
@@ -87,9 +144,9 @@ export async function GET(request: NextRequest) {
       },
       update: {},
     });
-    const settings = current;
     return NextResponse.json(settings, { headers: { "Cache-Control": "no-store" } });
-  } catch {
+  } catch (error) {
+    console.error("[settings] read_failed", error);
     return NextResponse.json({ error: "settings_read_failed" }, { status: 503 });
   }
 }
@@ -97,7 +154,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const session = await getSession(request);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(process.env.DATABASE_URL || process.env.PRISMA_DATABASE_URL || process.env.POSTGRES_URL)) {
+  if (!hasDatabase()) {
     return NextResponse.json({ error: "database_not_configured" }, { status: 503 });
   }
 
@@ -117,34 +174,20 @@ export async function PUT(request: NextRequest) {
     );
   }
 
-  const d = parsed.data;
-  if (d.lowDcCutoffVoltage != null && d.backToGridVoltage != null && d.lowDcCutoffVoltage >= d.backToGridVoltage) {
-    return NextResponse.json({ error: "invalid_voltage_thresholds", message: "Low DC Cut-off يجب أن يكون أقل من Back to Grid لتجنب التعارض بين الفصل والعودة إلى الشبكة." }, { status: 422 });
-  }
-  if (d.floatChargeVoltage != null && d.bulkChargeVoltage != null && d.floatChargeVoltage >= d.bulkChargeVoltage) {
-    return NextResponse.json({ error: "invalid_charge_voltages", message: "Float يجب أن يكون أقل من Bulk / CV." }, { status: 422 });
-  }
-  if (d.batteryNominalVoltage && d.lowDcCutoffVoltage != null && d.lowDcCutoffVoltage > d.batteryNominalVoltage * 1.35) {
-    return NextResponse.json({ error: "invalid_cutoff_voltage", message: "قيمة Low DC Cut-off لا تبدو مناسبة لجهد البطارية الاسمي المحدد." }, { status: 422 });
-  }
-
-  if (
-    parsed.data.criticalBatteryPct !== undefined &&
-    parsed.data.lowBatteryPct !== undefined &&
-    parsed.data.criticalBatteryPct > parsed.data.lowBatteryPct
-  ) {
-    return NextResponse.json({ error: "invalid_battery_thresholds", message: "حد البطارية الحرجة يجب ألا يتجاوز حد البطارية المنخفضة." }, { status: 422 });
-  }
-
   try {
     const previous = await prisma.energySettings.upsert({ where: { id: "default" }, create: {}, update: {} });
+
+    const invalid = validateMerged({ ...previous, ...parsed.data } as unknown as Merged);
+    if (invalid) return invalid;
+
     const settings = await prisma.energySettings.update({
       where: { id: "default" },
       data: parsed.data,
     });
     await writeAudit(session.username, "SETTINGS_SAVED", previous as unknown as Record<string, unknown>, settings as unknown as Record<string, unknown>);
     return NextResponse.json(settings);
-  } catch {
+  } catch (error) {
+    console.error("[settings] write_failed", error);
     return NextResponse.json({ error: "settings_write_failed", message: "تعذر حفظ الإعدادات. لم تُحذف القيم السابقة." }, { status: 503 });
   }
 }

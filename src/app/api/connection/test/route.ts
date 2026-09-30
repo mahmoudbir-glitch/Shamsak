@@ -1,49 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { lookup } from "node:dns/promises";
 import { sanitizeConnection } from "@/lib/inverter-connection";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { MONITORING_ACTIONS, recordMonitoringEvent } from "@/lib/monitoring";
+import { assertPublicEndpoint, PrivateEndpointError } from "@/lib/net-guard";
 
 export const runtime = "nodejs";
-
-function isPrivateIp(address: string) {
-  const normalized = address.toLowerCase();
-
-  if (
-    normalized === "127.0.0.1" ||
-    normalized === "::1" ||
-    normalized.startsWith("10.") ||
-    normalized.startsWith("192.168.") ||
-    normalized.startsWith("169.254.") ||
-    normalized.startsWith("fc") ||
-    normalized.startsWith("fd") ||
-    normalized.startsWith("fe80:")
-  ) {
-    return true;
-  }
-
-  const match = normalized.match(/^172\.(\d+)\./);
-  return Boolean(match && Number(match[1]) >= 16 && Number(match[1]) <= 31);
-}
-
-async function validatePublicEndpoint(endpoint: string) {
-  const url = new URL(endpoint);
-  if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new Error("endpoint_protocol");
-  }
-
-  const host = url.hostname.toLowerCase();
-  if (host === "localhost" || host.endsWith(".local") || isPrivateIp(host)) {
-    throw new Error("private_endpoint");
-  }
-
-  const addresses = await lookup(host, { all: true });
-  if (!addresses.length || addresses.some(({ address }) => isPrivateIp(address))) {
-    throw new Error("private_endpoint");
-  }
-
-  return url.toString();
-}
 
 async function probeHttp(endpoint: string) {
   const controller = new AbortController();
@@ -90,10 +51,9 @@ export async function POST(request: NextRequest) {
 
     let endpoint: string;
     try {
-      endpoint = await validatePublicEndpoint(endpointValue);
+      endpoint = await assertPublicEndpoint(endpointValue);
     } catch (error) {
-      const reason = error instanceof Error ? error.message : "";
-      const message = reason === "private_endpoint"
+      const message = error instanceof PrivateEndpointError
         ? "لأمان الخادم لا يمكن اختبار عناوين الشبكات المحلية مباشرة من Vercel. استخدم بوابة عامة أو ESP32 لإرسال telemetry إلى شمسك."
         : "أدخل عنوان HTTP/HTTPS صالحًا لبوابة البيانات.";
       return NextResponse.json({ ok: false, message }, { status: 422 });

@@ -195,6 +195,7 @@ model InverterConnection {
   connectionMode String @default("gateway")
   gatewayName String?
   gatewayTokenHash String?
+  gatewayTokenCipher String?
   gatewayTokenCreatedAt DateTime?
   lastTestResult String?
   lastTestLatencyMs Int?

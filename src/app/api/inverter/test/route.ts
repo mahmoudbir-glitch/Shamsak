@@ -1,42 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
-import { lookup } from "node:dns/promises";
 import { prisma } from "@/lib/prisma";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
+import { assertPublicEndpoint, PrivateEndpointError } from "@/lib/net-guard";
+import { decryptSecret } from "@/lib/inverter-config-crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function isPrivateIp(address: string) {
-  const normalized = address.trim().toLowerCase();
-  const ipv4Mapped = normalized.startsWith("::ffff:") ? normalized.slice(7) : normalized;
-  if (
-    normalized === "::" ||
-    normalized === "::1" ||
-    normalized === "0.0.0.0" ||
-    normalized === "localhost" ||
-    ipv4Mapped === "127.0.0.1" ||
-    ipv4Mapped.startsWith("10.") ||
-    ipv4Mapped.startsWith("192.168.") ||
-    ipv4Mapped.startsWith("169.254.")
-  ) return true;
-  const match = ipv4Mapped.match(/^172\.(\d+)\./);
-  if (match && Number(match[1]) >= 16 && Number(match[1]) <= 31) return true;
-  if (/^(fc|fd|fe8[0-9a-f]:)/.test(normalized)) return true;
-  return false;
-}
-
-async function publicGateway(endpoint: string) {
-  const url = new URL(endpoint);
-  if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error("invalid_gateway_protocol");
-  const host = url.hostname.toLowerCase();
-  if (host === "localhost" || host.endsWith(".local") || isPrivateIp(host)) throw new Error("private_gateway");
-  const addresses = await lookup(host, { all: true });
-  if (!addresses.length || addresses.some(({ address }) => isPrivateIp(address))) throw new Error("private_gateway");
-  return url.toString().replace(/\/$/, "");
-}
+// A cloud round trip needs more headroom than the Modbus read timeout, whose
+// default is 1000ms. Using timeoutMs directly made healthy servers look dead.
+const MIN_REMOTE_TIMEOUT_MS = 5000;
+const remoteTimeout = (timeoutMs: number) => Math.max(MIN_REMOTE_TIMEOUT_MS, timeoutMs);
 
 function configured() {
   return Boolean(process.env.DATABASE_URL || process.env.PRISMA_DATABASE_URL || process.env.POSTGRES_URL);
+}
+
+/**
+ * The gateway expects `Authorization: Bearer <token>`. Shamsak stores a one-way
+ * hash for verification plus a reversible copy, so a test works at any time and
+ * not only in the few seconds after the token was rotated.
+ */
+function gatewayAuthHeader(cipher: string | null, incoming: string) {
+  if (cipher) {
+    try {
+      const token = decryptSecret(cipher);
+      if (token) return { Authorization: "Bearer " + token };
+    } catch (error) {
+      console.error("[inverter] gateway_token_decrypt_failed", error);
+    }
+  }
+  if (incoming) return { Authorization: incoming };
+  if (process.env.SHAMSAK_GATEWAY_TOKEN) return { Authorization: "Bearer " + process.env.SHAMSAK_GATEWAY_TOKEN };
+  return {};
 }
 
 export async function POST(request: NextRequest) {
@@ -52,7 +48,7 @@ export async function POST(request: NextRequest) {
     const row = await prisma.inverterConnection.findFirst({ where: { isPrimary: true } }) ?? await prisma.inverterConnection.findUnique({ where: { id: "default" } });
     if (!row) return NextResponse.json({ ok: false, error: "inverter_not_configured", message: "لم تتم إضافة إنفرتر بعد." }, { status: 422 });
 
-    if (row.connectionMode === "local" || row.protocol === "Modbus RTU" && !row.gatewayUrl) {
+    if (row.connectionMode === "local" || (row.protocol === "Modbus RTU" && !row.gatewayUrl)) {
       return NextResponse.json({ ok: false, error: "serial_port_unavailable", message: "المنفذ التسلسلي غير متاح من السحابة. استخدم بوابة محلية على الجهاز المتصل بالإنفرتر." }, { status: 422 });
     }
 
@@ -60,7 +56,7 @@ export async function POST(request: NextRequest) {
       const cloudUrl = process.env.SHAMSAK_DESSMONITOR_URL || "https://api.dessmonitor.com/public/";
       const started = Date.now();
       try {
-        const response = await fetch(cloudUrl, { method: "GET", cache: "no-store", signal: AbortSignal.timeout(row.timeoutMs) });
+        const response = await fetch(cloudUrl, { method: "GET", cache: "no-store", signal: AbortSignal.timeout(remoteTimeout(row.timeoutMs)) });
         const latencyMs = Date.now() - started;
         await prisma.inverterConnection.update({
           where: { id: row.id },
@@ -93,10 +89,9 @@ export async function POST(request: NextRequest) {
     if (!gatewayUrl) return NextResponse.json({ ok: false, error: "gateway_not_configured", message: "لم يتم ضبط عنوان بوابة البيانات." }, { status: 422 });
 
     let safeGateway: string;
-    try { safeGateway = await publicGateway(gatewayUrl); }
+    try { safeGateway = await assertPublicEndpoint(gatewayUrl); }
     catch (error) {
-      const reason = error instanceof Error ? error.message : "";
-      const message = reason === "private_gateway"
+      const message = error instanceof PrivateEndpointError
         ? "بوابة البيانات تستخدم عنواناً محلياً لا يمكن الوصول إليه من Vercel. انشر البوابة عبر HTTPS أو استخدم نفقاً آمناً."
         : "عنوان بوابة البيانات غير صالح.";
       await prisma.inverterConnection.update({ where: { id: row.id }, data: { lastTestResult: "error", lastTestReason: message } });
@@ -104,12 +99,12 @@ export async function POST(request: NextRequest) {
     }
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), row.timeoutMs);
+    const timer = setTimeout(() => controller.abort(), remoteTimeout(row.timeoutMs));
     const started = Date.now();
     try {
       const response = await fetch(safeGateway + "/v1/inverter/test", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(incomingGatewayToken ? { Authorization: incomingGatewayToken } : process.env.SHAMSAK_GATEWAY_TOKEN ? { Authorization: "Bearer " + process.env.SHAMSAK_GATEWAY_TOKEN } : {}) },
+        headers: { "Content-Type": "application/json", ...gatewayAuthHeader(row.gatewayTokenCipher, incomingGatewayToken) },
         body: JSON.stringify({
           enabled: row.enabled,
           protocol: row.protocol === "Modbus TCP" ? "modbus-tcp" : row.protocol === "Wi-Fi Datalogger" ? "wifi-gateway" : "modbus-rtu",

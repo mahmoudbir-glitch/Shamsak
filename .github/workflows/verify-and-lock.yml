@@ -21,7 +21,6 @@ jobs:
       SHAMSAK_PASSWORD: "ci-password-only"
       AUTH_SECRET: "ci-only-secret-not-used-in-production"
       TELEMETRY_INGEST_TOKEN: "ci-telemetry-token"
-      SETTINGS_API_TOKEN: "ci-settings-token"
       NEXT_PUBLIC_SUPABASE_URL: "https://ci-placeholder.supabase.co"
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "ci-placeholder-anon-key"
     steps:

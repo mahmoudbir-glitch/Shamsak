@@ -6,3 +6,7 @@ node_modules
 dist
 build
 .DS_Store
+
+# Python bytecode from the local gateway
+__pycache__/
+*.pyc

@@ -20,6 +20,29 @@ Linux:
 3. cp .env.example .env
 4. python3 gateway.py
 
+## Environment
+
+| Variable | Purpose |
+| --- | --- |
+| `INVERTER_PROFILE` | Register map to use. Must match the inverter model. Bundled: `ivem6048-ii` (Felicity IVEM6048-II). The gateway refuses to read without it. `FELICITY_PROFILE` is still accepted. |
+| `INVERTER_REGISTER_OFFSET` | Offset applied to every register address, for maps documented 1-based. Defaults to 0. |
+| `GATEWAY_TOKEN` | Shared secret this gateway requires on `POST /v1/inverter/test`. Paste the token Shamsak shows once after "rotate gateway token". |
+| `SHAMSAK_API_URL` | Base URL of the Shamsak deployment, used by the polling loop. |
+| `SHAMSAK_TELEMETRY_TOKEN` | Must equal `TELEMETRY_INGEST_TOKEN` in Shamsak, or every push is rejected. |
+| `POLL_INTERVAL_SECONDS` | Seconds between Modbus reads. Minimum 2, default 10. |
+
+### Adding an inverter model
+
+`PROFILES` in `gateway.py` maps a model to its Modbus registers. A map is valid only
+for the model it names — addresses and scaling differ between models, and a wrong map
+reports plausible but false readings. Take the register map from the manufacturer
+manual, add an entry, then point `INVERTER_PROFILE` at it.
+
+**NEXT Power Victor Max-8.2KW is not bundled**: no verified register map is published
+for it, so it has no entry yet. Until one is added from the Next Power manual, this
+Modbus path cannot read that inverter — its Wi-Fi datalogger (SmartESS/DESSMonitor)
+is a separate route and is not read over Modbus by this gateway.
+
 The HTTP endpoint is:
 POST /v1/inverter/test
 

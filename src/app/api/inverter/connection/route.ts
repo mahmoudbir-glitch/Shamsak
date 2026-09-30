@@ -105,6 +105,7 @@ function publicConnection(row: InverterConnection) {
     slaveId: row.slaveId, timeoutMs: row.timeoutMs, pollingIntervalMs: row.pollingIntervalMs,
     gatewayUrl: row.gatewayUrl, gatewayName: row.gatewayName, connectionMode: row.connectionMode,
     wifiSsid: row.wifiSsid, hasWifiPassword: Boolean(row.wifiPasswordCipher), enabled: row.enabled,
+    hasGatewayToken: Boolean(row.gatewayTokenHash), gatewayTokenCreatedAt: row.gatewayTokenCreatedAt?.toISOString() ?? null,
     mqttBroker: extras.mqttBroker || null, mqttPort: extras.mqttPort || 1883, mqttTls: Boolean(extras.mqttTls),
     mqttUsername: extras.mqttUsername || null, hasMqttPassword: Boolean(extras.mqttPassword),
     mqttClientId: extras.mqttClientId || null, mqttReadTopic: extras.mqttReadTopic || null,
@@ -177,7 +178,16 @@ export async function POST(request: NextRequest) {
     const id = text(raw.id, 80);
     if (!id) return NextResponse.json({ error: "missing_connection_id", message: "حدد الإنفرتر أولاً." }, { status: 400 });
     const token = randomBytes(32).toString("base64url");
-    const row = await prisma.inverterConnection.update({ where: { id }, data: { gatewayTokenHash: tokenHash(token), gatewayTokenCreatedAt: new Date() } });
+    // Keep the hash for verification and an encrypted copy so a later connection
+    // test can still present the token; a hash alone cannot be replayed.
+    const row = await prisma.inverterConnection.update({
+      where: { id },
+      data: {
+        gatewayTokenHash: tokenHash(token),
+        gatewayTokenCipher: encryptSecret(token),
+        gatewayTokenCreatedAt: new Date(),
+      },
+    });
     await audit(session.username, "GATEWAY_TOKEN_ROTATED", "connection=" + row.id);
     return NextResponse.json({ ok: true, token, message: "تم إنشاء رمز الربط. سيظهر مرة واحدة فقط، خزّنه في البوابة المحلية." });
   }

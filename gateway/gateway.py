@@ -20,12 +20,20 @@ TOKEN = os.getenv("GATEWAY_TOKEN", "")
 API_URL = os.getenv("SHAMSAK_API_URL", "").rstrip("/")
 TELEMETRY_TOKEN = os.getenv("SHAMSAK_TELEMETRY_TOKEN", "")
 POLL_SECONDS = max(2, int(os.getenv("POLL_INTERVAL_SECONDS", "10")))
-PROFILE = os.getenv("FELICITY_PROFILE", "").strip()
-REGISTER_OFFSET = int(os.getenv("FELICITY_REGISTER_OFFSET", "0"))
+# INVERTER_PROFILE is the current name; FELICITY_* stays supported so existing
+# gateway installations keep working after an upgrade.
+PROFILE = (os.getenv("INVERTER_PROFILE") or os.getenv("FELICITY_PROFILE", "")).strip()
+REGISTER_OFFSET = int(os.getenv("INVERTER_REGISTER_OFFSET") or os.getenv("FELICITY_REGISTER_OFFSET", "0"))
 
-# This profile is intentionally limited to a community-documented IVEM6048-II map.
-# Do not assume it applies to another Felicity model without its manual/register map.
+# Register maps are per inverter model. Each entry below is only valid for the model
+# it names. Do NOT reuse a map for another model: the addresses and scaling factors
+# differ, and a wrong map silently reports plausible but false readings.
+#
+# Adding a model: get the Modbus register map from its manufacturer manual, add an
+# entry here, and set FELICITY_PROFILE (kept for backwards compatibility) or the
+# clearer INVERTER_PROFILE to its key.
 PROFILES = {
+    # Community-documented map for the Felicity IVEM6048-II.
     "ivem6048-ii": {
         "pv_power": 4512,
         "load_power": 4382,
@@ -35,7 +43,11 @@ PROFILES = {
         "battery_power": 4511,
         "battery_temperature": 4387,
         "fault_code": 4355,
-    }
+    },
+    # NEXT Power Victor Max-8.2KW: no verified register map is bundled yet.
+    # Fill these in from the Next Power manual before using this profile; the
+    # gateway refuses to run it while the addresses are unknown.
+    # "next-victor-max-8.2kw": { ... },
 }
 
 def json_response(handler, status, payload):
@@ -61,17 +73,26 @@ def read_register(client, address, slave):
 
 def read_telemetry(config):
     if not PROFILE:
-        raise RuntimeError("inverter_profile_not_configured")
+        raise RuntimeError(
+            "inverter_profile_not_configured: set INVERTER_PROFILE to one of: "
+            + (", ".join(sorted(PROFILES)) or "(none bundled)")
+        )
     if PROFILE not in PROFILES:
-        raise RuntimeError("felicity_profile_not_supported")
+        # Previously this also rejected any inverter whose manufacturer was not
+        # Felicity, which locked out every other brand even with a valid profile.
+        # The register map is what actually has to match, so that is what is checked.
+        raise RuntimeError(
+            "inverter_profile_not_supported: '%s' has no register map. Known profiles: %s"
+            % (PROFILE, ", ".join(sorted(PROFILES)) or "(none bundled)")
+        )
     profile = PROFILES[PROFILE]
     protocol = config.get("protocol", "modbus-rtu")
     slave = int(config.get("slaveId", 1))
     timeout = max(0.5, float(config.get("timeoutMs", 3000)) / 1000)
 
-    manufacturer = str(config.get("manufacturer", "")).strip().lower()
-    if manufacturer and "felicity" not in manufacturer:
-        raise RuntimeError("unsupported_inverter_manufacturer_for_gateway")
+    if protocol == "wifi-gateway":
+        # A Wi-Fi datalogger speaks to its vendor cloud, not to this Modbus bridge.
+        raise RuntimeError("wifi_datalogger_is_not_read_over_modbus_by_this_gateway")
 
     if protocol == "modbus-tcp":
         host = config.get("address", "")
@@ -140,7 +161,7 @@ def push_telemetry(snapshot):
         "battery_temperature": snapshot.get("batteryTemperature"),
         "grid_status": snapshot.get("gridConnected", False),
         "grid_power": snapshot.get("gridPowerW", 0),
-        "source": "felicity-modbus-gateway",
+        "source": "modbus-gateway",
     }).encode()
     req = urllib.request.Request(API_URL + "/api/telemetry", data=body, headers={
         "Content-Type": "application/json",
@@ -166,7 +187,7 @@ class Handler(BaseHTTPRequestHandler):
             message = str(exc)
             if "No such file" in message or "Permission" in message:
                 message = "serial_port_unavailable_or_permission_denied"
-            json_response(self, 502, {"ok": False, "error": message, "message": "تعذر قراءة Modbus. تحقق من المنفذ، Baud Rate، Slave ID، RS485 wiring، وموديل Felicity."})
+            json_response(self, 502, {"ok": False, "error": message, "message": "تعذر قراءة Modbus. تحقق من المنفذ، Baud Rate، Slave ID، أسلاك RS485، وأن INVERTER_PROFILE يطابق موديل الإنفرتر."})
 
     def log_message(self, fmt, *args):
         print(fmt % args)
