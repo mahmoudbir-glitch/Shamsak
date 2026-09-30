@@ -21,7 +21,7 @@ function configured() {
  * hash for verification plus a reversible copy, so a test works at any time and
  * not only in the few seconds after the token was rotated.
  */
-function gatewayAuthHeader(cipher: string | null, incoming: string) {
+function gatewayAuthHeader(cipher: string | null, incoming: string): Record<string, string> {
   if (cipher) {
     try {
       const token = decryptSecret(cipher);
