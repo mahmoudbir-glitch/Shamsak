@@ -268,14 +268,9 @@ export default function SettingsPage() {
 
   return (
     <div dir="rtl" className="min-h-[100dvh] w-full space-y-3 overflow-x-hidden overscroll-y-auto bg-slate-50/70 p-2 pb-[calc(12rem+env(safe-area-inset-bottom))] scroll-pb-[calc(12rem+env(safe-area-inset-bottom))] sm:space-y-4 sm:p-4 sm:pb-12">
-      <header className="rounded-3xl bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 p-5 text-white shadow-lg sm:p-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur"><SettingsIcon className="h-6 w-6" aria-hidden="true" /></div>
-          <div className="min-w-0">
-            <h1 className="text-xl font-black sm:text-2xl">إعدادات منظومة شمسك</h1>
-            <p className="mt-1 text-sm font-medium text-blue-50">الأهم أولاً: الاتصال، ثم العتاد، ثم الحماية.</p>
-          </div>
-        </div>
+      <header className="flex items-center gap-3 rounded-3xl bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 p-4 text-white shadow-lg">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15"><SettingsIcon className="h-5 w-5" aria-hidden="true" /></div>
+        <h1 className="text-lg font-black sm:text-xl">إعدادات المنظومة</h1>
       </header>
 
       {/* بحث سريع: يُصفّي الأقسام حسب العنوان أو أسماء الإعدادات داخلها */}
@@ -284,39 +279,20 @@ export default function SettingsPage() {
         <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ابحث عن إعداد… مثل: بطارية، تنبيه، عملة" aria-label="بحث في الإعدادات" className={input + " bg-white pr-12"} />
       </div>
 
-      {draft && (
-        <div className="rounded-2xl border border-blue-100 bg-white p-3">
-          <div className="flex items-center gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-black text-slate-900">{draft.systemName}</div>
-              <div className="mt-0.5 text-xs font-semibold text-slate-500">
-                {draft.inverterModel} · {draft.lastStatus === "connected" ? "متصل" : draft.lastStatus === "error" ? "غير متصل" : "غير معروف"}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <SettingsSection icon={Radio} query={query} keywords="إنفرتر اتصال دنجل SmartESS اسم المستخدم كلمة المرور PN بوابة MQTT Modbus" title="الإنفرترات والاتصال" subtitle="ربط الإنفرتر بحساب SmartESS واختبار الاتصال" onReset={selectedId ? () => { const item = inverters.find((entry) => entry.id === selectedId); if (item) { setDraft({ ...item }); setMessage("تمت إعادة «الاتصال» لآخر قيم محفوظة."); setError(""); } } : undefined}>
+        {inverters.length > 1 && (
+          <div className="grid gap-2 sm:grid-cols-2">{inverters.map((item) => (
+            <button type="button" key={item.id} onClick={() => selectInverter(item)} className={"rounded-2xl border p-3 text-right transition hover:border-blue-300 " + (selected?.id === item.id ? "border-blue-400 bg-blue-50" : "border-slate-200 bg-white")}>
+              <strong className="block truncate">{item.systemName}</strong>
+              <span className="mt-1 block truncate text-xs text-slate-500">{item.inverterModel}</span>
+            </button>
+          ))}</div>
+        )}
 
-      <SettingsSection icon={Radio} query={query} keywords="إنفرتر اتصال دنجل SmartESS اسم المستخدم كلمة المرور PN بوابة MQTT Modbus" title="الإنفرترات والاتصال" subtitle="إضافة الأجهزة، الاتصال، البوابة واختبار الربط" open onReset={selectedId ? () => { const item = inverters.find((entry) => entry.id === selectedId); if (item) { setDraft({ ...item }); setMessage("تمت إعادة «الاتصال» لآخر قيم محفوظة."); setError(""); } } : undefined}>
-        <div className="space-y-4">
-          <div className="flex flex-col gap-3 rounded-2xl bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div><h2 className="font-black text-slate-900">الإنفرترات المضافة</h2><p className="mt-1 text-xs font-semibold text-slate-500">اختر جهازًا لتعديل إعداداته أو أضف جهازًا جديدًا.</p></div>
-            <button type="button" onClick={addInverter} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-700"><Plus className="h-4 w-4" aria-hidden="true" />إضافة إنفرتر</button>
-          </div>
-          {inverters.length === 0 ? <p className="rounded-xl bg-white p-4 text-sm font-bold text-slate-500">لا توجد إنفرترات محفوظة بعد.</p> :
-            <div className="grid gap-2 sm:grid-cols-2">{inverters.map((item) => (
-              <button type="button" key={item.id} onClick={() => selectInverter(item)} className={"rounded-2xl border p-3 text-right transition " + (selected?.id === item.id ? "border-blue-400 bg-blue-50" : "border-slate-200 bg-white")}>
-                <div className="flex items-center justify-between gap-2"><strong className="truncate">{item.systemName}</strong><span className={"rounded-full px-2.5 py-1 text-[11px] font-black " + (item.lastStatus === "connected" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600")}>{item.lastStatus === "connected" ? "متصل" : item.lastStatus === "error" ? "غير متصل" : "غير معروف"}</span></div>
-                <div className="mt-1.5 truncate text-xs text-slate-500">{item.inverterModel} · <bdi dir="ltr">{item.protocol}</bdi></div>
-              </button>
-            ))}</div>}
-        </div>
-
-        {draft && <div className="mt-4 space-y-4 rounded-2xl border border-blue-100 bg-blue-50/30 p-3 sm:p-4">
-          <div className="flex items-center justify-between gap-2"><div><h3 className="font-black text-slate-900">تفاصيل الاتصال</h3><p className="mt-0.5 text-xs font-semibold text-slate-500">البيانات الأساسية ثم الخيارات المتقدمة عند الحاجة.</p></div><span className={"rounded-full px-3 py-1.5 text-xs font-black " + (draft.lastStatus === "connected" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600")}>{draft.lastStatus === "connected" ? "متصل" : draft.lastStatus === "error" ? "غير متصل" : "غير معروف"}</span></div>
+        {draft && <div className="space-y-4">
+          <div className="flex items-center justify-between gap-2 text-sm font-bold text-slate-600"><span className="truncate">{draft.systemName}</span><span className={"shrink-0 rounded-full px-3 py-1 text-xs font-black " + (draft.lastStatus === "connected" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600")}>{draft.lastStatus === "connected" ? "متصل" : draft.lastStatus === "error" ? "غير متصل" : "غير معروف"}</span></div>
           <div className="grid gap-3 sm:grid-cols-2">
             <SettingsField label="اسم المنظومة"><input value={draft.systemName} onChange={(e) => updateDraft("systemName", e.target.value)} className={input} /></SettingsField>
-            <SettingsField label="الرقم التسلسلي (SN)"><input dir="ltr" value={draft.serialNumber || ""} onChange={(e) => updateDraft("serialNumber", e.target.value)} placeholder="مثلاً: SN123456789" className={input} /></SettingsField>
             <SettingsField label="رقم Datalogger (PN)"><input dir="ltr" value={draft.dataloggerPn || ""} onChange={(e) => updateDraft("dataloggerPn", e.target.value)} className={input} /></SettingsField>
             <SettingsField label="نوع / موديل الإنفرتر"><select value={draft.inverterModel} onChange={(e) => updateDraft("inverterModel", e.target.value)} className={input}><option>Deye</option><option>Growatt</option><option>NEXT - Victor Max 8.2KW</option><option>Voltronic</option><option>غير ذلك</option></select></SettingsField>
             <SettingsField label="نوع الاتصال"><select value={draft.protocol} onChange={(e) => updateDraft("protocol", e.target.value as Protocol)} className={input}><option>Wi-Fi Datalogger</option><option>Cloud API</option><option>MQTT</option><option>Modbus RTU</option><option>Modbus TCP</option></select></SettingsField>
@@ -376,9 +352,10 @@ export default function SettingsPage() {
             </div>
           )}
 
-          <details className="rounded-2xl bg-white p-4">
+          <details className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
             <summary className="cursor-pointer list-none font-black text-slate-800 [&::-webkit-details-marker]:hidden">خيارات الاتصال المتقدمة</summary>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <SettingsField label="الرقم التسلسلي (SN)"><input dir="ltr" value={draft.serialNumber || ""} onChange={(e) => updateDraft("serialNumber", e.target.value)} placeholder="مثلاً: SN123456789" className={input} /></SettingsField>
               {draft.protocol === "Modbus TCP" && <><SettingsField label="عنوان IP"><input dir="ltr" value={draft.inverterAddress || ""} onChange={(e) => updateDraft("inverterAddress", e.target.value)} placeholder="192.168.1.50" className={input} /></SettingsField><SettingsField label="منفذ TCP"><input dir="ltr" type="number" value={draft.port || 502} onChange={(e) => updateDraft("port", Number(e.target.value))} className={input} /></SettingsField></>}
               {draft.protocol === "Modbus RTU" && draft.connectionMode === "local" && <><SettingsField label="المنفذ التسلسلي / RS485"><input dir="ltr" value={draft.serialPort || ""} onChange={(e) => updateDraft("serialPort", e.target.value)} placeholder="COM3 أو /dev/ttyUSB0" className={input} /></SettingsField><SettingsField label="Baud Rate"><select value={draft.baudRate || 9600} onChange={(e) => updateDraft("baudRate", Number(e.target.value))} className={input}><option>9600</option><option>19200</option><option>38400</option><option>57600</option><option>115200</option></select></SettingsField><SettingsField label="Parity"><select value={draft.parity || "N"} onChange={(e) => updateDraft("parity", e.target.value as "N" | "E" | "O")} className={input}><option value="N">None</option><option value="E">Even</option><option value="O">Odd</option></select></SettingsField><SettingsField label="Data bits"><select value={draft.dataBits || 8} onChange={(e) => updateDraft("dataBits", Number(e.target.value))} className={input}><option>8</option><option>7</option></select></SettingsField><SettingsField label="Stop bits"><select value={draft.stopBits || 1} onChange={(e) => updateDraft("stopBits", Number(e.target.value))} className={input}><option>1</option><option>2</option></select></SettingsField><SettingsField label="Slave ID"><input dir="ltr" type="number" min={1} max={247} value={draft.slaveId || 1} onChange={(e) => updateDraft("slaveId", Number(e.target.value))} className={input} /></SettingsField></>}
               {draft.protocol === "MQTT" && <><SettingsField label="عنوان Broker"><input dir="ltr" value={draft.mqttBroker || ""} onChange={(e) => updateDraft("mqttBroker", e.target.value)} placeholder="mqtt.example.com" className={input} /></SettingsField><SettingsField label="المنفذ"><input dir="ltr" type="number" value={draft.mqttPort || 1883} onChange={(e) => updateDraft("mqttPort", Number(e.target.value))} className={input} /></SettingsField><SettingsField label="اسم المستخدم"><input dir="ltr" value={draft.mqttUsername || ""} onChange={(e) => updateDraft("mqttUsername", e.target.value)} className={input} /></SettingsField><SettingsField label="كلمة المرور"><input dir="ltr" type="password" placeholder={draft.hasMqttPassword ? "محفوظة — أدخل قيمة جديدة فقط للتغيير" : ""} onChange={(e) => updateDraft("mqttPassword" as keyof Inverter, e.target.value)} className={input} /></SettingsField><SettingsField label="Client ID"><input dir="ltr" value={draft.mqttClientId || ""} onChange={(e) => updateDraft("mqttClientId", e.target.value)} className={input} /></SettingsField><SettingsField label="Topic القراءات"><input dir="ltr" value={draft.mqttReadTopic || ""} onChange={(e) => updateDraft("mqttReadTopic", e.target.value)} className={input} /></SettingsField><SettingsField label="Topic الحالة"><input dir="ltr" value={draft.mqttStatusTopic || ""} onChange={(e) => updateDraft("mqttStatusTopic", e.target.value)} className={input} /></SettingsField><SettingsField label="Topic الأوامر"><input dir="ltr" value={draft.mqttCommandTopic || ""} onChange={(e) => updateDraft("mqttCommandTopic", e.target.value)} className={input} /></SettingsField><SettingsField label="QoS"><select value={draft.mqttQos ?? 0} onChange={(e) => updateDraft("mqttQos" as keyof Inverter, Number(e.target.value))} className={input}><option>0</option><option>1</option><option>2</option></select></SettingsField><SettingsField label="Keep Alive (ثانية)"><input dir="ltr" type="number" value={draft.mqttKeepAlive || 60} onChange={(e) => updateDraft("mqttKeepAlive" as keyof Inverter, Number(e.target.value))} className={input} /></SettingsField><label className="flex min-h-12 items-center justify-between rounded-xl bg-slate-50 px-4 text-sm font-bold"><span>SSL / TLS</span><input type="checkbox" checked={Boolean(draft.mqttTls)} onChange={(e) => updateDraft("mqttTls" as keyof Inverter, e.target.checked)} className="h-5 w-5" /></label></>}
@@ -389,37 +366,42 @@ export default function SettingsPage() {
             </div>
           </details>
 
-          <div className="rounded-2xl bg-white p-4 text-xs font-bold text-slate-500">آخر قراءة: {draft.lastSeenAt ? new Date(draft.lastSeenAt).toLocaleString("ar") : "لا توجد"} · آخر اختبار: {draft.lastTestResult === "success" ? "ناجح" : draft.lastTestResult === "error" ? "فشل" : "غير معروف"} {draft.lastTestLatencyMs ? "· " + draft.lastTestLatencyMs + " ms" : ""}</div>
+          <p className="text-xs font-bold text-slate-500">آخر قراءة: {draft.lastSeenAt ? new Date(draft.lastSeenAt).toLocaleString("ar") : "لا توجد"}</p>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => void testConnection()} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-700"><Plug className="h-4 w-4" aria-hidden="true" />اختبار الاتصال</button>
+            <button type="button" onClick={addInverter} className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-200"><Plus className="h-4 w-4" aria-hidden="true" />إضافة إنفرتر</button>
             {draft.id && !draft.isPrimary && <button type="button" onClick={() => void setPrimary()} className="rounded-xl bg-blue-100 px-4 py-3 text-sm font-black text-blue-700">تعيين كأساسي</button>}
             {draft.id && <button type="button" onClick={() => void deleteInverter()} className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-black text-rose-700">حذف</button>}
           </div>
         </div>}
       </SettingsSection>
 
-      <SettingsSection icon={Cpu} query={query} keywords="ألواح بطارية سعة جهد كيلوواط شبكة طور ميل اتجاه" onReset={() => resetSection(["panelPowerW","batteryCapacityWh","batteryNominalVoltage","batteryChemistry","batteryMinReservePct","inverterRatedPowerKw","gridType","gridPhase","panelTilt","panelAzimuth"], "مواصفات العتاد")} title="مواصفات العتاد" subtitle="الألواح والبطارية والإنفرتر والشبكة والاتجاه">
+      <SettingsSection icon={Cpu} query={query} keywords="ألواح بطارية سعة جهد كيلوواط شبكة طور ميل اتجاه موقع خط العرض خط الطول منطقة زمنية عملة" onReset={() => resetSection(["panelPowerW","batteryCapacityWh","batteryNominalVoltage","batteryChemistry","batteryMinReservePct","inverterRatedPowerKw","gridType","gridPhase","panelTilt","panelAzimuth","latitude","longitude","timezone","currency"], "مواصفات العتاد")} title="مواصفات العتاد" subtitle="الألواح والبطارية والإنفرتر والموقع">
         <div className="grid gap-3 sm:grid-cols-2">
           <SettingsField label={<>إجمالي قدرة الألواح <bdi dir="ltr">(kW)</bdi></>}><input type="number" min={0.1} value={settings.panelPowerW / 1000} onChange={(e) => updateSetting("panelPowerW", Number(e.target.value) * 1000)} className={input} /></SettingsField>
           <SettingsField label={<>سعة البطاريات <bdi dir="ltr">(kWh)</bdi></>}><input type="number" min={0.1} step="0.1" value={(settings.batteryCapacityWh / 1000).toFixed(2)} onChange={(e) => updateSetting("batteryCapacityWh", Number(e.target.value) * 1000)} className={input} /></SettingsField>
           <SettingsField label={<>جهد البطارية الاسمي <bdi dir="ltr">(V)</bdi></>}><select value={settings.batteryNominalVoltage} onChange={(e) => updateSetting("batteryNominalVoltage", Number(e.target.value))} className={input}><option value={12}>12</option><option value={24}>24</option><option value={48}>48</option></select></SettingsField>
           <SettingsField label="نوع البطارية"><select value={settings.batteryChemistry || ""} onChange={(e) => updateSetting("batteryChemistry", e.target.value || null)} className={input}><option value="">غير محدد</option><option>LiFePO4</option><option>Lithium-ion</option><option>Lead-acid</option><option>Gel</option><option>AGM</option></select></SettingsField>
-          <SettingsField label={<>حد الاحتياطي الأدنى <bdi dir="ltr">(%)</bdi></>}><input type="number" min={0} max={100} value={settings.batteryMinReservePct} onChange={(e) => updateSetting("batteryMinReservePct", Number(e.target.value))} className={input} /></SettingsField>
           <SettingsField label={<>قدرة الإنفرتر الاسمية <bdi dir="ltr">(kW)</bdi></>}><input type="number" min={0} value={settings.inverterRatedPowerKw ?? ""} onChange={(e) => updateSetting("inverterRatedPowerKw", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
+        </div>
+        <AdvancedBlock title="إعدادات إضافية (الاحتياطي، الشبكة، الاتجاه، الموقع)">
+          <div className="grid gap-3 sm:grid-cols-2">
+          <SettingsField label={<>حد الاحتياطي الأدنى <bdi dir="ltr">(%)</bdi></>}><input type="number" min={0} max={100} value={settings.batteryMinReservePct} onChange={(e) => updateSetting("batteryMinReservePct", Number(e.target.value))} className={input} /></SettingsField>
           <SettingsField label="نوع الشبكة"><select value={settings.gridType} onChange={(e) => updateSetting("gridType", e.target.value as "on-grid" | "off-grid" | "hybrid")} className={input}><option value="on-grid">On-Grid — مرتبطة بالشبكة</option><option value="off-grid">Off-Grid — مستقلة</option><option value="hybrid">Hybrid — هجينة</option></select></SettingsField>
           <SettingsField label="طور الشبكة"><select value={settings.gridPhase} onChange={(e) => updateSetting("gridPhase", e.target.value as "single" | "three")} className={input}><option value="single">أحادية</option><option value="three">ثلاثية</option></select></SettingsField>
           <SettingsField label={<>ميل الألواح <bdi dir="ltr">(°)</bdi></>}><input type="number" min={0} max={90} value={settings.panelTilt ?? ""} onChange={(e) => updateSetting("panelTilt", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
           <SettingsField label={<>اتجاه الألواح <bdi dir="ltr">(°)</bdi></>}><input type="number" min={0} max={360} value={settings.panelAzimuth ?? ""} onChange={(e) => updateSetting("panelAzimuth", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
-        </div>
+          <SettingsField label="العملة"><select value={settings.currency} onChange={(e) => updateSetting("currency", e.target.value)} className={input}><option value="USD">USD</option><option value="LBP">LBP</option><option value="SYP">SYP</option></select></SettingsField>
+          <SettingsField label="خط العرض"><input type="number" value={settings.latitude} onChange={(e) => updateSetting("latitude", Number(e.target.value))} className={input} dir="ltr" /></SettingsField>
+          <SettingsField label="خط الطول"><input type="number" value={settings.longitude} onChange={(e) => updateSetting("longitude", Number(e.target.value))} className={input} dir="ltr" /></SettingsField>
+          <SettingsField label="المنطقة الزمنية"><input value={settings.timezone} onChange={(e) => updateSetting("timezone", e.target.value)} className={input} dir="ltr" /></SettingsField>
+          </div>
+        </AdvancedBlock>
       </SettingsSection>
 
-      <SettingsSection icon={ShieldCheck} query={query} keywords="شحن جهد Bulk Float Cut-off تيار أولوية Safe Zone حماية" onReset={() => resetSection(["bulkChargeVoltage","floatChargeVoltage","lowDcCutoffVoltage","backToGridVoltage","maxChargeCurrentA","batteryMaxChargeA","outputSourcePriority","chargerSourcePriority"], "الشحن والحماية")} title="الشحن والحماية — Safe Zone" subtitle="إعدادات البطارية والأولوية مع منع التعارض بين حدود الجهد">
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">
-          <div className="font-black">تنبيه مهم</div>
-          <p className="mt-1 leading-6">هذه القيم قالب مرجعي داخل شمسك وليست أمرًا عامًا لكل موديلات العواكس. في بطاريات الليثيوم يجب اعتماد مواصفات الشركة وBMS قبل إرسال أي قيمة إلى العاكس الفعلي.</p>
-        </div>
-        <p className="rounded-xl bg-slate-50 p-3 text-xs font-semibold text-slate-500">نوع البطارية وجهدها يُضبطان من قسم «مواصفات العتاد».</p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <SettingsSection icon={ShieldCheck} query={query} keywords="شحن جهد Bulk Float Cut-off تيار أولوية Safe Zone حماية" onReset={() => resetSection(["bulkChargeVoltage","floatChargeVoltage","lowDcCutoffVoltage","backToGridVoltage","maxChargeCurrentA","batteryMaxChargeA","outputSourcePriority","chargerSourcePriority"], "الشحن والحماية")} title="الشحن والحماية" subtitle="جهود الشحن وأولوية المصدر">
+        <p className="rounded-xl bg-amber-50 p-3 text-xs font-bold leading-5 text-amber-900">اعتمد قيم شركة البطارية وBMS. شمسك يرفض الحفظ إن كان Low DC Cut-off ≥ Back to Grid أو Float ≥ Bulk.</p>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <SettingsField label={<>Bulk / CV <bdi dir="ltr">(V)</bdi></>}><input dir="ltr" type="number" step="0.1" min={20} max={60} value={settings.bulkChargeVoltage ?? ""} onChange={(e) => updateSetting("bulkChargeVoltage", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
           <SettingsField label={<>Float <bdi dir="ltr">(V)</bdi></>}><input dir="ltr" type="number" step="0.1" min={20} max={60} value={settings.floatChargeVoltage ?? ""} onChange={(e) => updateSetting("floatChargeVoltage", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
           <SettingsField label={<>Low DC Cut-off <bdi dir="ltr">(V)</bdi></>}><input dir="ltr" type="number" step="0.1" min={15} max={60} value={settings.lowDcCutoffVoltage ?? ""} onChange={(e) => updateSetting("lowDcCutoffVoltage", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
@@ -428,21 +410,7 @@ export default function SettingsPage() {
           <SettingsField label="Output Source Priority"><select value={settings.outputSourcePriority} onChange={(e) => updateSetting("outputSourcePriority", e.target.value as "SBU" | "SUB" | "UTI")} className={input}><option value="SBU">SBU first — شمسي ← بطارية ← شبكة</option><option value="SUB">Solar first — شمسي ← شبكة ← بطارية</option><option value="UTI">Utility first — الشبكة أولاً</option></select></SettingsField>
           <SettingsField label="Charger Source Priority"><select value={settings.chargerSourcePriority} onChange={(e) => updateSetting("chargerSourcePriority", e.target.value as "CSO" | "SNU")} className={input}><option value="CSO">CSO — شمسي فقط</option><option value="SNU">SNU — شمسي + شبكة</option></select></SettingsField>
         </div>
-        <AdvancedBlock title="القيم المرجعية (متقدم)">
-        <div className="text-sm font-bold text-slate-700">
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            <div>24V GEL/رصاص: <bdi dir="ltr">Bulk 28.2V · Float 27.0V · Cut-off 21.5V · Back to Grid 23.0V</bdi></div>
-            <div>48V GEL/رصاص: <bdi dir="ltr">Bulk 56.4V · Float 54.0V · Cut-off 43.0V · Back to Grid 46.0V</bdi></div>
-            <div>200Ah GEL/رصاص: <bdi dir="ltr">30A</bdi> كقيمة بدء محافظة.</div>
-            <div>ليثيوم: <bdi dir="ltr">50A</bdi> كقيمة مرجعية، والجهد النهائي حسب BMS/الشركة.</div>
-          </div>
-        </div>
-        </AdvancedBlock>
-        <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm font-bold text-blue-900">
-          <div className="font-black">فحص التعارض</div>
-          <p className="mt-1">Low DC Cut-off يجب أن يكون أقل من Back to Grid، وFloat أقل من Bulk / CV. شمسك سيرفض الحفظ عند وجود تعارض.</p>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => {
             const v = settings.batteryNominalVoltage;
             const lithium = settings.batteryChemistry === "LiFePO4" || settings.batteryChemistry === "Lithium-ion";
@@ -460,45 +428,36 @@ export default function SettingsPage() {
         </div>
       </SettingsSection>
 
-      {/* الأقسام الثانوية: عمودان على الشاشات الكبيرة */}
-      <div className="grid items-start gap-3 lg:grid-cols-2">
-      <SettingsSection icon={Bell} query={query} keywords="تنبيه بطارية منخفضة حرجة انقطاع تحميل زائد هدوء بريد" onReset={() => resetSection(["lowBatteryPct","criticalBatteryPct","offlineMinutes","overloadPct","gridOutageAlert","faultAlert","channels","quietHoursStart","quietHoursEnd"], "التنبيهات")} title="التنبيهات" subtitle="حدود البطارية والانقطاع والأعطال وساعات الهدوء">
+      <SettingsSection icon={Bell} query={query} keywords="تنبيه بطارية منخفضة حرجة انقطاع تحميل زائد هدوء بريد" onReset={() => resetSection(["lowBatteryPct","criticalBatteryPct","offlineMinutes","overloadPct","gridOutageAlert","faultAlert","channels","quietHoursStart","quietHoursEnd"], "التنبيهات")} title="التنبيهات" subtitle="حدود البطارية والانقطاع والأعطال">
         <div className="grid gap-3 sm:grid-cols-2">
           <SettingsField label={<>بطارية منخفضة <bdi dir="ltr">(%)</bdi></>}><input type="number" min={5} max={50} value={settings.lowBatteryPct} onChange={(e) => updateSetting("lowBatteryPct", Number(e.target.value))} className={input} /></SettingsField>
           <SettingsField label={<>بطارية حرجة <bdi dir="ltr">(%)</bdi></>}><input type="number" min={5} max={30} value={settings.criticalBatteryPct} onChange={(e) => updateSetting("criticalBatteryPct", Number(e.target.value))} className={input} /></SettingsField>
-          <SettingsField label={<>انقطاع الاتصال <bdi dir="ltr">(دقائق)</bdi></>}><input type="number" min={2} max={120} value={settings.offlineMinutes} onChange={(e) => updateSetting("offlineMinutes", Number(e.target.value))} className={input} /></SettingsField>
-          <SettingsField label={<>تحميل زائد <bdi dir="ltr">(%)</bdi></>}><input type="number" min={50} max={100} value={settings.overloadPct} onChange={(e) => updateSetting("overloadPct", Number(e.target.value))} className={input} /></SettingsField>
         </div>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-2">
           {[["gridOutageAlert","انقطاع / عودة الشبكة"],["faultAlert","عطل أو تغيّر حالة المنظومة"]].map(([key,label]) => <label key={key} className="flex min-h-14 items-center justify-between rounded-xl bg-slate-50 px-4 text-sm font-bold"><span>{label}</span><input type="checkbox" checked={Boolean(settings[key as "gridOutageAlert" | "faultAlert"])} onChange={(e) => updateSetting(key as "gridOutageAlert" | "faultAlert", e.target.checked)} className="h-6 w-6" /></label>)}
         </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3"><SettingsField label="قناة التنبيه"><select value={settings.channels} onChange={(e) => updateSetting("channels", e.target.value as "in_app" | "email")} className={input}><option value="in_app">داخل التطبيق</option><option value="email">بريد إلكتروني</option></select></SettingsField><SettingsField label="هدوء من"><input type="time" value={settings.quietHoursStart || ""} onChange={(e) => updateSetting("quietHoursStart", e.target.value || null)} className={input} dir="ltr" /></SettingsField><SettingsField label="هدوء إلى"><input type="time" value={settings.quietHoursEnd || ""} onChange={(e) => updateSetting("quietHoursEnd", e.target.value || null)} className={input} dir="ltr" /></SettingsField></div>
+        <AdvancedBlock title="إعدادات إضافية (قناة التنبيه، ساعات الهدوء، الحدود)">
+          <div className="grid gap-3 sm:grid-cols-2">
+          <SettingsField label={<>انقطاع الاتصال <bdi dir="ltr">(دقائق)</bdi></>}><input type="number" min={2} max={120} value={settings.offlineMinutes} onChange={(e) => updateSetting("offlineMinutes", Number(e.target.value))} className={input} /></SettingsField>
+          <SettingsField label={<>تحميل زائد <bdi dir="ltr">(%)</bdi></>}><input type="number" min={50} max={100} value={settings.overloadPct} onChange={(e) => updateSetting("overloadPct", Number(e.target.value))} className={input} /></SettingsField>
+          </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3"><SettingsField label="قناة التنبيه"><select value={settings.channels} onChange={(e) => updateSetting("channels", e.target.value as "in_app" | "email")} className={input}><option value="in_app">داخل التطبيق</option><option value="email">بريد إلكتروني</option></select></SettingsField><SettingsField label="هدوء من"><input type="time" value={settings.quietHoursStart || ""} onChange={(e) => updateSetting("quietHoursStart", e.target.value || null)} className={input} dir="ltr" /></SettingsField><SettingsField label="هدوء إلى"><input type="time" value={settings.quietHoursEnd || ""} onChange={(e) => updateSetting("quietHoursEnd", e.target.value || null)} className={input} dir="ltr" /></SettingsField></div>
+        </AdvancedBlock>
       </SettingsSection>
 
-      <SettingsSection icon={MapPin} query={query} keywords="موقع منطقة زمنية عملة خط العرض خط الطول" onReset={() => resetSection(["timezone","currency","latitude","longitude"], "الموقع والوقت")} title="الموقع والوقت" subtitle="المنطقة الزمنية والموقع والعملة">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <SettingsField label="المنطقة الزمنية"><input value={settings.timezone} onChange={(e) => updateSetting("timezone", e.target.value)} className={input} dir="ltr" /></SettingsField>
-          <SettingsField label="العملة"><select value={settings.currency} onChange={(e) => updateSetting("currency", e.target.value)} className={input}><option value="USD">USD</option><option value="LBP">LBP</option><option value="SYP">SYP</option></select></SettingsField>
-          <SettingsField label="خط العرض"><input type="number" value={settings.latitude} onChange={(e) => updateSetting("latitude", Number(e.target.value))} className={input} dir="ltr" /></SettingsField>
-          <SettingsField label="خط الطول"><input type="number" value={settings.longitude} onChange={(e) => updateSetting("longitude", Number(e.target.value))} className={input} dir="ltr" /></SettingsField>
-        </div>
-        <p className="mt-4 rounded-xl bg-slate-50 p-3 text-xs font-semibold text-slate-500">التعرفة والعملة مصدرهما تبويب «المال» ومرتبطتان بجدول <bdi dir="ltr">EnergySettings</bdi>.</p>
-      </SettingsSection>
-
-      <SettingsSection icon={Database} query={query} keywords="بيانات تصدير CSV سجل النشاط مسح الاحتفاظ حفظ" onReset={() => resetSection(["retentionDays"], "البيانات")} title="البيانات وسجل النشاط" subtitle="مدة الحفظ، التصدير، ومراجعة العمليات">
-        <SettingsField label="مدة حفظ السجل التاريخي"><select value={settings.retentionDays} onChange={(e) => updateSetting("retentionDays", Number(e.target.value))} className={input}><option value={30}>30 يوماً</option><option value={90}>90 يوماً</option><option value={180}>180 يوماً</option><option value={365}>365 يوماً</option><option value={0}>بلا حد</option></select></SettingsField>
+      <SettingsSection icon={Database} query={query} keywords="بيانات تصدير CSV سجل النشاط مسح الاحتفاظ حفظ" onReset={() => resetSection(["retentionDays"], "البيانات")} title="البيانات" subtitle="مدة الحفظ والتصدير">
+          <SettingsField label="مدة حفظ السجل التاريخي"><select value={settings.retentionDays} onChange={(e) => updateSetting("retentionDays", Number(e.target.value))} className={input}><option value={30}>30 يوماً</option><option value={90}>90 يوماً</option><option value={180}>180 يوماً</option><option value={365}>365 يوماً</option><option value={0}>بلا حد</option></select></SettingsField>
         <div className="flex flex-wrap gap-2">
           <a href="/api/settings/export" className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-black text-white">تصدير CSV</a>
           <button type="button" onClick={async () => { if (!window.confirm("سيتم حذف سجل القياسات التاريخية نهائياً. هل أنت متأكد؟")) return; const response = await fetch("/api/settings/export", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirm: "مسح السجل" }) }); const data = await response.json().catch(() => ({})); if (!response.ok) setError(data.message || "تعذر مسح السجل."); else setMessage("تم مسح سجل القياسات التاريخية."); }} className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-black text-rose-700">مسح السجل</button>
         </div>
-        <div className="mt-4 rounded-xl bg-slate-50 p-4">
-          <h3 className="font-black">سجل النشاط</h3>
+        <AdvancedBlock title="سجل النشاط">
+        <div>
           {auditItems.length === 0 ? <p className="mt-2 text-xs font-semibold text-slate-500">لا توجد أحداث مرتبطة بحساب قاعدة البيانات الحالي.</p> :
             <div className="mt-3 max-h-72 space-y-2 overflow-auto">{auditItems.map((item) => <div key={item.id} className="rounded-xl bg-white p-3 text-sm"><strong>{item.action}</strong><div className="text-xs text-slate-500">{new Date(item.timestamp).toLocaleString("ar")} · {item.details || "—"}</div></div>)}</div>}
         </div>
+        </AdvancedBlock>
       </SettingsSection>
-
-      </div>
 
       {/* إشعارات Toast بعد أي عملية */}
       {(error || message) && (
