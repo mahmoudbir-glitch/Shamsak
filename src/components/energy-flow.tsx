@@ -39,12 +39,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
 }) => {
   const [activeNode, setActiveNode] = useState<'solar' | 'battery' | 'home' | 'grid' | null>(null);
   const flowId = useId().replace(/:/g, '');
-  const solarHomeId = `${flowId}-solar-home`;
-  const homeBatteryId = `${flowId}-home-battery`;
-  const batteryGridId = `${flowId}-battery-grid`;
-  const gridSolarId = `${flowId}-grid-solar`;
   const arrowId = `${flowId}-arrow-flow`;
-  const ringId = `${flowId}-energy-ring`;
   const glowId = `${flowId}-energy-glow`;
   const solarGlowStrength = Math.min(0.42, 0.12 + Math.abs(solarKw) * 0.035);
   const homeGlowStrength = Math.min(0.38, 0.10 + Math.abs(homeKw) * 0.03);
@@ -69,18 +64,6 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   const gridImporting = liveFlowActive && gridConnected && gridKw > FLOW_THRESHOLD;
   const gridExporting = liveFlowActive && gridConnected && gridKw < -FLOW_THRESHOLD;
 
-  const activeFlowClass = 'energy-flow-path energy-flow-active';
-  const dashedFlowClass = 'energy-flow-path';
-
-  // Four independent circular-arc channels. Direction is derived only from
-  // live telemetry; inactive channels remain faint dashed guides.
-  const solarToHome = solarActive && homeActive;
-  const batteryToHome = batteryDischarging && homeActive;
-  const homeToBattery = batteryCharging && solarActive;
-  const batteryToGrid = batteryDischarging && gridConnected && gridExporting;
-  const gridToBattery = batteryCharging && gridConnected && gridImporting;
-  const solarToGrid = solarActive && gridConnected && gridExporting;
-  const gridToSolar = gridConnected && gridImporting && !solarActive;
 
   const formatKw = (value: number) => Math.abs(value).toFixed(2) + ' kW';
   const formatKwh = (value?: number) => value === undefined ? '—' : value.toFixed(1) + ' kWh';
@@ -100,18 +83,24 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
               ? { label: 'البطارية تغطي الحمل', className: 'border-violet-200 bg-violet-50 text-violet-700' }
               : { label: 'الوضع الحالي غير محدد', className: 'border-slate-200 bg-slate-50 text-slate-600' };
 
-  const solarHomePath = solarToHome
-    ? 'M 200 65 A 135 135 0 0 1 335 200'
-    : 'M 335 200 A 135 135 0 0 0 200 65';
-  const homeBatteryPath = homeToBattery
-    ? 'M 335 200 A 135 135 0 0 1 200 335'
-    : 'M 200 335 A 135 135 0 0 0 335 200';
-  const batteryGridPath = batteryToGrid
-    ? 'M 200 335 A 135 135 0 0 1 65 200'
-    : 'M 65 200 A 135 135 0 0 0 200 335';
-  const gridSolarPath = solarToGrid
-    ? 'M 200 65 A 135 135 0 0 0 65 200'
-    : 'M 65 200 A 135 135 0 0 1 200 65';
+  // Every flow passes through the inverter (the hub in the middle), so each
+  // node has its own spoke to the hub. A spoke's colour is its node's colour,
+  // its direction follows the sign of that node's own power, and its width and
+  // speed grow with the power it carries. Spokes stop just outside the hub and the icons so the arrowheads stay visible.
+  type Spoke = { key: string; path: string; color: string; active: boolean; towardHub: boolean; kw: number };
+  const reverse = (d: string) => {
+    const n = d.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+    return `M ${n[6]} ${n[7]} C ${n[4]} ${n[5]}, ${n[2]} ${n[3]}, ${n[0]} ${n[1]}`;
+  };
+  const spokes: Spoke[] = [
+    // node -> hub, drawn as cubic curves in the 400x400 drawing
+    { key: "solar", path: "M 238 62 C 300 72, 300 150, 234 172", color: "#F59E0B", active: solarActive, towardHub: true, kw: solarKw },
+    { key: "grid", path: "M 100 176 C 125 176, 140 186, 157 193", color: "#8B5CF6", active: gridImporting || gridExporting, towardHub: !gridExporting, kw: gridKw },
+    { key: "home", path: "M 300 176 C 275 176, 260 186, 243 193", color: "#0EA5E9", active: homeActive, towardHub: false, kw: homeKw },
+    { key: "battery", path: "M 154 286 C 112 282, 118 244, 166 230", color: "#10B981", active: batteryCharging || batteryDischarging, towardHub: batteryDischarging, kw: batteryKw },
+  ];
+  const spokeWidth = (kw: number) => 2.5 + Math.min(Math.abs(kw), 6) * 0.6;
+  const spokeDuration = (kw: number) => Math.max(0.7, 2.4 - Math.min(Math.abs(kw), 6) * 0.28);
 
   return (
     <section className="relative mx-auto w-full max-w-lg overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.09)]" aria-label="مخطط تدفق الطاقة">
@@ -129,55 +118,38 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
       <div className="relative mx-auto mt-1 aspect-square w-full max-w-lg p-2 sm:p-4">
         <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 400 400" fill="none" aria-hidden="true">
           <defs>
-            <linearGradient id={ringId} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#D97706" />
-              <stop offset="50%" stopColor="#10B981" />
-              <stop offset="100%" stopColor="#3B82F6" />
-            </linearGradient>
             <filter id={glowId}><feGaussianBlur stdDeviation="5" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
-            <marker id={arrowId} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" markerUnits="strokeWidth" orient="auto">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
-            </marker>
+            {[["solar", "#F59E0B"], ["grid", "#8B5CF6"], ["home", "#0EA5E9"], ["battery", "#10B981"]].map(([key, color]) => (
+              <marker key={key} id={`${arrowId}-${key}-head`} viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill={color} />
+              </marker>
+            ))}
           </defs>
 
-          <circle cx="200" cy="200" r="150" stroke={`url(#${ringId})`} strokeWidth="1.5" opacity="0.14" strokeDasharray="4 9" />
-          <path d={solarHomePath} pathLength="100" stroke={solarToHome ? "#10B981" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={solarToHome ? 0.95 : 0.16} markerEnd={solarToHome ? `url(#${arrowId})` : undefined}
-            id={solarHomeId} className={solarToHome ? activeFlowClass : dashedFlowClass} />
-          <path d={homeBatteryPath} pathLength="100" stroke={batteryDischarging ? "#10B981" : homeToBattery ? "#D97706" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={batteryDischarging || homeToBattery ? 0.95 : 0.16} markerEnd={batteryDischarging || homeToBattery ? `url(#${arrowId})` : undefined}
-            id={homeBatteryId} className={batteryDischarging || homeToBattery ? activeFlowClass : dashedFlowClass} />
-          <path d={batteryGridPath} pathLength="100" stroke={batteryToGrid ? "#8B5CF6" : gridToBattery ? "#D97706" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={batteryToGrid || gridToBattery ? 0.95 : 0.16} markerEnd={batteryToGrid || gridToBattery ? `url(#${arrowId})` : undefined}
-            id={batteryGridId} className={batteryToGrid || gridToBattery ? activeFlowClass : dashedFlowClass} />
-          <path d={gridSolarPath} pathLength="100" stroke={solarToGrid ? "#10B981" : gridToSolar ? "#D97706" : "#CBD5E1"} strokeWidth="4" strokeLinecap="round" opacity={solarToGrid || gridToSolar ? 0.95 : 0.16} markerEnd={solarToGrid || gridToSolar ? `url(#${arrowId})` : undefined}
-            id={gridSolarId} className={solarToGrid || gridToSolar ? activeFlowClass : dashedFlowClass} />
-
-          {solarToHome && (
-            <circle r="4" fill="#10B981" filter={`url(#${glowId})`}>
-              <animateMotion dur="1.7s" repeatCount="indefinite" rotate="auto">
-                <mpath href={`#${solarHomeId}`} />
-              </animateMotion>
-            </circle>
-          )}
-          {(batteryDischarging || homeToBattery) && (
-            <circle r="4" fill={batteryDischarging ? "#10B981" : "#D97706"} filter={`url(#${glowId})`}>
-              <animateMotion dur="1.9s" repeatCount="indefinite" rotate="auto">
-                <mpath href={`#${homeBatteryId}`} />
-              </animateMotion>
-            </circle>
-          )}
-          {(batteryToGrid || gridToBattery) && (
-            <circle r="4" fill={batteryToGrid ? "#8B5CF6" : "#D97706"} filter={`url(#${glowId})`}>
-              <animateMotion dur="2s" repeatCount="indefinite" rotate="auto">
-                <mpath href={`#${batteryGridId}`} />
-              </animateMotion>
-            </circle>
-          )}
-          {(solarToGrid || gridToSolar) && (
-            <circle r="4" fill={solarToGrid ? "#10B981" : "#D97706"} filter={`url(#${glowId})`}>
-              <animateMotion dur="1.8s" repeatCount="indefinite" rotate="auto">
-                <mpath href={`#${gridSolarId}`} />
-              </animateMotion>
-            </circle>
-          )}
+          {spokes.map((spoke) => {
+            const d = spoke.towardHub ? spoke.path : reverse(spoke.path);
+            return (
+              <g key={spoke.key}>
+                <path
+                  id={`${arrowId}-${spoke.key}`}
+                  d={d}
+                  stroke={spoke.active ? spoke.color : "#CBD5E1"}
+                  strokeWidth={spoke.active ? spokeWidth(spoke.kw) : 2}
+                  strokeLinecap="round"
+                  strokeDasharray={spoke.active ? undefined : "3 6"}
+                  opacity={spoke.active ? 0.9 : 0.55}
+                  markerEnd={spoke.active ? `url(#${arrowId}-${spoke.key}-head)` : undefined}
+                />
+                {spoke.active && (
+                  <circle r={2.5 + Math.min(Math.abs(spoke.kw), 6) * 0.25} fill={spoke.color} filter={`url(#${glowId})`}>
+                    <animateMotion dur={`${spokeDuration(spoke.kw)}s`} repeatCount="indefinite" rotate="auto">
+                      <mpath href={`#${arrowId}-${spoke.key}`} />
+                    </animateMotion>
+                  </circle>
+                )}
+              </g>
+            );
+          })}
 
           <circle cx="200" cy="200" r="38" fill="white" stroke="#FDE68A" strokeWidth="1.5" opacity="0.95" />
           <circle cx="200" cy="200" r="30" fill="#FFFBEB" stroke="#D97706" strokeWidth="1.5" filter={`url(#${glowId})`} />
