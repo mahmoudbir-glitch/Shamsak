@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 
-export type LoadPoint = { t: number; loadW: number; solarW: number };
+export type LoadPoint = { t: number; loadW: number; solarW: number; soc?: number; batteryW?: number };
 
 const W = 640;
 const H = 220;

@@ -5,12 +5,15 @@ import { BatteryCharging, Clock, Gauge, Loader2, Thermometer, Zap } from "lucide
 import type { EnergySnapshot } from "@/lib/energy";
 import { batteryState, batteryStateLabel, batteryTone, semanticText } from "@/lib/energy";
 import { PageHeader } from "@/components/page-header";
+import { SocChart } from "@/components/soc-chart";
+import type { LoadPoint } from "@/components/load-chart";
 
 const REFRESH_MS = 15_000;
 const RADIUS = 54;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-type BatterySettings = { batteryCapacityWh: number; batteryMinReservePct: number };
+type BatterySettings = { batteryCapacityWh: number; batteryMinReservePct: number; batteryChemistry?: string | null; batteryNominalVoltage?: number };
+type History = { points: LoadPoint[]; timezone: string; batteryToday: { chargeKWh: number; dischargeKWh: number } | null; socToday: { min: number; max: number } | null };
 
 /** تقدير الوقت المتبقي حتى الاكتمال أو حتى حدّ الاحتياطي، من السعة والقدرة الحالية. */
 function estimate(soc: number, powerW: number, settings: BatterySettings | null) {
@@ -40,6 +43,7 @@ export default function BatteryPage() {
   const [snapshot, setSnapshot] = useState<EnergySnapshot | null>(null);
   const [settings, setSettings] = useState<BatterySettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [history, setHistory] = useState<History | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -57,9 +61,15 @@ export default function BatteryPage() {
 
   useEffect(() => {
     void load();
-    void fetch("/api/settings", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d?.batteryCapacityWh) setSettings({ batteryCapacityWh: d.batteryCapacityWh, batteryMinReservePct: d.batteryMinReservePct ?? 20 }); }).catch(() => {});
+    void fetch("/api/settings", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d?.batteryCapacityWh) setSettings({ batteryCapacityWh: d.batteryCapacityWh, batteryMinReservePct: d.batteryMinReservePct ?? 20, batteryChemistry: d.batteryChemistry, batteryNominalVoltage: d.batteryNominalVoltage }); }).catch(() => {});
+    const loadHistory = () => void fetch("/api/telemetry/history", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) setHistory(d as History); }).catch(() => {});
+    loadHistory();
+    const historyTimer = window.setInterval(loadHistory, 5 * 60_000);
     const timer = window.setInterval(() => void load(), REFRESH_MS);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearInterval(timer);
+      window.clearInterval(historyTimer);
+    };
   }, [load]);
 
   const soc = Math.min(100, Math.max(0, snapshot?.batterySoc ?? 0));
@@ -97,10 +107,47 @@ export default function BatteryPage() {
       <div className="grid grid-cols-2 gap-3">
         <Metric icon={Zap} label="الجهد" value={snapshot?.batteryVoltage != null ? snapshot.batteryVoltage.toFixed(1) + " فولت" : "—"} />
         <Metric icon={Gauge} label="التيار" value={snapshot?.batteryCurrent != null ? snapshot.batteryCurrent.toFixed(1) + " أمبير" : "—"} />
-        <Metric icon={Thermometer} label="الحرارة" value={snapshot?.batteryTemperature != null ? snapshot.batteryTemperature.toFixed(1) + "°م" : "—"} />
+        <Metric icon={Thermometer} label="الحرارة" value={snapshot?.batteryTemperature != null ? snapshot.batteryTemperature.toFixed(1) + "°م" : "غير متاحة"} />
         <Metric icon={Clock} label={eta ? (eta.charging ? "اكتمال الشحن بعد" : "الوقت المتبقي") : "الوقت المتوقع"} value={eta ? eta.label : "—"} />
       </div>
       {eta && <p className="px-1 text-[11px] font-semibold text-slate-400">التقدير تقريبي: يُحسب من السعة المحفوظة في الإعدادات والقدرة الحالية، ويتغير مع تغيّر الحمل.</p>}
+      {snapshot && snapshot.batteryTemperature == null && (
+        <p className="rounded-2xl bg-amber-50 p-3 text-[11px] font-bold leading-5 text-amber-800">الحرارة والنسبة الدقيقة يرسلهما جهاز إدارة البطارية (BMS). تظهران بعد توصيل كابل الاتصال من منفذ CAN في البطارية إلى الإنفرتر.</p>
+      )}
+
+      {/* البطارية اليوم */}
+      <section className="energy-card p-4">
+        <h2 className="text-sm font-black text-slate-900">البطارية اليوم</h2>
+        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+          <div><div className="text-[11px] font-bold text-slate-500">شحن</div><div className="text-base font-black text-emerald-600">{history?.batteryToday ? history.batteryToday.chargeKWh.toFixed(1) : "—"} <span className="text-[10px]">ك.و.س</span></div></div>
+          <div><div className="text-[11px] font-bold text-slate-500">تفريغ</div><div className="text-base font-black text-amber-600">{history?.batteryToday ? history.batteryToday.dischargeKWh.toFixed(1) : "—"} <span className="text-[10px]">ك.و.س</span></div></div>
+          <div><div className="text-[11px] font-bold text-slate-500">أدنى / أعلى</div><div className="text-base font-black text-slate-800">{history?.socToday ? `${Math.round(history.socToday.min)}–${Math.round(history.socToday.max)}%` : "—"}</div></div>
+        </div>
+      </section>
+
+      {/* منحنى نسبة الشحن */}
+      <section className="energy-card space-y-2 p-4">
+        <h2 className="text-sm font-black text-slate-900">نسبة الشحن خلال آخر 24 ساعة</h2>
+        {history && history.points.filter((p) => typeof p.soc === "number").length >= 2 ? (
+          <SocChart points={history.points} timeZone={history.timezone || "Asia/Beirut"} now={Date.now()} reservePct={settings?.batteryMinReservePct ?? 20} />
+        ) : (
+          <p className="py-6 text-center text-xs font-semibold text-slate-400">يظهر المنحنى بعد تجمّع قراءات كافية (نحو ساعة من الاستخدام).</p>
+        )}
+      </section>
+
+      {/* مواصفات البطارية من الإعدادات */}
+      {settings && (
+        <section className="energy-card p-4">
+          <h2 className="text-sm font-black text-slate-900">مواصفات البطارية</h2>
+          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <dt className="text-slate-500">النوع</dt><dd className="text-left font-black text-slate-800" dir="ltr">{settings.batteryChemistry || "—"}</dd>
+            <dt className="text-slate-500">السعة</dt><dd className="text-left font-black text-slate-800" dir="ltr">{(settings.batteryCapacityWh / 1000).toFixed(2)} kWh</dd>
+            <dt className="text-slate-500">الجهد الاسمي</dt><dd className="text-left font-black text-slate-800" dir="ltr">{settings.batteryNominalVoltage ? `${settings.batteryNominalVoltage} V` : "—"}</dd>
+            <dt className="text-slate-500">حد الاحتياطي</dt><dd className="text-left font-black text-slate-800" dir="ltr">{settings.batteryMinReservePct}%</dd>
+          </dl>
+          <p className="mt-2 text-[11px] font-semibold text-slate-400">تُعدَّل من الإعدادات ← مواصفات العتاد.</p>
+        </section>
+      )}
 
       {!snapshot && !loading && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">لا توجد قراءة حية متاحة حاليًا.</div>

@@ -24,15 +24,17 @@ export async function GET(request: NextRequest) {
     const rows = await prisma.telemetryLog.findMany({
       where: { timestamp: { gte: new Date(now - WINDOW_MS) } },
       orderBy: { timestamp: "asc" },
-      select: { timestamp: true, loadPowerW: true, pvPowerW: true },
+      select: { timestamp: true, loadPowerW: true, pvPowerW: true, batterySoc: true, batteryPowerW: true },
     });
 
-    const buckets = new Map<number, { load: number; solar: number; n: number }>();
+    const buckets = new Map<number, { load: number; solar: number; soc: number; battery: number; n: number }>();
     for (const row of rows) {
       const key = Math.floor(row.timestamp.getTime() / BUCKET_MS) * BUCKET_MS;
-      const bucket = buckets.get(key) ?? { load: 0, solar: 0, n: 0 };
+      const bucket = buckets.get(key) ?? { load: 0, solar: 0, soc: 0, battery: 0, n: 0 };
       bucket.load += row.loadPowerW;
       bucket.solar += row.pvPowerW;
+      bucket.soc += row.batterySoc;
+      bucket.battery += row.batteryPowerW;
       bucket.n += 1;
       buckets.set(key, bucket);
     }
@@ -40,6 +42,8 @@ export async function GET(request: NextRequest) {
       t,
       loadW: Math.round(b.load / b.n),
       solarW: Math.round(b.solar / b.n),
+      soc: Math.round((b.soc / b.n) * 10) / 10,
+      batteryW: Math.round(b.battery / b.n),
     }));
 
     const dayStart = localDayStart(new Date(now), settings?.timezone);
@@ -53,9 +57,16 @@ export async function GET(request: NextRequest) {
       select: { timestamp: true, loadPowerW: true },
     });
 
+    const [today, socRange] = await Promise.all([
+      prisma.dailySummary.findUnique({ where: { day: dayStart } }).catch(() => null),
+      prisma.telemetryLog.aggregate({ where: { timestamp: { gte: since } }, _min: { batterySoc: true }, _max: { batterySoc: true } }).catch(() => null),
+    ]);
+
     return NextResponse.json(
       {
         points,
+        batteryToday: today ? { chargeKWh: Math.round(today.batteryChargeKWh * 100) / 100, dischargeKWh: Math.round(today.batteryDischargeKWh * 100) / 100 } : null,
+        socToday: socRange?._min.batterySoc != null ? { min: socRange._min.batterySoc, max: socRange._max.batterySoc } : null,
         peak: peak ? { w: Math.round(peak.loadPowerW), at: peak.timestamp.toISOString() } : null,
         inverterRatedKw: settings?.inverterRatedPowerKw ?? null,
         timezone: settings?.timezone || "Asia/Beirut",
