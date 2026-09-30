@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, Bell, CheckCircle2, ChevronDown, Cpu, Database, Eye, EyeOff, MapPin, Plug, Plus, Radio, RotateCcw, Save, Search, Settings as SettingsIcon, ShieldCheck, X, type LucideIcon } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { AlertCircle, Bell, CheckCircle2, ChevronDown, Cpu, Database, Eye, EyeOff, Plug, Plus, Radio, RotateCcw, Save, Search, Settings as SettingsIcon, ShieldCheck, X, type LucideIcon } from "lucide-react";
 
 type Protocol = "Modbus RTU" | "Modbus TCP" | "MQTT" | "Cloud API" | "Wi-Fi Datalogger";
 type ConnectionMode = "local" | "gateway";
@@ -269,10 +270,7 @@ export default function SettingsPage() {
 
   return (
     <div dir="rtl" className="min-h-[100dvh] w-full space-y-3 overflow-x-hidden overscroll-y-auto bg-slate-50/70 p-2 pb-[calc(12rem+env(safe-area-inset-bottom))] scroll-pb-[calc(12rem+env(safe-area-inset-bottom))] sm:space-y-4 sm:p-4 sm:pb-12">
-      <header className="flex items-center gap-3 rounded-3xl bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 p-4 text-white shadow-lg">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15"><SettingsIcon className="h-5 w-5" aria-hidden="true" /></div>
-        <h1 className="text-lg font-black sm:text-xl">إعدادات المنظومة</h1>
-      </header>
+      <PageHeader icon={SettingsIcon} tone="slate" eyebrow="شمسك • الإعدادات" title="إعدادات المنظومة" subtitle="الاتصال، العتاد، الحماية، التنبيهات والبيانات." />
 
       {/* بحث سريع: يُصفّي الأقسام حسب العنوان أو أسماء الإعدادات داخلها */}
       <div className="relative">
@@ -372,7 +370,7 @@ export default function SettingsPage() {
             </div>
           </details>
 
-          <p className="text-xs font-bold text-slate-500">آخر قراءة: {draft.lastSeenAt ? new Date(draft.lastSeenAt).toLocaleString("ar") : "لا توجد"}</p>
+          <p className="text-xs font-bold text-slate-500">آخر قراءة: {draft.lastSeenAt ? new Date(draft.lastSeenAt).toLocaleString("ar-u-nu-latn") : "لا توجد"}</p>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => void testConnection()} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-700"><Plug className="h-4 w-4" aria-hidden="true" />اختبار الاتصال</button>
             <button type="button" onClick={addInverter} className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-200"><Plus className="h-4 w-4" aria-hidden="true" />إضافة إنفرتر</button>
@@ -460,7 +458,7 @@ export default function SettingsPage() {
         <AdvancedBlock title="سجل النشاط">
         <div>
           {auditItems.length === 0 ? <p className="mt-2 text-xs font-semibold text-slate-500">لا توجد أحداث مرتبطة بحساب قاعدة البيانات الحالي.</p> :
-            <div className="mt-3 max-h-72 space-y-2 overflow-auto">{auditItems.map((item) => <div key={item.id} className="rounded-xl bg-white p-3 text-sm"><strong>{item.action}</strong><div className="text-xs text-slate-500">{new Date(item.timestamp).toLocaleString("ar")} · {item.details || "—"}</div></div>)}</div>}
+            <div className="mt-3 max-h-72 space-y-2 overflow-auto">{auditItems.map((item) => <div key={item.id} className="rounded-xl bg-white p-3 text-sm"><strong>{item.action}</strong><div className="text-xs text-slate-500">{new Date(item.timestamp).toLocaleString("ar-u-nu-latn")} · {item.details || "—"}</div></div>)}</div>}
         </div>
         </AdvancedBlock>
       </SettingsSection>

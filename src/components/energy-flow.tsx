@@ -17,7 +17,6 @@ interface EnergyFlowProps {
   todayGridSavings?: number;
   savingsCurrency?: string;
   isLive?: boolean;
-  lastUpdated?: string;
 }
 
 const FLOW_THRESHOLD = 0.05;
@@ -34,7 +33,6 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   todayGridSavings,
   savingsCurrency = '$',
   isLive = false,
-  lastUpdated,
 }) => {
   const [activeNode, setActiveNode] = useState<'solar' | 'battery' | 'home' | 'grid' | null>(null);
   const flowId = useId().replace(/:/g, '');
@@ -121,9 +119,6 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-extrabold text-emerald-700">
             <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
             تدفق الطاقة الآن
-          </span>
-          <span className={liveFlowActive ? "rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-700" : isLive ? "rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-black text-sky-700" : "rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700"}>
-            {liveFlowActive ? "● مباشر" : isLive ? "● متصل بلا قراءة" : "غير متصل"}
           </span>
         </div>
       </div>
@@ -300,13 +295,12 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
 
       <div className="relative border-t border-slate-100 bg-slate-50/70 px-3 py-4 sm:px-5">
         <div className="grid grid-cols-3 divide-x divide-x-reverse divide-slate-200 text-center">
-          <div className="px-2"><div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">TODAY'S PRODUCTION</div><div className={"mt-1 text-base font-black " + semanticText[solarTone(todayProductionKWh ?? 0)] + " sm:text-lg"}>{formatKwh(todayProductionKWh)}</div><div className="text-[10px] font-bold text-slate-500">إنتاج اليوم</div></div>
-          <div className="px-2"><div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">HOME USAGE</div><div className={"mt-1 text-base font-black " + semanticText[loadTone(todayHomeUsageKWh ?? 0)] + " sm:text-lg"}>{formatKwh(todayHomeUsageKWh)}</div><div className="text-[10px] font-bold text-slate-500">استهلاك المنزل</div></div>
-          <div className="px-2"><div className="text-[9px] font-black tracking-wide text-slate-400 sm:text-[10px]">GRID SAVINGS</div><div className="mt-1 text-base font-black text-amber-500 sm:text-lg">{formatSavings(todayGridSavings)}</div><div className="text-[10px] font-bold text-slate-500">التوفير</div></div>
+          <div className="px-2"><div className="text-[11px] font-bold text-slate-500">إنتاج اليوم</div><div className={"mt-1 text-base font-black " + semanticText[solarTone(todayProductionKWh ?? 0)] + " sm:text-lg"}>{formatKwh(todayProductionKWh)}</div></div>
+          <div className="px-2"><div className="text-[11px] font-bold text-slate-500">استهلاك اليوم</div><div className={"mt-1 text-base font-black " + semanticText[loadTone(todayHomeUsageKWh ?? 0)] + " sm:text-lg"}>{formatKwh(todayHomeUsageKWh)}</div></div>
+          <div className="px-2"><div className="text-[11px] font-bold text-slate-500">وفر اليوم</div><div className="mt-1 text-base font-black text-amber-500 sm:text-lg">{formatSavings(todayGridSavings)}</div></div>
         </div>
+        {todayProductionKWh === undefined && todayHomeUsageKWh === undefined && <p className="mt-2 text-center text-[10px] font-semibold text-slate-400">تُحسب أرقام اليوم تلقائياً مع تجمّع القراءات.</p>}
       </div>
-
-      {lastUpdated && <div className="relative border-t border-slate-100 px-4 py-2 text-center text-[10px] font-semibold text-slate-400">آخر قراءة: {lastUpdated}</div>}
     </section>
   );
 };

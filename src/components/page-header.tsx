@@ -6,6 +6,7 @@ const TONES = {
   amber: { box: "bg-amber-50 text-amber-600 ring-amber-200/70", eyebrow: "text-amber-600" },
   emerald: { box: "bg-emerald-50 text-emerald-600 ring-emerald-200/70", eyebrow: "text-emerald-600" },
   sky: { box: "bg-sky-50 text-sky-600 ring-sky-200/70", eyebrow: "text-sky-600" },
+  slate: { box: "bg-slate-100 text-slate-600 ring-slate-200/70", eyebrow: "text-slate-500" },
 } as const;
 
 /** ترويسة موحّدة لصفحات التطبيق: أيقونة + عنوان صغير + عنوان رئيسي + وصف + عنصر جانبي اختياري. */
@@ -21,14 +22,5 @@ export function PageHeader({ icon: Icon, eyebrow, title, subtitle, tone = "amber
       </div>
       {right}
     </header>
-  );
-}
-
-/** شارة الحالة الحية: مباشر / بانتظار قراءة. */
-export function LiveBadge({ live }: { live: boolean }) {
-  return (
-    <span className={"shrink-0 rounded-full px-3 py-1.5 text-xs font-black " + (live ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500")}>
-      {live ? "مباشر" : "بانتظار قراءة حية"}
-    </span>
   );
 }

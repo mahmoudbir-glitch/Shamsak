@@ -86,7 +86,7 @@ function dayLabel(index: number, date: string) {
   if (index === 0) return "اليوم";
   if (index === 1) return "غداً";
   if (index === 2) return "بعد غد";
-  return new Intl.DateTimeFormat("ar-LB", {
+  return new Intl.DateTimeFormat("ar-LB-u-nu-latn", {
     timeZone: DEFAULT_TIMEZONE,
     weekday: "long",
   }).format(new Date(date + "T12:00:00"));

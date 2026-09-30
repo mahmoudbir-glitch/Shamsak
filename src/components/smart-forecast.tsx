@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDownToLine, BatteryCharging, CheckCircle2, Clock3, CloudSun, Loader2, MoonStar, RefreshCw, SunMedium, Zap } from "lucide-react";
+import { ChevronDown, CloudSun, Loader2, MoonStar, RefreshCw, SunMedium } from "lucide-react";
 import { useSmartEnergy } from "@/hooks/use-smart-energy";
 import { calculateAutonomy, weatherIcon, weatherLabel, type DayForecast, type LoadStability } from "@/lib/smart-forecast";
 import { InfoTip } from "@/components/info-tip";
 
 function formatHour(iso?: string | null) {
   if (!iso) return "—";
-  return new Intl.DateTimeFormat("ar-LB", {
+  return new Intl.DateTimeFormat("ar-LB-u-nu-latn", {
     timeZone: "Asia/Beirut",
     hour: "2-digit",
     minute: "2-digit",
@@ -16,7 +16,7 @@ function formatHour(iso?: string | null) {
 }
 
 function formatDate(iso: string) {
-  return new Intl.DateTimeFormat("ar-LB", {
+  return new Intl.DateTimeFormat("ar-LB-u-nu-latn", {
     timeZone: "Asia/Beirut",
     weekday: "short",
     day: "numeric",
@@ -101,7 +101,7 @@ function NightCard({
         </div>
       </div>
       <div className="mt-3 space-y-2 text-sm font-semibold text-slate-500">
-        <p>تغطية تقديرية {result.hoursCovered} ساعة عند متوسط استهلاك ليلي {Math.round(effectiveLoadW).toLocaleString("ar-LB")} واط.</p>
+        <p>تغطية تقديرية {result.hoursCovered} ساعة عند متوسط استهلاك ليلي {Math.round(effectiveLoadW).toLocaleString("ar-LB-u-nu-latn")} واط.</p>
         <div className="flex flex-wrap items-center gap-2">
           <span className={confidence === "عالية" ? "rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700" : confidence === "متوسطة" ? "rounded-full bg-amber-50 px-2.5 py-1 text-xs font-black text-cyan-700" : confidence === "منخفضة" ? "rounded-full bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700" : "rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600"}>ثقة استقرار الاستهلاك: {confidence}</span>
           <span className="text-xs">عينات ليلية: {sampleCount}</span>
@@ -177,9 +177,9 @@ export function SmartForecast() {
       <header className="energy-card p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-black text-blue-600">شمسك • لوحة الطاقة</p>
-            <h1 className="mt-1 text-2xl font-black text-slate-950">توقعات الطاقة</h1>
-            <p className="mt-1 text-sm font-semibold text-slate-500">إنتاج شمسي، بطارية، فائض وأوقات مهمة</p>
+            <p className="text-[11px] font-black text-amber-600">شمسك • الطاقة</p>
+            <h1 className="mt-0.5 text-xl font-black tracking-tight text-slate-950 sm:text-2xl">توقعات الطاقة</h1>
+            <p className="mt-1 text-xs font-semibold text-slate-500">اليوم، الليلة، وأفضل وقت لاستخدام الشمس.</p>
           </div>
           <button
             type="button"
@@ -197,7 +197,7 @@ export function SmartForecast() {
             <span className="text-2xl">{weatherIcon(current.weather_code ?? 0)}</span>
             <div>
               <strong className="block text-sm font-black text-slate-800">{weatherLabel(current.weather_code ?? 0)} • {Math.round(current.temperature_2m ?? 0)}°م</strong>
-              <span className="text-xs font-semibold text-slate-500">المصدر: Open-Meteo</span>
+              <span className="text-xs font-semibold text-slate-500">توقع جوي من Open-Meteo، وليس قياساً من الإنفرتر</span>
             </div>
           </div>
         )}
@@ -249,14 +249,7 @@ export function SmartForecast() {
                 <strong className="mt-1 block text-2xl font-black text-emerald-700">{selected.confidence}</strong>
               </div>
             </div>
-          </section>
-
-          <section className="energy-card p-5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-black text-slate-900">⏱️ أوقات مهمة</h2>
-              <Clock3 size={20} className="text-slate-400" />
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-3 grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-slate-50 p-4">
                 <span className="text-xs font-bold text-slate-500">امتلاء البطارية المتوقع</span>
                 <strong className="mt-1 block text-lg font-black text-slate-900">{formatHour(selected.fullChargeTime)}</strong>
@@ -276,6 +269,7 @@ export function SmartForecast() {
             </div>
           </section>
 
+
           <section className="energy-card p-5">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-black text-slate-900">🌙 كفاية الليل</h2>
@@ -289,13 +283,12 @@ export function SmartForecast() {
             </div>
           </section>
 
-          <section className="energy-card p-5">
-            <div className="flex items-center justify-between gap-2">
+          <details className="energy-card group p-5">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 [&::-webkit-details-marker]:hidden">
               <h2 className="text-lg font-black text-slate-900">توزيع الطاقة الشمسية اليومية</h2>
-              <InfoTip label="شرح توزيع الطاقة" title="توزيع الطاقة">
-                تقسيم إنتاج الشمس المتوقع لهذا اليوم إلى استهلاك منزلي مباشر، شحن البطارية، وفائض متبقٍ بعد استيعاب البطارية. النسب محسوبة من إجمالي الإنتاج المتوقع.
-              </InfoTip>
-            </div>
+              <ChevronDown size={20} className="text-slate-400 transition-transform group-open:rotate-180" />
+            </summary>
+            <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">تقسيم إنتاج اليوم المتوقع إلى استهلاك مباشر وشحن للبطارية وفائض متبقٍ.</p>
             <div className="mt-4 flex h-5 overflow-hidden rounded-full bg-slate-100" aria-label="توزيع إنتاج الطاقة الشمسية">
               <div className="bg-blue-500" style={{ width: selected.homePct + "%" }} title={"المنزل " + selected.homePct + "%"} />
               <div className="bg-emerald-500" style={{ width: selected.batteryPct + "%" }} title={"البطارية " + selected.batteryPct + "%"} />
@@ -315,7 +308,7 @@ export function SmartForecast() {
                 </div>
               ))}
             </div>
-          </section>
+          </details>
 
           <section id="hourly-details" className="energy-card p-5">
             <button
@@ -355,9 +348,6 @@ export function SmartForecast() {
         </>
       )}
 
-      <div className="rounded-2xl border border-sky-100 bg-sky-50/80 p-4 text-sm font-semibold leading-6 text-sky-900">
-        <strong className="font-black">تنويه:</strong> بيانات الطقس والإشعاع من Open-Meteo للاطلاع والتوقع فقط. لا تعدّل أو تستبدل قراءات الإنفرتر الحية ولا تُعامل كقياس فعلي للنظام.
-      </div>
     </section>
   );
 }

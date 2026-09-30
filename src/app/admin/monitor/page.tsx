@@ -20,7 +20,7 @@ const actionLabels: Record<string, string> = {
 
 function formatDate(date: Date | null) {
   if (!date) return "لا يوجد";
-  return new Intl.DateTimeFormat("ar-LB", {
+  return new Intl.DateTimeFormat("ar-LB-u-nu-latn", {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone: "Asia/Beirut",

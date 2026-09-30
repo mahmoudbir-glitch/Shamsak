@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { BatteryCharging, Clock, Gauge, Loader2, Thermometer, Zap } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
 import { batteryState, batteryStateLabel, batteryTone, semanticText } from "@/lib/energy";
-import { LiveBadge, PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/components/page-header";
 
 const REFRESH_MS = 15_000;
 const RADIUS = 54;
@@ -65,11 +65,10 @@ export default function BatteryPage() {
   const state = batteryState(powerW);
   const toneText = semanticText[batteryTone(soc)];
   const eta = snapshot ? estimate(soc, powerW, settings) : null;
-  const live = snapshot?.source === "live";
 
   return (
     <div className="w-full space-y-3 pb-4 text-right" dir="rtl">
-      <PageHeader icon={BatteryCharging} tone="emerald" eyebrow="شمسك • البطارية" title="حالة البطارية" subtitle="الشحن والجهد والحرارة والوقت المتوقع." right={<LiveBadge live={live} />} />
+      <PageHeader icon={BatteryCharging} tone="emerald" eyebrow="شمسك • البطارية" title="حالة البطارية" subtitle="الشحن والجهد والحرارة والوقت المتوقع." />
 
       {/* مؤشر دائري كبير لنسبة الشحن */}
       <section className="energy-card flex flex-col items-center p-6">
@@ -87,7 +86,7 @@ export default function BatteryPage() {
                 <span className="mt-1 text-xs font-bold text-slate-400">{snapshot ? batteryStateLabel(state) : "لا توجد قراءة"}</span>
               </div>
             </div>
-            {snapshot && <p className="mt-3 text-sm font-bold text-slate-500">{Math.abs(powerW).toLocaleString("ar-LB")} واط</p>}
+            {snapshot && <p className="mt-3 text-sm font-bold text-slate-500">{Math.abs(powerW).toLocaleString("ar-LB-u-nu-latn")} واط</p>}
           </>
         )}
       </section>

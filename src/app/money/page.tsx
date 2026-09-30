@@ -52,7 +52,7 @@ const sourceStyles = [
 ] as const;
 
 function formatNumber(value: number, digits = 1) {
-  return value.toLocaleString("ar", {
+  return value.toLocaleString("ar-u-nu-latn", {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   });
@@ -154,18 +154,18 @@ export default function MoneyDashboard() {
 
   return (
     <div className="w-full space-y-3 pb-4 text-right" dir="rtl">
-      <PageHeader icon={Wallet} tone="sky" eyebrow="شمسك • المال" title="التحليل المالي ومصادر الكهرباء" subtitle={`مصادر الكهرباء والوفر خلال آخر ${data?.periodDays ?? 30} يوماً.`} />
+      <PageHeader icon={Wallet} tone="sky" eyebrow="شمسك • المال" title="التحليل المالي ومصادر الكهرباء" subtitle={data?.periodDays ? `مصادر الكهرباء والوفر خلال آخر ${data.periodDays} يوماً.` : "مصادر الكهرباء والوفر من قراءات منظومتك."} />
 
       {loading ? (
         <section className="rounded-[1.5rem] border border-slate-200 bg-white p-6 text-center shadow-sm">
           <div className="text-sm font-black text-slate-600">جاري تجهيز التحليل…</div>
         </section>
-      ) : !data ? (
+      ) : !data || !data.periodDays ? (
         <section className="rounded-[1.5rem] border border-slate-200 bg-white p-6 text-center shadow-sm">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-xl">📊</div>
           <h2 className="mt-3 text-base font-black text-slate-900">لا توجد بيانات كافية بعد</h2>
           <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
-            عند تسجيل بيانات الطاقة ستظهر هنا مصادر الكهرباء والتحليل المالي تلقائياً.
+            يُحسب الوفر ومصادر الكهرباء بعد تجمّع يوم كامل من القراءات، وستظهر هنا تلقائياً بدل الأصفار.
           </p>
         </section>
       ) : (

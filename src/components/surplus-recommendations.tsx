@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSmartEnergy } from "@/hooks/use-smart-energy";
 
 function formatHour(iso: string) {
-  return new Intl.DateTimeFormat("ar-LB", {
+  return new Intl.DateTimeFormat("ar-LB-u-nu-latn", {
     timeZone: "Asia/Beirut",
     hour: "2-digit",
     minute: "2-digit",

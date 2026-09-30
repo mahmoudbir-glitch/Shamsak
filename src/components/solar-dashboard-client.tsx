@@ -1,43 +1,29 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from 'react';
-import { CloudSun } from 'lucide-react';
-import { EnergyFlow } from '@/components/energy-flow';
-import type { EnergySnapshot } from '@/lib/energy';
+import React, { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { ChevronLeft, Moon } from "lucide-react";
+import { EnergyFlow } from "@/components/energy-flow";
+import type { EnergySnapshot } from "@/lib/energy";
 
 const REFRESH_MS = 15_000;
 
-function formatUpdated(timestamp?: string) {
-  if (!timestamp) return undefined;
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return undefined;
-  return date.toLocaleTimeString('ar-LB', { hour: '2-digit', minute: '2-digit' });
-}
-
-function formatEnergy(value?: number) {
-  return value === undefined || !Number.isFinite(value) ? '—' : value.toFixed(1);
-}
-
+/** الرئيسية = «الآن»: مخطط التدفق وأرقام اليوم، والحالة في الشريط العلوي الموحّد. */
 export default function SolarDashboardClient() {
   const [snapshot, setSnapshot] = useState<EnergySnapshot | null>(null);
   const [isLive, setIsLive] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const loadTelemetry = useCallback(async () => {
     try {
-      const response = await fetch('/api/telemetry', { cache: 'no-store' });
-      if (!response.ok) throw new Error('telemetry_unavailable');
-
+      const response = await fetch("/api/telemetry", { cache: "no-store" });
+      if (!response.ok) throw new Error("telemetry_unavailable");
       const data = (await response.json()) as EnergySnapshot;
-      if (data.source !== 'live') throw new Error('telemetry_not_live');
-
+      if (data.source !== "live") throw new Error("telemetry_not_live");
       setSnapshot(data);
       setIsLive(true);
-      setError(null);
     } catch {
+      // نُبقي آخر قراءة صحيحة؛ حالة الاتصال يعرضها الشريط العلوي.
       setIsLive(false);
-      setError('تعذر الوصول إلى بيانات الإنفرتر الحية');
-    } finally {
     }
   }, []);
 
@@ -47,40 +33,30 @@ export default function SolarDashboardClient() {
     return () => window.clearInterval(timer);
   }, [loadTelemetry]);
 
-  const solarKw = (snapshot?.solarPowerW ?? 0) / 1000;
-  const homeKw = (snapshot?.homePowerW ?? 0) / 1000;
-  const batterySoc = snapshot?.batterySoc ?? 0;
-  const updated = snapshot ? formatUpdated(snapshot.timestamp) : undefined;
-
   return (
-    <div className="w-full text-right" dir="rtl">
+    <div className="w-full space-y-3 text-right" dir="rtl">
       <EnergyFlow
-        solarKw={solarKw}
-        homeKw={homeKw}
+        solarKw={(snapshot?.solarPowerW ?? 0) / 1000}
+        homeKw={(snapshot?.homePowerW ?? 0) / 1000}
         gridKw={(snapshot?.gridPowerW ?? 0) / 1000}
         batteryKw={(snapshot?.batteryPowerW ?? 0) / 1000}
-        batteryPercentage={batterySoc}
+        batteryPercentage={snapshot?.batterySoc ?? 0}
         gridConnected={snapshot?.gridConnected ?? false}
         todayProductionKWh={snapshot?.todayProductionKWh}
         todayHomeUsageKWh={snapshot?.todayHomeUsageKWh}
         todayGridSavings={snapshot?.todayGridSavings}
         isLive={isLive}
-        lastUpdated={snapshot ? formatUpdated(snapshot.timestamp) : undefined}
       />
 
-      {error && (
-        <div className="mt-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-right text-xs font-bold leading-5 text-amber-900">
-          <CloudSun className="mt-0.5 shrink-0 text-amber-600" size={18} />
-          <div>
-            <div>{error}</div>
-            <div className="mt-0.5 font-semibold text-amber-800/75">لن نعرض أرقامًا تجريبية بدل بياناتك الحقيقية.</div>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-center text-[11px] font-semibold leading-5 text-slate-500 shadow-sm">
-        التفاصيل المتقدمة لكفاية الليل والتوقعات موجودة في تبويب <span className="font-black text-slate-700">الطاقة</span>.
-      </div>
+      {/* اختصار إلى توقعات الليلة والغد في تبويب الطاقة */}
+      <Link href="/energy" className="energy-card flex items-center gap-3 p-4 transition hover:border-amber-200 hover:shadow-md">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500"><Moon className="h-5 w-5" aria-hidden="true" /></span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-black text-slate-900">الليلة والغد</span>
+          <span className="block text-xs font-semibold text-slate-500">هل تكفي البطارية حتى الصباح؟ وأفضل وقت لاستخدام الشمس.</span>
+        </span>
+        <ChevronLeft className="h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
+      </Link>
     </div>
   );
 }

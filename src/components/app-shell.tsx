@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { BottomNav, DesktopNav } from '@/components/bottom-nav';
 import LogoutButton from '@/components/logout-button';
+import { StatusBar } from '@/components/status-bar';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -81,6 +82,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <LogoutButton />
+        </div>
+        <div className="mx-auto max-w-5xl px-4 pb-2 sm:px-6">
+          <StatusBar />
         </div>
         <div className="mx-auto max-w-5xl px-4 pb-3 sm:px-6">
           <DesktopNav />
