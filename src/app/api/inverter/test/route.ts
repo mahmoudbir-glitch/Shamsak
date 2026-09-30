@@ -161,7 +161,12 @@ export async function POST(request: NextRequest) {
           parameters: reading.parameters,
         });
       } catch (error) {
-        const message = describeDessError(error);
+        // For a rejected password, say exactly what was sent (never the password
+        // itself) so a stored value that differs from what was typed is visible.
+        const sent = error instanceof Error && /PASSWORD/i.test(error.message)
+          ? ` (الاسم المُرسل: «${username}» — عدد أحرف كلمة المرور المحفوظة: ${password.length})`
+          : "";
+        const message = describeDessError(error) + sent;
         console.error("[inverter] dessmonitor_test_failed", error);
         await prisma.inverterConnection
           .update({ where: { id: row.id }, data: { lastStatus: "error", lastTestResult: "error", lastTestReason: message } })
