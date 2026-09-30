@@ -112,8 +112,9 @@ export default function SettingsPage() {
 
   const selected = useMemo(() => inverters.find((item) => item.id === selectedId) ?? draft, [inverters, selectedId, draft]);
 
-  const load = async () => {
-    setLoading(true); setError("");
+  const load = async (quiet = false) => {
+    if (!quiet) setLoading(true);
+    setError("");
     try {
       const [s, c] = await Promise.all([
         fetch("/api/settings", { cache: "no-store" }),
@@ -254,8 +255,13 @@ export default function SettingsPage() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.message || "فشل اختبار الاتصال.");
       setMessage("تم الاتصال بنجاح" + (data.latencyMs ? " — زمن الاستجابة " + data.latencyMs + " ms." : ".") + (data.stored === false && data.storeProblem ? " لكن لم تُحفظ القراءة: " + data.storeProblem : data.stored ? " تم حفظ القراءة في لوحة التحكم." : ""));
-      await load();
-    } catch (e) { setError(e instanceof Error ? e.message : "تعذر اختبار الاتصال."); }
+      await load(true);
+    } catch (e) {
+      // الخادم سجّل نتيجة الاختبار، فنعيد تحميل الحالة حتى لا تبقى الشارة «متصل» بعد الفشل
+      const reason = e instanceof Error ? e.message : "تعذر اختبار الاتصال.";
+      await load(true);
+      setMessage(""); setError(reason);
+    }
   };
 
   if (loading) return <div dir="rtl" className="p-6 text-center font-black text-slate-600">جاري تحميل الإعدادات…</div>;
