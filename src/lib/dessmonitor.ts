@@ -246,18 +246,27 @@ export function mapReading(body: Record<string, unknown>): DessReading {
   const dat = (body.dat ?? {}) as Record<string, unknown>;
   const parameters: Record<string, { value: string; unit: string }> = {};
 
-  // dat.pars is an object of groups, each an array of {id,par,val,unit}.
-  const pars = (dat.pars ?? {}) as Record<string, unknown>;
-  for (const group of Object.values(pars)) {
-    if (!Array.isArray(group)) continue;
-    for (const entry of group) {
-      if (!entry || typeof entry !== "object") continue;
-      const item = entry as Record<string, unknown>;
-      const label = String(item.par ?? item.id ?? "").trim();
-      if (!label) continue;
-      parameters[label] = { value: String(item.val ?? ""), unit: String(item.unit ?? "") };
+  // The parameter list has been seen as groups of {id, par, val, unit}. The
+  // exact nesting varies by device family, so walk the whole payload for any
+  // object that looks like a labelled value instead of trusting one path.
+  const seen = new Set<unknown>();
+  const visit = (node: unknown, depth: number) => {
+    if (!node || typeof node !== "object" || depth > 6 || seen.has(node)) return;
+    seen.add(node);
+    if (Array.isArray(node)) {
+      for (const child of node) visit(child, depth + 1);
+      return;
     }
-  }
+    const item = node as Record<string, unknown>;
+    const label = item.par ?? item.name ?? item.title ?? item.id;
+    const value = item.val ?? item.value;
+    if (typeof label === "string" && label.trim() && (typeof value === "string" || typeof value === "number")) {
+      parameters[label.trim()] = { value: String(value), unit: String(item.unit ?? "") };
+      return;
+    }
+    for (const child of Object.values(item)) visit(child, depth + 1);
+  };
+  visit(dat, 0);
 
   const reading: DessReading = { parameters, raw: body };
   const entries = Object.entries(parameters);

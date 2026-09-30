@@ -17,6 +17,22 @@ let cachedAuth: { key: string; auth: DessAuth } | null = null;
 let inFlight: Promise<SyncResult> | null = null;
 let lastAttemptAt = 0;
 
+/**
+ * When mapping fails, the only way to fix it is to see what SmartESS actually
+ * sent, so put the labels and values (or the payload's shape) in the message.
+ */
+function describeAvailable(reading: DessReading): string {
+  const entries = Object.entries(reading.parameters);
+  if (entries.length) {
+    const list = entries.slice(0, 60).map(([label, { value, unit }]) => `${label}=${value}${unit}`).join(" | ");
+    return `القيم المتاحة (${entries.length}): ${list}`;
+  }
+  const body = (reading.raw ?? {}) as Record<string, unknown>;
+  const dat = body.dat;
+  const shape = dat && typeof dat === "object" ? Object.keys(dat as object).join(",") : String(dat);
+  return `لم يُرجع SmartESS أي قيم. بنية الرد: dat{${shape}}`;
+}
+
 /** Converts a mapped reading into a stored sample, or says which fields were missing. */
 export async function storeReading(reading: DessReading): Promise<SyncResult> {
   const missing: string[] = [];
@@ -26,7 +42,7 @@ export async function storeReading(reading: DessReading): Promise<SyncResult> {
   if (reading.batteryPowerW === undefined) missing.push("batteryPowerW");
   if (reading.gridConnected === undefined) missing.push("gridConnected");
   if (missing.length) {
-    return { ok: false, reason: `لم تُقرأ الحقول التالية من SmartESS: ${missing.join(", ")}` };
+    return { ok: false, reason: `لم تُقرأ الحقول التالية من SmartESS: ${missing.join(", ")}. ${describeAvailable(reading)}` };
   }
 
   await ingestSample({

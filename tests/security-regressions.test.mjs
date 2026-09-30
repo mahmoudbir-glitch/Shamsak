@@ -306,3 +306,11 @@ test("no component or library module is left without a user", () => {
   });
   assert.deepEqual(orphans, [], `unused modules: ${orphans.join(", ")}`);
 });
+
+test("failed SmartESS mapping reports what was actually received", () => {
+  const sync = read("src/lib/smartess-sync.ts");
+  assert.match(sync, /function describeAvailable/);
+  assert.match(sync, /القيم المتاحة/);
+  // The parameter walk must not depend on a single hard-coded nesting path.
+  assert.match(read("src/lib/dessmonitor.ts"), /const visit = \(node: unknown, depth: number\)/);
+});
