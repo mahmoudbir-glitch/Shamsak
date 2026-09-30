@@ -2,7 +2,9 @@
   "name": "shamsak-private",
   "version": "1.2.0",
   "private": true,
-  "engines": { "node": ">=20.9.0" },
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "prisma migrate deploy && node scripts/prisma-generate.mjs && next build",
@@ -10,7 +12,7 @@
     "start": "next start",
     "verify": "npm run typecheck && npm run lint && npm test",
     "lint": "node scripts/lint.mjs",
-    "test": "node --test \"tests/*.test.mjs\"",
+    "test": "node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",

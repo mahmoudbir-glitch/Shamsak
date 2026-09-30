@@ -94,6 +94,24 @@ test("telemetry ingest reports a missing ingest token instead of a bare 401", ()
   assert.match(source, /timingSafeEqual/);
 });
 
+test("RLS migration does not assume Supabase roles exist", () => {
+  // Deployed as-is, `CREATE POLICY ... TO anon` aborted with `role "anon" does
+  // not exist` on Prisma Postgres, leaving a failed migration that blocked every
+  // later deploy with P3009. RLS itself must still be enabled unconditionally.
+  const source = read("prisma/migrations/20260930140000_enable_rls_deny_public_roles/migration.sql");
+  assert.match(source, /ALTER TABLE "InverterConnection" ENABLE ROW LEVEL SECURITY/);
+  assert.match(source, /ALTER TABLE "EnergySettings" ENABLE ROW LEVEL SECURITY/);
+  assert.match(source, /FROM pg_roles WHERE rolname/, "policies must be guarded by a role-existence check");
+  assert.doesNotMatch(source, /^\s*CREATE POLICY .* TO (anon|authenticated)/m, "no unguarded CREATE POLICY for a Supabase role");
+});
+
+test("the test script survives the Node version CI runs", () => {
+  // `node --test tests` treats the directory as one test file, and a quoted
+  // glob is not expanded by Node 20. The glob must reach the shell unquoted.
+  const pkg = JSON.parse(read("package.json"));
+  assert.equal(pkg.scripts.test, "node --test tests/*.test.mjs");
+});
+
 test("gateway SSRF guard blocks loopback and private IPv4 ranges", () => {
   const source = read("src/lib/net-guard.ts");
   assert.match(source, /127\.0\.0\.1/);
