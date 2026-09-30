@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { decryptSecret } from "@/lib/inverter-config-crypto";
-import { authenticate, describeDessError, listDevices, readLastData, type DessAuth, type DessReading } from "@/lib/dessmonitor";
+import { decryptSecret, encryptSecret } from "@/lib/inverter-config-crypto";
+import { authenticate, DessError, describeDessError, listDevices, readLastData, type DessAuth, type DessReading } from "@/lib/dessmonitor";
 import { ingestSample } from "@/lib/telemetry-store";
 
 /**
@@ -89,12 +89,33 @@ async function run(): Promise<SyncResult> {
   // Kept short: this runs in the background of a dashboard request.
   const timeout = 8000;
 
+  // Logging in from here can end the session of the owner's phone app, so a
+  // login is reused for as long as SmartESS honours it: first from memory, then
+  // from the encrypted copy in the database (serverless instances come and go),
+  // and only then by signing in again. Saving the connection form clears it.
+  const savePersistedAuth = async (auth: DessAuth | null) => {
+    const next = { ...extras };
+    if (auth) next.dessAuth = { username, auth };
+    else delete next.dessAuth;
+    await prisma.inverterConnection
+      .update({ where: { id: row.id }, data: { inverterLinkCode: encryptSecret(JSON.stringify(next)) } })
+      .catch((error) => console.error("[smartess] persist_auth_failed", error));
+  };
+
   try {
     const key = `${username}\u0000${password.length}`;
-    if (!cachedAuth || cachedAuth.key !== key || cachedAuth.auth.expiresAt < Date.now()) {
-      cachedAuth = { key, auth: await authenticate({ username, password, baseUrl: cloudUrl }, timeout) };
+    let auth: DessAuth | null = cachedAuth && cachedAuth.key === key && cachedAuth.auth.expiresAt > Date.now() ? cachedAuth.auth : null;
+    if (!auth) {
+      const saved = extras.dessAuth as { username?: string; auth?: DessAuth } | undefined;
+      if (saved?.username === username && saved.auth && saved.auth.token && saved.auth.secret && saved.auth.expiresAt > Date.now()) {
+        auth = saved.auth;
+      }
     }
-    const auth = cachedAuth.auth;
+    if (!auth) {
+      auth = await authenticate({ username, password, baseUrl: cloudUrl }, timeout);
+      await savePersistedAuth(auth);
+    }
+    cachedAuth = { key, auth };
 
     const devices = await listDevices(auth, cloudUrl, timeout);
     const wanted = (row.dataloggerPn || "").trim();
@@ -125,6 +146,11 @@ async function run(): Promise<SyncResult> {
   } catch (error) {
     // A rejected login must be retried with fresh credentials, not a cached token.
     cachedAuth = null;
+    // Only a rejected token justifies signing in again; a timeout must not
+    // trigger another login, which is what could end the phone app's session.
+    if (extras.dessAuth && error instanceof DessError && /token|sign|expire|auth|secret/i.test(error.message)) {
+      await savePersistedAuth(null);
+    }
     console.error("[smartess] sync_failed", error);
     return await fail(describeDessError(error));
   }

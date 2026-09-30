@@ -314,3 +314,11 @@ test("failed SmartESS mapping reports what was actually received", () => {
   // The parameter walk must not depend on a single hard-coded nesting path.
   assert.match(read("src/lib/dessmonitor.ts"), /const visit = \(node: unknown, depth: number\)/);
 });
+
+test("SmartESS login is reused so the owner's phone app is not signed out repeatedly", () => {
+  const sync = read("src/lib/smartess-sync.ts");
+  assert.match(sync, /savePersistedAuth\(auth\)/);
+  assert.match(sync, /extras\.dessAuth/);
+  // A timeout is not evidence of a bad token, so it must not force a new login.
+  assert.match(sync, /error instanceof DessError && \/token\|sign\|expire\|auth\|secret\/i/);
+});
