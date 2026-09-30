@@ -379,7 +379,10 @@ export function mapReading(body: Record<string, unknown>): DessReading {
       if (expectedUnit && unit && !unit.includes(expectedUnit)) continue;
       const numeric = toNumber(value);
       if (numeric === undefined) continue;
-      (reading as Record<string, unknown>)[field] = numeric;
+      // "kW".includes("W") is true, so a kilowatt value passed the unit check
+      // and -0.547 kW was stored as -0.547 W (battery shown as idle). Scale it.
+      const scaled = expectedUnit === "W" && /^\s*kw\b/i.test(unit) ? numeric * 1000 : numeric;
+      (reading as Record<string, unknown>)[field] = scaled;
       break;
     }
   }

@@ -362,3 +362,8 @@ test("background sync reuses the remembered device and survives a slow SmartESS"
   assert.match(read("src/app/api/inverter/test/route.ts"), /dessDevice: target/);
   assert.match(read("src/app/api/inverter/connection/route.ts"), /merged\.dessDevice = stored\.dessDevice/);
 });
+
+test("kilowatt readings are scaled to watts", () => {
+  // Battery power arrived as -0.547 kW and was shown as 0.547 W / idle.
+  assert.match(read("src/lib/dessmonitor.ts"), /expectedUnit === "W" && \/\^\\s\*kw\\b\/i\.test\(unit\) \? numeric \* 1000/);
+});
