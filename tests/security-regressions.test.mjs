@@ -137,6 +137,40 @@ test("stored defaults match the inverter's own load-transfer thresholds", () => 
   assert.match(schema, /backToGridVoltage Float\? @default\(52\.0\)/);
 });
 
+test("SmartESS mapper recognises the labels this installation reports", () => {
+  // Observed live in SmartESS for device SN 55355535553555:
+  //   Grid 0.00V, PV 132W, Battery 75%, Load 194W,
+  //   AC output 230.00V, Battery discharge current 1.00A.
+  const source = read("src/lib/dessmonitor.ts");
+  const patternFor = (field) => {
+    const match = source.match(new RegExp(`\\["${field}", (/[^/]+/i)`));
+    assert.ok(match, `no pattern declared for ${field}`);
+    const body = match[1].slice(1, match[1].lastIndexOf("/"));
+    return new RegExp(body, "i");
+  };
+
+  const observed = {
+    solarPowerW: "PV Input Power",
+    loadPowerW: "Output Active Power",
+    batterySoc: "Battery Capacity",
+    batteryVoltage: "Battery Voltage",
+    acOutputVoltage: "AC Output Voltage",
+    gridVoltage: "Grid Voltage",
+  };
+  for (const [field, label] of Object.entries(observed)) {
+    assert.ok(patternFor(field).test(label), `${field} must match the label "${label}"`);
+  }
+
+  // "AC Output Voltage" must not be mistaken for the grid feed: the two read
+  // 230V and 0V at the same moment, so confusing them inverts grid status.
+  assert.ok(!patternFor("gridVoltage").test("AC Output Voltage"));
+
+  // Charge and discharge arrive as separate one-way parameters and have to
+  // become one signed number, or a discharging battery looks like a charging one.
+  assert.match(source, /reading\.batteryCurrent = -Math\.abs\(discharge\)/);
+  assert.match(source, /reading\.batteryCurrent = Math\.abs\(charge\)/);
+});
+
 test("gateway SSRF guard blocks loopback and private IPv4 ranges", () => {
   const source = read("src/lib/net-guard.ts");
   assert.match(source, /127\.0\.0\.1/);

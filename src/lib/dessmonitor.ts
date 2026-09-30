@@ -172,6 +172,7 @@ export type DessReading = {
   batteryCurrent?: number;
   batteryPowerW?: number;
   batteryTemperature?: number;
+  acOutputVoltage?: number;
   gridVoltage?: number;
   gridPowerW?: number;
   gridConnected?: boolean;
@@ -183,21 +184,34 @@ export type DessReading = {
 
 /**
  * Parameter labels differ between firmware versions and device codes, so the
- * mapper matches on substrings of the human-readable label rather than on a
- * fixed key. Anything it cannot place still reaches the caller through
- * `parameters`, and `raw` keeps the untouched body.
+ * mapper matches on the human-readable label rather than a fixed key.
+ *
+ * The patterns below are anchored on labels observed in the SmartESS app for
+ * this installation (device SN 55355535553555): "AC output voltage",
+ * "Battery discharge current", "Grid voltage", plus the flow-diagram values for
+ * solar power, load and battery percentage. Other spellings this class of
+ * device is known to use are accepted too. Anything unmatched still reaches the
+ * caller through `parameters`, and `raw` keeps the untouched body.
  */
 const FIELD_PATTERNS: Array<[keyof DessReading, RegExp, string?]> = [
-  ["solarPowerW", /\b(pv|solar).*(power|输出功率)\b/i, "W"],
-  ["loadPowerW", /\b(load|output).*(power|active)\b/i, "W"],
-  ["batterySoc", /\b(battery|batt).*(capacity|soc|percent)\b/i, "%"],
-  ["batteryVoltage", /\b(battery|batt).*voltage\b/i, "V"],
-  ["batteryCurrent", /\b(battery|batt).*current\b/i, "A"],
-  ["batteryPowerW", /\b(battery|batt).*power\b/i, "W"],
-  ["batteryTemperature", /\b(battery|batt).*temp/i, "°C"],
-  ["gridVoltage", /\b(grid|utility|ac\s*input).*voltage\b/i, "V"],
-  ["gridPowerW", /\b(grid|utility).*power\b/i, "W"],
+  ["solarPowerW", /\b(pv|solar)\b.*\b(power|charging power)\b/i, "W"],
+  ["loadPowerW", /\b(load|output)\b.*\b(power|apparent|active)\b/i, "W"],
+  ["batterySoc", /\b(battery|batt)\b.*\b(capacity|soc|percent|level)\b/i, "%"],
+  ["batteryVoltage", /\b(battery|batt)\b.*\bvoltage\b/i, "V"],
+  ["batteryPowerW", /\b(battery|batt)\b.*\bpower\b/i, "W"],
+  ["batteryTemperature", /\b(battery|batt)\b.*\btemp/i],
+  ["acOutputVoltage", /\bac\s*output\b.*\bvoltage\b/i, "V"],
+  ["gridVoltage", /\b(grid|utility|ac\s*input|mains)\b.*\bvoltage\b/i, "V"],
+  ["gridPowerW", /\b(grid|utility|mains)\b.*\bpower\b/i, "W"],
 ];
+
+/**
+ * Battery current is reported as two separate one-way parameters. The app's
+ * convention is a single signed number: positive charging, negative discharging.
+ */
+const CHARGE_CURRENT = /\b(battery|batt)\b.*\bchargn?(e|ing)?\b.*\bcurrent\b/i;
+const DISCHARGE_CURRENT = /\b(battery|batt)\b.*\bdischarg\w*\b.*\bcurrent\b/i;
+const GENERIC_CURRENT = /\b(battery|batt)\b.*\bcurrent\b/i;
 
 function toNumber(value: string) {
   const parsed = Number(String(value).replace(/[^\d.+-]/g, ""));
@@ -222,12 +236,13 @@ export function mapReading(body: Record<string, unknown>): DessReading {
   }
 
   const reading: DessReading = { parameters, raw: body };
+  const entries = Object.entries(parameters);
 
   for (const [field, pattern, expectedUnit] of FIELD_PATTERNS) {
     if (reading[field] !== undefined) continue;
-    for (const [label, { value, unit }] of Object.entries(parameters)) {
+    for (const [label, { value, unit }] of entries) {
       if (!pattern.test(label)) continue;
-      if (expectedUnit && unit && unit !== expectedUnit && !unit.includes(expectedUnit)) continue;
+      if (expectedUnit && unit && !unit.includes(expectedUnit)) continue;
       const numeric = toNumber(value);
       if (numeric === undefined) continue;
       (reading as Record<string, unknown>)[field] = numeric;
@@ -235,8 +250,32 @@ export function mapReading(body: Record<string, unknown>): DessReading {
     }
   }
 
+  // Signed battery current: charging positive, discharging negative. A
+  // one-way parameter reading 0 means that direction is simply inactive, so
+  // whichever is non-zero wins rather than whichever appears first.
+  let charge: number | undefined;
+  let discharge: number | undefined;
+  let generic: number | undefined;
+  for (const [label, { value }] of entries) {
+    const numeric = toNumber(value);
+    if (numeric === undefined) continue;
+    if (DISCHARGE_CURRENT.test(label)) discharge ??= numeric;
+    else if (CHARGE_CURRENT.test(label)) charge ??= numeric;
+    else if (GENERIC_CURRENT.test(label)) generic ??= numeric;
+  }
+  if (charge !== undefined && charge !== 0) reading.batteryCurrent = Math.abs(charge);
+  else if (discharge !== undefined && discharge !== 0) reading.batteryCurrent = -Math.abs(discharge);
+  else if (generic !== undefined) reading.batteryCurrent = generic;
+  else if (charge !== undefined || discharge !== undefined) reading.batteryCurrent = 0;
+
+  // Derive battery power when only voltage and current are reported.
+  if (reading.batteryPowerW === undefined && reading.batteryVoltage !== undefined && reading.batteryCurrent !== undefined) {
+    reading.batteryPowerW = Math.round(reading.batteryVoltage * reading.batteryCurrent);
+  }
+
   if (reading.gridVoltage !== undefined) {
     // Lebanon's grid is out more often than not; a dead AC input reads 0V.
+    // Anything under 50V is not a live 230V mains.
     reading.gridConnected = reading.gridVoltage > 50;
   }
 
