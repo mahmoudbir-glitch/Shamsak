@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { storeReading } from "@/lib/smartess-sync";
 import { assertPublicEndpoint, PrivateEndpointError } from "@/lib/net-guard";
-import { decryptSecret } from "@/lib/inverter-config-crypto";
+import { decryptSecret, encryptSecret } from "@/lib/inverter-config-crypto";
 import { authenticate, describeDessError, listDevices, pickDevice, readLastData } from "@/lib/dessmonitor";
 
 export const runtime = "nodejs";
@@ -88,6 +88,14 @@ export async function POST(request: NextRequest) {
           remoteTimeout(row.timeoutMs),
         );
 
+        // If a different spelling of the user name is the one SmartESS accepted,
+        // store it so later logins (and the background sync) use it directly.
+        if (auth.usr && auth.usr !== username) {
+          await prisma.inverterConnection
+            .update({ where: { id: row.id }, data: { inverterLinkCode: encryptSecret(JSON.stringify({ ...extras, cloudUsername: auth.usr })) } })
+            .catch((error) => console.error("[inverter] username_update_failed", error));
+        }
+
         // devcode/devaddr are not printed on the dongle, so they are discovered
         // from the account rather than asked of the user.
         const devices = await listDevices(auth, cloudUrl, remoteTimeout(row.timeoutMs));
@@ -164,7 +172,7 @@ export async function POST(request: NextRequest) {
         // For a rejected password, say exactly what was sent (never the password
         // itself) so a stored value that differs from what was typed is visible.
         const sent = error instanceof Error && /PASSWORD/i.test(error.message)
-          ? ` (الاسم المُرسل: «${username}» — عدد أحرف كلمة المرور المحفوظة: ${password.length})`
+          ? ` (الاسم المُرسل: «${username}» وجُرّبت كتاباته الأخرى بالأحرف الكبيرة والصغيرة — عدد أحرف كلمة المرور المحفوظة: ${password.length})`
           : "";
         const message = describeDessError(error) + sent;
         console.error("[inverter] dessmonitor_test_failed", error);

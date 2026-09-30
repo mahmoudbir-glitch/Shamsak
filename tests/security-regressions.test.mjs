@@ -250,11 +250,13 @@ test("SmartESS error codes are explained in plain language", () => {
   assert.match(read("src/app/api/inverter/test/route.ts"), /describeDessError\(error\)/);
 });
 
-test("SmartESS login retries user-name spelling only on unknown-user errors", () => {
+test("SmartESS login retries user-name spellings on unknown-user or wrong-password errors only", () => {
   const source = read("src/lib/dessmonitor.ts");
-  assert.match(source, /NOT_FOUND_USR/);
-  // A wrong password must surface at once rather than be retried with variants.
-  assert.match(source, /if \(!\(error instanceof DessError\) \|\| !\/NOT_FOUND_USR\/i\.test\(error\.message\)\) throw error;/);
+  // "plugpro" can be someone else's account that rejects the password, while
+  // the owner's is "Plugpro"; network or server errors must not be retried.
+  assert.match(source, /if \(!\(error instanceof DessError\) \|\| !\/NOT_FOUND_USR\|PASSWORD\/i\.test\(error\.message\)\) throw error;/);
+  // The spelling SmartESS accepted is stored for later logins.
+  assert.match(read("src/app/api/inverter/test/route.ts"), /cloudUsername: auth\.usr/);
 });
 
 test("forecast uses the saved settings, not localStorage keys nothing writes", () => {

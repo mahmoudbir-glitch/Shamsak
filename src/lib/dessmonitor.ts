@@ -104,25 +104,33 @@ async function call(
 /**
  * SmartESS user names are case-sensitive and phone keyboards silently
  * lower-case or capitalise them, so "Mahmoudbir" typed as "mahmoudbir" is
- * reported as an unknown user. On that specific error, retry the common
- * spellings before giving up. Any other error (wrong password, network) is
- * returned immediately so a bad password is never guessed at.
+ * reported as an unknown user, or matched to someone else's account that
+ * rejects the password. On either error, retry a few common spellings with the
+ * same password; any other error (network, server) is returned immediately.
  */
 export async function authenticate(config: DessConfig, timeoutMs = 15000): Promise<DessAuth> {
   const typed = config.username.trim();
   const variants = Array.from(
-    new Set([typed, typed.charAt(0).toUpperCase() + typed.slice(1), typed.toLowerCase()]),
+    new Set([
+      typed,
+      typed.charAt(0).toUpperCase() + typed.slice(1),
+      typed.toLowerCase(),
+      typed.toUpperCase(),
+    ]),
   );
-  let lastError: unknown;
+  // A lower-case spelling can belong to a different person's account, which
+  // answers "wrong password" rather than "unknown user". So both errors move on
+  // to the next spelling; any other error (network, server) stops at once.
+  let firstError: unknown;
   for (const username of variants) {
     try {
       return await authenticateExact({ ...config, username }, timeoutMs);
     } catch (error) {
-      lastError = error;
-      if (!(error instanceof DessError) || !/NOT_FOUND_USR/i.test(error.message)) throw error;
+      firstError ??= error;
+      if (!(error instanceof DessError) || !/NOT_FOUND_USR|PASSWORD/i.test(error.message)) throw error;
     }
   }
-  throw lastError;
+  throw firstError;
 }
 
 /** Logs in and returns the token/secret pair used to sign later requests. */
