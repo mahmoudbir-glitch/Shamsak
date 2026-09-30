@@ -72,6 +72,7 @@ async function run(): Promise<SyncResult> {
   if (!row) return { ok: false, skipped: true, reason: "no_wifi_datalogger_connection" };
 
   const fail = async (reason: string): Promise<SyncResult> => {
+    console.warn("[smartess] sync_not_stored", reason);
     await prisma.inverterConnection
       .update({ where: { id: row.id }, data: { lastStatus: "error", lastTestReason: reason } })
       .catch(() => {});
@@ -87,7 +88,10 @@ async function run(): Promise<SyncResult> {
   }
   const username = typeof extras.cloudUsername === "string" ? extras.cloudUsername : "";
   const password = typeof extras.cloudPassword === "string" ? extras.cloudPassword : "";
-  if (!username || !password) return { ok: false, skipped: true, reason: "cloud_credentials_missing" };
+  if (!username || !password) {
+    console.warn("[smartess] sync_skipped cloud_credentials_missing");
+    return { ok: false, skipped: true, reason: "cloud_credentials_missing" };
+  }
 
   const cloudUrl = process.env.SHAMSAK_DESSMONITOR_URL || undefined;
   // Kept short: this runs in the background of a dashboard request.

@@ -371,6 +371,7 @@ export default function SettingsPage() {
           </details>
 
           <p className="text-xs font-bold text-slate-500">آخر قراءة: {draft.lastSeenAt ? new Date(draft.lastSeenAt).toLocaleString("ar-u-nu-latn") : "لا توجد"}</p>
+          {draft.lastStatus === "error" && draft.lastTestReason && <p className="rounded-xl bg-rose-50 p-3 text-xs font-bold leading-5 text-rose-700">سبب عدم الاتصال: {draft.lastTestReason}</p>}
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => void testConnection()} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-700"><Plug className="h-4 w-4" aria-hidden="true" />اختبار الاتصال</button>
             <button type="button" onClick={addInverter} className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-200"><Plus className="h-4 w-4" aria-hidden="true" />إضافة إنفرتر</button>
