@@ -508,9 +508,9 @@ export default function SettingsPage() {
       {!draft && <button type="button" onClick={addInverter} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-4 font-black text-white shadow-lg transition hover:bg-blue-700"><Plus className="h-5 w-5" aria-hidden="true" />أضف أول إنفرتر للبدء</button>}
       {query.trim() && <p className="rounded-2xl bg-white p-4 text-center text-sm font-bold text-slate-500">لا توجد نتائج أخرى مطابقة للبحث.</p>}
 
-      {/* شريط حفظ ثابت في الأسفل (فوق شريط التنقل على الجوال) */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 px-3 md:bottom-4">
-        <div className="pointer-events-auto mx-auto flex max-w-3xl items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-xl backdrop-blur">
+      {/* شريط الحفظ في نهاية الصفحة (غير ثابت) */}
+      <div>
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
           <span className={"text-xs font-black " + (dirty ? "text-amber-600" : "text-slate-500")}>{dirty ? "● لديك تغييرات غير محفوظة" : "كل التغييرات محفوظة"}</span>
           <button type="button" disabled={saving} onClick={() => void saveAll()} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-blue-700 focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50">
             <Save className="h-4 w-4" aria-hidden="true" />{saving ? "جاري الحفظ…" : "حفظ التغييرات"}
