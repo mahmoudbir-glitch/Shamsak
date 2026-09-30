@@ -101,8 +101,32 @@ async function call(
   return body;
 }
 
-/** Logs in and returns the token/secret pair used to sign later requests. */
+/**
+ * SmartESS user names are case-sensitive and phone keyboards silently
+ * lower-case or capitalise them, so "Mahmoudbir" typed as "mahmoudbir" is
+ * reported as an unknown user. On that specific error, retry the common
+ * spellings before giving up. Any other error (wrong password, network) is
+ * returned immediately so a bad password is never guessed at.
+ */
 export async function authenticate(config: DessConfig, timeoutMs = 15000): Promise<DessAuth> {
+  const typed = config.username.trim();
+  const variants = Array.from(
+    new Set([typed, typed.charAt(0).toUpperCase() + typed.slice(1), typed.toLowerCase()]),
+  );
+  let lastError: unknown;
+  for (const username of variants) {
+    try {
+      return await authenticateExact({ ...config, username }, timeoutMs);
+    } catch (error) {
+      lastError = error;
+      if (!(error instanceof DessError) || !/NOT_FOUND_USR/i.test(error.message)) throw error;
+    }
+  }
+  throw lastError;
+}
+
+/** Logs in and returns the token/secret pair used to sign later requests. */
+async function authenticateExact(config: DessConfig, timeoutMs = 15000): Promise<DessAuth> {
   const baseUrl = config.baseUrl || DEFAULT_BASE_URL;
   const salt = String(Date.now());
   const actionString = buildActionString("authSource", {

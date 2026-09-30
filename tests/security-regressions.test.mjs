@@ -249,3 +249,10 @@ test("SmartESS error codes are explained in plain language", () => {
   }
   assert.match(read("src/app/api/inverter/test/route.ts"), /describeDessError\(error\)/);
 });
+
+test("SmartESS login retries user-name spelling only on unknown-user errors", () => {
+  const source = read("src/lib/dessmonitor.ts");
+  assert.match(source, /NOT_FOUND_USR/);
+  // A wrong password must surface at once rather than be retried with variants.
+  assert.match(source, /if \(!\(error instanceof DessError\) \|\| !\/NOT_FOUND_USR\/i\.test\(error\.message\)\) throw error;/);
+});
