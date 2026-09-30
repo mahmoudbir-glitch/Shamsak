@@ -154,8 +154,8 @@ export default function SettingsPage() {
   const addInverter = () => {
     const item: Inverter = {
       id: "", systemName: "منظومة شمسك", inverterModel: "NEXT - Victor Max 8.2KW", manufacturer: "Next Power",
-      dataloggerPn: "Q3721031635481", dataloggerType: "Wi-Fi Plug Pro RTU", dataloggerFirmware: "3.1.1.0", dataloggerStationName: "home",
-      dataloggerDeviceIdentifier: "55355535553555", dataloggerUpdateIntervalSec: 300, dataloggerCloud: "SmartESS / DESSMonitor",
+      dataloggerPn: "Q0031255230580", dataloggerType: "Wi-Fi Plug Pro RTU", dataloggerFirmware: "", dataloggerStationName: "",
+      dataloggerDeviceIdentifier: "", dataloggerUpdateIntervalSec: 300, dataloggerCloud: "SmartESS / DESSMonitor",
       protocol: "Wi-Fi Datalogger", serialPort: "", port: 502, baudRate: 9600, dataBits: 8, stopBits: 1, parity: "N",
       slaveId: 1, timeoutMs: 1000, pollingIntervalMs: 10000, gatewayUrl: "", gatewayName: "", connectionMode: "gateway",
       enabled: true, isPrimary: inverters.length === 0, lastStatus: "unknown",
