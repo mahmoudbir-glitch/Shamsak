@@ -123,7 +123,7 @@ export default function SettingsPage() {
       if (!draft) {
         setMessage("تم حفظ إعدادات المنظومة. أضف إنفرترًا لاحقاً لإعداد الاتصال.");
         await load();
-        return;
+        return true;
       }
 
       const connectionResponse = await fetch("/api/inverter/connection", {
@@ -146,7 +146,8 @@ export default function SettingsPage() {
       if (!connectionResponse.ok) throw new Error(connectionData.message || "تعذر حفظ إعدادات الإنفرتر.");
       setMessage("تم حفظ إعدادات المنظومة والإنفرتر بنجاح.");
       await load();
-    } catch (e) { setError(e instanceof Error ? e.message : "تعذر الحفظ. لم تُحذف القيم السابقة."); }
+      return true;
+    } catch (e) { setError(e instanceof Error ? e.message : "تعذر الحفظ. لم تُحذف القيم السابقة."); return false; }
     finally { setSaving(false); }
   };
 
@@ -191,6 +192,9 @@ export default function SettingsPage() {
   };
 
   const testConnection = async () => {
+    // The server tests what is stored, not what is typed in the form, so a
+    // password typed but not yet saved would always report "missing". Save first.
+    if (!(await saveAll())) return;
     setMessage("جاري اختبار الاتصال…"); setError("");
     try {
       const response = await fetch("/api/inverter/test", { method: "POST", cache: "no-store", headers: newToken ? { Authorization: "Bearer " + newToken } : undefined });

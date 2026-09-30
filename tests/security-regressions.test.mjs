@@ -212,3 +212,11 @@ test("gateway token is recoverable so connection tests authenticate", () => {
   assert.match(test, /decryptSecret/);
   assert.match(read("prisma/schema.prisma"), /gatewayTokenCipher String\?/);
 });
+
+test("connection test saves the form first so typed credentials are used", () => {
+  // The test route reads stored credentials; testing before saving reported
+  // "credentials missing" even though the owner had just typed them.
+  const page = read("src/app/settings/page.tsx");
+  const test = page.slice(page.indexOf("const testConnection"));
+  assert.match(test.slice(0, 400), /await saveAll\(\)/);
+});
