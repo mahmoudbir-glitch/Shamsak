@@ -62,7 +62,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="التنقل السفلي"
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200/80 bg-white/95 px-2 pt-2 shadow-[0_-10px_35px_rgba(15,23,42,0.10)] backdrop-blur-xl md:hidden"
+      className="fixed inset-x-2 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-50 mx-auto max-w-lg rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-2 shadow-[0_10px_35px_rgba(15,23,42,0.14)] backdrop-blur-xl md:hidden"
     >
       <div className="mx-auto grid max-w-lg grid-cols-6 gap-1">
         {navItems.map(({ href, label, Icon }) => {
@@ -87,7 +87,6 @@ export function BottomNav() {
           );
         })}
       </div>
-      <div className="h-[env(safe-area-inset-bottom)]" />
     </nav>
   );
 }
