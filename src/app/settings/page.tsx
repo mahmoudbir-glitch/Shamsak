@@ -59,29 +59,6 @@ function SettingsSection({ icon, title, subtitle, children, open = false }: { ic
   );
 }
 
-function CopyableInput({ value, onChange, className, placeholder }: { value: string; onChange: (value: string) => void; className: string; placeholder?: string }) {
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
-    if (!value) return;
-    try {
-      await navigator.clipboard.writeText(value);
-    } catch {
-      // Clipboard API is unavailable on non-secure origins; fall back to selection.
-      const area = document.createElement("textarea");
-      area.value = value; document.body.appendChild(area); area.select();
-      try { document.execCommand("copy"); } catch { /* nothing more to try */ }
-      document.body.removeChild(area);
-    }
-    setCopied(true); setTimeout(() => setCopied(false), 1500);
-  };
-  return (
-    <span className="flex items-center gap-2">
-      <input dir="ltr" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className={className + " flex-1"} />
-      <button type="button" onClick={copy} disabled={!value} aria-label="نسخ" className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 disabled:opacity-40">{copied ? "تم النسخ ✓" : "نسخ"}</button>
-    </span>
-  );
-}
-
 function SettingsField({ label, children, className = "" }: { label: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
     <label className={"block space-y-2 " + className}>
@@ -283,8 +260,8 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between gap-2"><div><h3 className="font-black text-slate-900">تفاصيل الاتصال</h3><p className="mt-0.5 text-xs font-semibold text-slate-500">البيانات الأساسية ثم الخيارات المتقدمة عند الحاجة.</p></div><span className={"rounded-full px-3 py-1.5 text-xs font-black " + (draft.lastStatus === "connected" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600")}>{draft.lastStatus === "connected" ? "متصل" : draft.lastStatus === "error" ? "غير متصل" : "غير معروف"}</span></div>
           <div className="grid gap-3 sm:grid-cols-2">
             <SettingsField label="اسم المنظومة"><input value={draft.systemName} onChange={(e) => updateDraft("systemName", e.target.value)} className={input} /></SettingsField>
-            <SettingsField label="الرقم التسلسلي (SN)"><CopyableInput value={draft.serialNumber || ""} onChange={(v) => updateDraft("serialNumber", v)} placeholder="مثلاً: SN123456789" className={input} /></SettingsField>
-            <SettingsField label="رقم Datalogger (PN)"><CopyableInput value={draft.dataloggerPn || ""} onChange={(v) => updateDraft("dataloggerPn", v)} className={input} /></SettingsField>
+            <SettingsField label="الرقم التسلسلي (SN)"><input dir="ltr" value={draft.serialNumber || ""} onChange={(e) => updateDraft("serialNumber", e.target.value)} placeholder="مثلاً: SN123456789" className={input} /></SettingsField>
+            <SettingsField label="رقم Datalogger (PN)"><input dir="ltr" value={draft.dataloggerPn || ""} onChange={(e) => updateDraft("dataloggerPn", e.target.value)} className={input} /></SettingsField>
             <SettingsField label="محطة SmartESS"><input dir="ltr" value={draft.dataloggerStationName || ""} onChange={(e) => updateDraft("dataloggerStationName", e.target.value)} className={input} /></SettingsField>
             <SettingsField label="نوع / موديل الإنفرتر"><select value={draft.inverterModel} onChange={(e) => updateDraft("inverterModel", e.target.value)} className={input}><option>NEXT - Victor Max 8.2KW</option><option>Deye</option><option>Growatt</option><option>Voltronic</option><option>غير ذلك</option></select></SettingsField>
             <SettingsField label="نوع الاتصال"><select value={draft.protocol} onChange={(e) => updateDraft("protocol", e.target.value as Protocol)} className={input}><option>Modbus TCP</option><option>Modbus RTU</option><option>MQTT</option><option>Cloud API</option><option>Wi-Fi Datalogger</option></select></SettingsField>
@@ -300,7 +277,7 @@ export default function SettingsPage() {
                 <SettingsField label="كلمة مرور SmartESS"><input dir="ltr" type="password" autoComplete="current-password" onChange={(e) => updateDraft("cloudPassword" as keyof Inverter, e.target.value)} placeholder={draft.hasCloudCredential ? "محفوظة — اتركها فارغة للإبقاء عليها" : "كلمة مرور تطبيق SmartESS"} className={input} /></SettingsField>
                 <SettingsField label="نوع الدنجل"><input dir="ltr" value={draft.dataloggerType || ""} onChange={(e) => updateDraft("dataloggerType", e.target.value)} className={input} /></SettingsField>
                 <SettingsField label="Firmware"><input dir="ltr" value={draft.dataloggerFirmware || ""} onChange={(e) => updateDraft("dataloggerFirmware", e.target.value)} className={input} /></SettingsField>
-                <SettingsField label="معرّف الجهاز الظاهر في SmartESS"><CopyableInput value={draft.dataloggerDeviceIdentifier || ""} onChange={(v) => updateDraft("dataloggerDeviceIdentifier", v)} className={input} /></SettingsField>
+                <SettingsField label="معرّف الجهاز الظاهر في SmartESS"><input dir="ltr" value={draft.dataloggerDeviceIdentifier || ""} onChange={(e) => updateDraft("dataloggerDeviceIdentifier", e.target.value)} className={input} /></SettingsField>
                 <SettingsField label="تحديث الدنجل (ثانية)"><input dir="ltr" type="number" min={30} value={draft.dataloggerUpdateIntervalSec || 300} onChange={(e) => updateDraft("dataloggerUpdateIntervalSec", Number(e.target.value))} className={input} /></SettingsField>
                 <SettingsField label="المنصة"><input dir="ltr" value={draft.dataloggerCloud || "SmartESS / DESSMonitor"} onChange={(e) => updateDraft("dataloggerCloud", e.target.value)} className={input} /></SettingsField>
               </div>
