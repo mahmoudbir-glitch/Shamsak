@@ -129,6 +129,13 @@ export function SmartForecast() {
   const current = weather?.current;
   const surplus = useMemo(() => findSurplusWindow(selected), [selected]);
 
+  // Arriving from the home card ("/energy#night"): the section only exists
+  // after the forecast loads, so scroll once it is rendered.
+  useEffect(() => {
+    if (!forecasts.length || typeof window === "undefined" || window.location.hash !== "#night") return;
+    requestAnimationFrame(() => document.getElementById("night")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }, [forecasts.length]);
+
   const currentNight = useMemo(() => {
     if (!forecasts.length) return null;
     const now = Date.now();
@@ -275,7 +282,7 @@ export function SmartForecast() {
           </section>
 
 
-          <section className="energy-card p-5">
+          <section id="night" className="energy-card scroll-mt-40 p-5">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-black text-slate-900">🌙 كفاية الليل</h2>
               <InfoTip label="كيف نحسب كفاية الليل" title="كفاية الليل">
