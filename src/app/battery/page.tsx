@@ -1,14 +1,42 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { BatteryCharging, Loader2 } from "lucide-react";
+import { BatteryCharging, Clock, Gauge, Loader2, Thermometer, Zap } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
-import { batteryState, batteryStateLabel, batteryTone, semanticBg, semanticBorder, semanticIcon, semanticText } from "@/lib/energy";
+import { batteryState, batteryStateLabel, batteryTone, semanticText } from "@/lib/energy";
+import { LiveBadge, PageHeader } from "@/components/page-header";
 
 const REFRESH_MS = 15_000;
+const RADIUS = 54;
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+
+type BatterySettings = { batteryCapacityWh: number; batteryMinReservePct: number };
+
+/** تقدير الوقت المتبقي حتى الاكتمال أو حتى حدّ الاحتياطي، من السعة والقدرة الحالية. */
+function estimate(soc: number, powerW: number, settings: BatterySettings | null) {
+  if (!settings || Math.abs(powerW) < 50) return null;
+  const capacity = settings.batteryCapacityWh;
+  const charging = powerW > 0;
+  const energyWh = charging ? ((100 - soc) / 100) * capacity : (Math.max(0, soc - settings.batteryMinReservePct) / 100) * capacity;
+  const hours = energyWh / Math.abs(powerW);
+  if (!Number.isFinite(hours)) return null;
+  const label = hours > 48 ? "أكثر من 48 ساعة" : hours < 1 / 60 ? "أقل من دقيقة" : `${Math.floor(hours)} ساعة و${Math.round((hours % 1) * 60)} دقيقة`;
+  return { charging, label };
+}
+
+/** بطاقة قياس صغيرة: أيقونة + قيمة + اسم القياس. */
+function Metric({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
+  return (
+    <div className="energy-card flex items-center gap-3 p-4">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500"><Icon className="h-5 w-5" /></span>
+      <div className="min-w-0"><div className="text-[11px] font-bold text-slate-400">{label}</div><div className="truncate text-lg font-black text-slate-900">{value}</div></div>
+    </div>
+  );
+}
 
 export default function BatteryPage() {
   const [snapshot, setSnapshot] = useState<EnergySnapshot | null>(null);
+  const [settings, setSettings] = useState<BatterySettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -19,7 +47,7 @@ export default function BatteryPage() {
       if (data.source !== "live") throw new Error("not_live");
       setSnapshot(data);
     } catch {
-      // Keep the last valid reading visible instead of replacing it with demo values.
+      // نُبقي آخر قراءة صحيحة ظاهرة بدل استبدالها بأرقام تجريبية.
     } finally {
       setLoading(false);
     }
@@ -27,67 +55,54 @@ export default function BatteryPage() {
 
   useEffect(() => {
     void load();
+    void fetch("/api/settings", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d?.batteryCapacityWh) setSettings({ batteryCapacityWh: d.batteryCapacityWh, batteryMinReservePct: d.batteryMinReservePct ?? 20 }); }).catch(() => {});
     const timer = window.setInterval(() => void load(), REFRESH_MS);
     return () => window.clearInterval(timer);
   }, [load]);
 
   const soc = Math.min(100, Math.max(0, snapshot?.batterySoc ?? 0));
   const powerW = snapshot?.batteryPowerW ?? 0;
-  const voltage = snapshot?.batteryVoltage;
   const state = batteryState(powerW);
-  const tone = batteryTone(soc);
-  const toneText = semanticText[tone];
-  const toneIcon = semanticIcon[tone];
-  const toneBg = semanticBg[tone];
-  const toneBorder = semanticBorder[tone];
+  const toneText = semanticText[batteryTone(soc)];
+  const eta = snapshot ? estimate(soc, powerW, settings) : null;
+  const live = snapshot?.source === "live";
 
   return (
-    <div className="w-full space-y-4 rounded-[2rem] bg-gradient-to-b from-emerald-50/70 via-white/40 to-white/20 p-2 text-right sm:p-3" dir="rtl">
-      <div className="energy-card flex items-center justify-between gap-3 border-emerald-100 p-5">
-        <div><p className="mb-1 text-xs font-black text-emerald-600">شمسك • البطارية</p><h1 className="flex items-center gap-2 text-2xl font-black text-slate-950">
-          <BatteryCharging size={28} className={toneIcon} aria-hidden="true" />
-          حالة البطارية
-        </h1>
-        <span className={"rounded-full border px-3 py-2 text-xs font-black " + toneBorder + " " + toneBg + " " + toneText}>
-          {snapshot?.source === "live" ? "مباشر" : "بانتظار قراءة حية"}
-        </span>
-      </div></div>
+    <div className="w-full space-y-3 pb-4 text-right" dir="rtl">
+      <PageHeader icon={BatteryCharging} tone="emerald" eyebrow="شمسك • البطارية" title="حالة البطارية" subtitle="الشحن والجهد والحرارة والوقت المتوقع." right={<LiveBadge live={live} />} />
 
-      <div className="energy-card overflow-hidden p-5 text-center">
-        <div className="mx-auto mb-4 flex w-fit items-center gap-2 rounded-full bg-slate-50 px-3 py-1 text-xs font-extrabold text-slate-500"><BatteryCharging size={15} /> الشحن الحالي</div><span className="block text-sm font-semibold text-slate-400">نسبة الشحن الحالية (SOC)</span>
+      {/* مؤشر دائري كبير لنسبة الشحن */}
+      <section className="energy-card flex flex-col items-center p-6">
         {loading && !snapshot ? (
-          <Loader2 className="mx-auto mt-5 h-10 w-10 animate-spin text-emerald-500" aria-label="جاري تحميل القراءة" />
+          <Loader2 className="h-10 w-10 animate-spin text-emerald-500" aria-label="جاري تحميل القراءة" />
         ) : (
           <>
-            <span className={"mb-4 mt-1 block text-4xl font-black tracking-tight sm:text-5xl " + toneText}>{Math.round(soc)}%</span>
-            <div className={"mb-2 h-5 w-full overflow-hidden rounded-full " + toneBg + " ring-1 ring-inset ring-black/5"}>
-              <div className={"h-full rounded-full transition-all duration-500 " + toneText.replace("text-", "bg-")} style={{ width: soc + "%" }} />
+            <div className="relative h-48 w-48">
+              <svg viewBox="0 0 128 128" className="h-full w-full -rotate-90" role="img" aria-label={"نسبة الشحن " + Math.round(soc) + "٪"}>
+                <circle cx="64" cy="64" r={RADIUS} fill="none" stroke="currentColor" strokeWidth="10" className="text-slate-100" />
+                <circle cx="64" cy="64" r={RADIUS} fill="none" stroke="currentColor" strokeWidth="10" strokeLinecap="round" className={toneText + " transition-all duration-700"} strokeDasharray={CIRCUMFERENCE} strokeDashoffset={CIRCUMFERENCE * (1 - soc / 100)} />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className={"text-4xl font-black " + toneText}>{snapshot ? Math.round(soc) + "%" : "—"}</span>
+                <span className="mt-1 text-xs font-bold text-slate-400">{snapshot ? batteryStateLabel(state) : "لا توجد قراءة"}</span>
+              </div>
             </div>
+            {snapshot && <p className="mt-3 text-sm font-bold text-slate-500">{Math.abs(powerW).toLocaleString("ar-LB")} واط</p>}
           </>
         )}
-      </div>
+      </section>
 
-      <div className="energy-card space-y-3 p-5">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-base">
-          <span className="text-slate-500">حالة التشغيل</span>
-          <span className="font-black text-slate-800">{batteryStateLabel(state)} • {Math.abs(powerW).toLocaleString("ar-LB")} واط</span>
-        </div>
-        <div className="flex items-center justify-between text-base">
-          <span className="text-slate-500">جهد البطارية</span>
-          <span className="font-black text-slate-800">{voltage != null ? voltage.toFixed(1) + " فولت" : "—"}</span>
-        </div>
-        <div className="flex items-center justify-between text-base">
-          <span className="text-slate-500">حرارة البطارية</span>
-          <span className="font-black text-slate-800">
-            {snapshot?.batteryTemperature != null ? snapshot.batteryTemperature.toFixed(1) + "°م" : "—"}
-          </span>
-        </div>
+      {/* بطاقات القياسات */}
+      <div className="grid grid-cols-2 gap-3">
+        <Metric icon={Zap} label="الجهد" value={snapshot?.batteryVoltage != null ? snapshot.batteryVoltage.toFixed(1) + " فولت" : "—"} />
+        <Metric icon={Gauge} label="التيار" value={snapshot?.batteryCurrent != null ? snapshot.batteryCurrent.toFixed(1) + " أمبير" : "—"} />
+        <Metric icon={Thermometer} label="الحرارة" value={snapshot?.batteryTemperature != null ? snapshot.batteryTemperature.toFixed(1) + "°م" : "—"} />
+        <Metric icon={Clock} label={eta ? (eta.charging ? "اكتمال الشحن بعد" : "الوقت المتبقي") : "الوقت المتوقع"} value={eta ? eta.label : "—"} />
       </div>
+      {eta && <p className="px-1 text-[11px] font-semibold text-slate-400">التقدير تقريبي: يُحسب من السعة المحفوظة في الإعدادات والقدرة الحالية، ويتغير مع تغيّر الحمل.</p>}
 
       {!snapshot && !loading && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-base font-bold text-amber-800">
-          ⚠️ لا توجد قراءة حية متاحة حاليًا.
-        </div>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">لا توجد قراءة حية متاحة حاليًا.</div>
       )}
     </div>
   );
