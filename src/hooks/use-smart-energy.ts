@@ -68,7 +68,11 @@ function updateNightLoadHistory(snapshot: EnergySnapshot | null): LoadStabilityR
   if (!last || new Date(snapshot.timestamp).getTime() - new Date(last.timestamp).getTime() >= 60_000) {
     samples.push({ timestamp: snapshot.timestamp, homePowerW: Math.max(0, snapshot.homePowerW) });
   }
-  localStorage.setItem(LOAD_HISTORY_KEY, JSON.stringify(samples.slice(-700)));
+  try {
+    localStorage.setItem(LOAD_HISTORY_KEY, JSON.stringify(samples.slice(-700)));
+  } catch {
+    // Private mode or a full quota must not stop the forecast.
+  }
   const nightSamples = samples.filter((item) => {
     const hour = beirutHour(item.timestamp);
     return hour >= 18 || hour < 7;
@@ -100,7 +104,19 @@ type SiteConfig = {
   timezone: string;
   panelTilt: number | null;
   panelAzimuth: number | null;
+  /** Battery reserve the owner saved (%), the floor for every discharge estimate. */
+  reservePct: number;
 };
+
+/** Open-Meteo hourly key ("2026-10-01T14:00") for the current hour in the site's time zone. */
+function currentHourKey(timeZone: string) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23" })
+      .formatToParts(new Date())
+      .map((part) => [part.type, part.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:00`;
+}
 
 /**
  * The forecast has to use what the owner saved in Settings. It used to read
@@ -117,6 +133,7 @@ async function loadSiteConfig(): Promise<SiteConfig> {
     timezone: DEFAULT_TIMEZONE,
     panelTilt: null,
     panelAzimuth: null,
+    reservePct: SAFETY_RESERVE,
   };
   try {
     const response = await fetch("/api/settings", { cache: "no-store" });
@@ -132,6 +149,10 @@ async function loadSiteConfig(): Promise<SiteConfig> {
       timezone: typeof data.timezone === "string" && data.timezone ? data.timezone : fallback.timezone,
       panelTilt: opt(data.panelTilt),
       panelAzimuth: opt(data.panelAzimuth),
+      reservePct:
+        typeof data.batteryMinReservePct === "number" && data.batteryMinReservePct >= 0 && data.batteryMinReservePct < 100
+          ? data.batteryMinReservePct
+          : SAFETY_RESERVE,
     };
   } catch {
     return fallback;
@@ -162,7 +183,8 @@ export function useSmartEnergy() {
       const { panelCapacityKw, latitude, longitude, batteryCapacityWh } = site;
       const useTilted = site.panelTilt !== null && site.panelAzimuth !== null;
 
-      const telemetryPromise = fetch("/api/telemetry", { cache: "no-store" });
+      // A failed live reading must not block the weather forecast.
+      const telemetryPromise = fetch("/api/telemetry", { cache: "no-store" }).catch(() => null);
       const weatherUrl = new URL("https://api.open-meteo.com/v1/forecast");
       weatherUrl.searchParams.set("latitude", String(latitude));
       weatherUrl.searchParams.set("longitude", String(longitude));
@@ -193,7 +215,7 @@ export function useSmartEnergy() {
       ]);
 
       let nextSnapshot: EnergySnapshot | null = snapshotRef.current;
-      if (telemetryResponse.ok) {
+      if (telemetryResponse?.ok) {
         const data = (await telemetryResponse.json()) as EnergySnapshot;
         if (data.source === "live") nextSnapshot = data;
       }
@@ -239,7 +261,13 @@ export function useSmartEnergy() {
         const sunrise = daily.sunrise?.[dayIndex] ?? "";
         const sunset = daily.sunset?.[dayIndex] ?? "";
 
-        for (const point of points) {
+        // Today's hours that already passed must not be simulated again from the
+        // current battery level: that inflated sunset charge, the full-charge time
+        // and today's surplus window.
+        const nowKey = currentHourKey(site.timezone);
+        const simulated = dayIndex === 0 ? points.filter((point) => point.time >= nowKey) : points;
+
+        for (const point of simulated) {
           const homeKWh = currentLoadW / 1000;
           const directHome = Math.min(homeKWh, point.solarKWh);
           const netSolarAfterHome = Math.max(0, point.solarKWh - directHome);
@@ -254,11 +282,11 @@ export function useSmartEnergy() {
 
           if (point.solarKWh < homeKWh) {
             const deficitWh = (homeKWh - point.solarKWh) * 1000;
-            const usableWh = Math.max(0, modeledBatteryWh - batteryCapacityWh * SAFETY_RESERVE / 100);
+            const usableWh = Math.max(0, modeledBatteryWh - batteryCapacityWh * site.reservePct / 100);
             modeledBatteryWh -= Math.min(deficitWh, usableWh);
           }
 
-          modeledBatteryWh = clamp(modeledBatteryWh + charge * 1000, batteryCapacityWh * SAFETY_RESERVE / 100, batteryCapacityWh);
+          modeledBatteryWh = clamp(modeledBatteryWh + charge * 1000, batteryCapacityWh * site.reservePct / 100, batteryCapacityWh);
 
           if (sunrise && point.time >= sunrise && sunriseSoc === dayStartSoc) {
             sunriseSoc = modeledBatteryWh / batteryCapacityWh * 100;
@@ -271,14 +299,15 @@ export function useSmartEnergy() {
           }
         }
 
-        if (sunrise && points[0]?.time >= sunrise) {
+        if (sunrise && (simulated[0]?.time ?? "") >= sunrise) {
           sunriseSoc = dayStartSoc;
         }
 
-        const total = Math.max(0.001, directHomeKWh + batteryChargeKWh + surplusKWh);
-        const batteryPct = Math.round(batteryChargeKWh / total * 100);
-        const homePct = Math.round(directHomeKWh / total * 100);
-        const surplusPct = Math.max(0, 100 - batteryPct - homePct);
+        // No production left to split (night, overcast): show 0/0/0, not 100% surplus.
+        const produced = directHomeKWh + batteryChargeKWh + surplusKWh;
+        const homePct = produced > 0 ? Math.round(directHomeKWh / produced * 100) : 0;
+        const batteryPct = produced > 0 ? Math.min(100 - homePct, Math.round(batteryChargeKWh / produced * 100)) : 0;
+        const surplusPct = produced > 0 ? Math.max(0, 100 - batteryPct - homePct) : 0;
         const confidence = weatherConfidence(
           points.map((p) => p.weatherCode),
           points.map((p) => p.precipitationProbability),

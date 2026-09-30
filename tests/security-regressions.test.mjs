@@ -410,3 +410,11 @@ test("frozen SmartESS values are not stored as new readings", () => {
   assert.match(sync, /if \(await isFrozen\(reading\)\) \{/);
   assert.match(sync, /Date\.now\(\) - lastStatusCheckAt > STATUS_CHECK_MS/);
 });
+
+test("today's forecast simulates only the hours still ahead, with the saved reserve", () => {
+  const hook = read("src/hooks/use-smart-energy.ts");
+  assert.match(hook, /const simulated = dayIndex === 0 \? points\.filter\(\(point\) => point\.time >= nowKey\) : points;/);
+  assert.match(hook, /for \(const point of simulated\)/);
+  assert.match(hook, /batteryCapacityWh \* site\.reservePct \/ 100/);
+  assert.doesNotMatch(hook, /SAFETY_RESERVE \/ 100/);
+});
