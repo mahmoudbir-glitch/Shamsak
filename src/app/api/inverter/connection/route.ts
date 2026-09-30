@@ -192,7 +192,15 @@ export async function POST(request: NextRequest) {
 
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "invalid_json", message: "البيانات المرسلة غير صالحة." }, { status: 400 }); }
-  const raw = body as Record<string, unknown>;
+  // The form echoes stored nulls (e.g. an unset port or MQTT QoS) back verbatim.
+  // zod's .optional() accepts undefined but not null, and Number(null) is 0,
+  // so a Wi-Fi Datalogger row with no port could never be saved.
+  const raw = Object.fromEntries(
+    Object.entries(body && typeof body === "object" ? (body as Record<string, unknown>) : {}).filter(([key, value]) => {
+      if (value === null) return false;
+      return !(value === "" && ["cloudAuthType", "connectionMode", "parity", "protocol"].includes(key));
+    }),
+  ) as Record<string, unknown>;
 
   if (raw.action === "rotateGatewayToken") {
     const id = text(raw.id, 80);
@@ -251,7 +259,7 @@ export async function POST(request: NextRequest) {
     panelCapacityKw: raw.panelCapacityKw === undefined ? undefined : Number(raw.panelCapacityKw),
     batteryCapacityWh: raw.batteryCapacityWh === undefined ? undefined : Number(raw.batteryCapacityWh),
   });
-  if (!parsed.success) return NextResponse.json({ error: "invalid_connection", message: "تحقق من معاملات الاتصال والقيم المطلوبة.", issues: parsed.error.flatten() }, { status: 422 });
+  if (!parsed.success) return NextResponse.json({ error: "invalid_connection", message: "تحقق من معاملات الاتصال والقيم المطلوبة (" + Object.keys(parsed.error.flatten().fieldErrors).join(", ") + ").", issues: parsed.error.flatten() }, { status: 422 });
 
   const input = parsed.data;
   if (input.protocol === "Modbus RTU" && input.connectionMode === "local" && !input.serialPort) {

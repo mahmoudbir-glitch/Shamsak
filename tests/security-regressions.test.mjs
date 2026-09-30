@@ -220,3 +220,10 @@ test("connection test saves the form first so typed credentials are used", () =>
   const test = page.slice(page.indexOf("const testConnection"));
   assert.match(test.slice(0, 400), /await saveAll\(\)/);
 });
+
+test("connection save tolerates nulls the form echoes back", () => {
+  // A stored row with no port/QoS made the form send null; Number(null) is 0
+  // and z.number() rejects null, so saving failed with 'invalid_connection'.
+  const route = read("src/app/api/inverter/connection/route.ts");
+  assert.match(route, /if \(value === null\) return false/);
+});
