@@ -109,6 +109,8 @@ export default function BatteryPage() {
         <Metric icon={Gauge} label="التيار" value={snapshot?.batteryCurrent != null ? snapshot.batteryCurrent.toFixed(1) + " أمبير" : "—"} />
         <Metric icon={Thermometer} label="الحرارة" value={snapshot?.batteryTemperature != null ? snapshot.batteryTemperature.toFixed(1) + "°م" : "غير متاحة"} />
         <Metric icon={Clock} label={eta ? (eta.charging ? "اكتمال الشحن بعد" : "الوقت المتبقي") : "الوقت المتوقع"} value={eta ? eta.label : "—"} />
+        <Metric icon={Thermometer} label="حرارة الإنفرتر" value={snapshot?.inverterTemperature != null ? Math.round(snapshot.inverterTemperature) + "°م" : "—"} />
+        <Metric icon={Gauge} label="الحمل من قدرة الإنفرتر" value={snapshot?.loadPercent != null ? Math.round(snapshot.loadPercent) + "%" : "—"} />
       </div>
       {eta && <p className="px-1 text-[11px] font-semibold text-slate-400">التقدير تقريبي: يُحسب من السعة المحفوظة في الإعدادات والقدرة الحالية، ويتغير مع تغيّر الحمل.</p>}
       {snapshot && snapshot.batteryTemperature == null && (

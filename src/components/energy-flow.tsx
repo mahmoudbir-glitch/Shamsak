@@ -12,6 +12,8 @@ interface EnergyFlowProps {
   batteryKw: number;
   batteryPercentage: number;
   gridConnected?: boolean;
+  /** Voltage the inverter measures on its grid input. */
+  gridVoltage?: number;
   todayProductionKWh?: number;
   todayHomeUsageKWh?: number;
   todayGridSavings?: number;
@@ -28,6 +30,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   batteryKw,
   batteryPercentage,
   gridConnected = true,
+  gridVoltage,
   todayProductionKWh,
   todayHomeUsageKWh,
   todayGridSavings,
@@ -202,8 +205,8 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             <RadioTower className={gridConnected ? "h-8 w-8 text-violet-500" : "h-8 w-8 text-slate-400"} strokeWidth={2.1} />
           </div>
           <div className="mt-1.5 text-xs font-black text-slate-700">الشبكة</div>
-          <div className={gridConnected ? "text-sm font-black text-violet-600" : "text-sm font-black text-slate-500"}>{gridConnected ? "متصلة" : "مقطوعة"}</div>
-          <div className="text-[10px] font-bold text-slate-500">{liveFlowActive && gridConnected ? (gridExporting ? "تصدير الفائض" : gridImporting ? "سحب الطاقة" : "متوازنة") : "لا يوجد تدفق"}</div>
+          <div className={gridConnected ? "text-sm font-black text-violet-600" : "text-sm font-black text-slate-500"}>{!gridConnected ? "مقطوعة" : gridImporting ? "تسحب منها" : gridExporting ? "تصدير" : "جهد متوفر"}</div>
+          <div className="text-[10px] font-bold text-slate-500">{gridConnected ? `${gridVoltage ? Math.round(gridVoltage) + " V · " : ""}${gridImporting ? "سحب الطاقة" : gridExporting ? "تصدير الفائض" : "غير مستخدمة الآن"}` : "لا جهد على المدخل"}</div>
         </button>
 
         <button type="button" onClick={() => setActiveNode("home")} aria-label="عرض تفاصيل المنزل" className="absolute right-[1%] top-1/2 z-10 w-[29%] min-w-[94px] -translate-y-1/2 text-center transition-transform active:scale-95">

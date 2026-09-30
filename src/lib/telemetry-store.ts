@@ -143,6 +143,12 @@ export async function ingestSample(input: TelemetryInput) {
       batteryTemperature: input.battery_temperature,
       gridConnected: input.grid_status,
       gridPowerW: input.grid_power,
+      gridVoltage: input.grid_voltage,
+      inverterTemperature: input.inverter_temperature,
+      loadPercent: input.load_percent,
+      operatingMode: input.operating_mode,
+      outputPriority: input.output_priority,
+      chargerPriority: input.charger_priority,
       source: input.source,
     },
   });

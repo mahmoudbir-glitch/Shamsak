@@ -91,6 +91,12 @@ export async function GET(request: NextRequest) {
         batteryCurrent: row.batteryCurrent ?? undefined,
         batteryTemperature: row.batteryTemperature ?? undefined,
         gridConnected: row.gridConnected,
+        gridVoltage: row.gridVoltage ?? undefined,
+        inverterTemperature: row.inverterTemperature ?? undefined,
+        loadPercent: row.loadPercent ?? undefined,
+        operatingMode: row.operatingMode ?? undefined,
+        outputPriority: row.outputPriority ?? undefined,
+        chargerPriority: row.chargerPriority ?? undefined,
         source: "live",
         // الواجهة تستطيع الآن إظهار "غير متصل" بدل عرض قراءة قديمة كأنها لحظية
         stale: ageSeconds > STALE_AFTER_SEC,

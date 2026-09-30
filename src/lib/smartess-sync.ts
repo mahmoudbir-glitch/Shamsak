@@ -108,6 +108,12 @@ export async function storeReading(reading: DessReading, device?: Record<string,
     battery_temperature: reading.batteryTemperature,
     grid_status: reading.gridConnected!,
     grid_power: reading.gridPowerW,
+    grid_voltage: reading.gridVoltage !== undefined ? Math.max(0, reading.gridVoltage) : undefined,
+    inverter_temperature: reading.inverterTemperature,
+    load_percent: reading.loadPercent,
+    operating_mode: reading.operatingMode,
+    output_priority: reading.outputPriority,
+    charger_priority: reading.chargerPriority,
     source: SMARTESS_SOURCE,
   });
   return { ok: true, stored: true };

@@ -425,3 +425,11 @@ test("house history endpoint requires a session and the page uses it", () => {
   assert.match(route, /status: 401/);
   assert.match(read("src/app/home/page.tsx"), /fetch\("\/api\/telemetry\/history"/);
 });
+
+test("inverter status fields are mapped, stored and shown", () => {
+  const lib = read("src/lib/dessmonitor.ts");
+  assert.match(lib, /reading\.inverterTemperature = Math\.max\(\.\.\.temps\)/);
+  assert.match(read("src/lib/telemetry-store.ts"), /operatingMode: input\.operating_mode/);
+  assert.match(read("prisma/migrations/20261001010000_inverter_status_fields/migration.sql"), /ADD COLUMN IF NOT EXISTS "inverterTemperature"/);
+  assert.match(read("src/components/solar-dashboard-client.tsx"), /حالة الإنفرتر/);
+});

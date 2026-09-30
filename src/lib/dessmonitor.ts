@@ -298,6 +298,12 @@ export type DessReading = {
   acOutputVoltage?: number;
   gridVoltage?: number;
   gridFrequency?: number;
+  /** Hottest inverter module (DC / INV), °C. */
+  inverterTemperature?: number;
+  loadPercent?: number;
+  operatingMode?: string;
+  outputPriority?: string;
+  chargerPriority?: string;
   gridPowerW?: number;
   gridConnected?: boolean;
   /** Every parameter the API returned, flattened to label -> value. */
@@ -416,6 +422,26 @@ export function mapReading(body: Record<string, unknown>): DessReading {
   if (reading.batteryPowerW === undefined && reading.batteryVoltage !== undefined && reading.batteryCurrent !== undefined) {
     reading.batteryPowerW = Math.round(reading.batteryVoltage * reading.batteryCurrent);
   }
+
+  // Inverter status: module temperatures (labels are spelled "Termperature"),
+  // load percent, and the text settings the inverter reports.
+  const temps: number[] = [];
+  for (const [label, { value }] of entries) {
+    const words = label.replace(/_+/g, " ");
+    if (/\b(dc|inv|inverter)\b.*\bmodule\b.*\bte?r?m?p/i.test(words) || /\binverter\b.*\btemp/i.test(words)) {
+      const t = toNumber(value);
+      if (t !== undefined) temps.push(t);
+    } else if (/\bload\s*percent/i.test(words)) {
+      reading.loadPercent ??= toNumber(value);
+    } else if (/\b(operating|work(ing)?)\s*mode\b/i.test(words)) {
+      reading.operatingMode ??= String(value).trim().slice(0, 64);
+    } else if (/\boutput\b.*\bpriority\b/i.test(words)) {
+      reading.outputPriority ??= String(value).trim().slice(0, 64);
+    } else if (/\bcharger\b.*\bpriority\b/i.test(words)) {
+      reading.chargerPriority ??= String(value).trim().slice(0, 96);
+    }
+  }
+  if (temps.length) reading.inverterTemperature = Math.max(...temps);
 
   if (reading.gridVoltage !== undefined) {
     // Lebanon's grid is out more often than not; a dead AC input reads 0V.

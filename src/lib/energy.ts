@@ -10,6 +10,12 @@ export type EnergySnapshot = {
   batteryCurrent?: number;
   batteryTemperature?: number;
   gridConnected: boolean;
+  gridVoltage?: number;
+  inverterTemperature?: number;
+  loadPercent?: number;
+  operatingMode?: string;
+  outputPriority?: string;
+  chargerPriority?: string;
   source: "live" | "demo";
   todayProductionKWh?: number;
   todayHomeUsageKWh?: number;
@@ -44,7 +50,7 @@ export function batteryStateLabel(state: BatteryState) {
 
 export function gridLabel(w: number, connected: boolean) {
   if (!connected) return "الشبكة مفصولة";
-  return w > 50 ? "سحب من الشبكة" : w < -50 ? "تصدير إلى الشبكة" : "متوازنة";
+  return w > 50 ? "سحب من الشبكة" : w < -50 ? "تصدير إلى الشبكة" : "غير مستخدمة الآن";
 }
 
 export function energyBalance(s: EnergySnapshot) {
@@ -121,3 +127,29 @@ export const semanticBorder: Record<SemanticTone, string> = {
   neutral: "border-slate-200", green: "border-emerald-200", cyan: "border-cyan-200", blue: "border-blue-200",
   amber: "border-amber-200", orange: "border-amber-200", red: "border-red-200",
 };
+
+/** Arabic wording for the inverter's own status texts; unknown texts pass through. */
+export function inverterModeLabel(mode?: string) {
+  if (!mode) return "—";
+  if (/off.?grid|battery/i.test(mode)) return "من البطارية (خارج الشبكة)";
+  if (/line|grid|utility|bypass/i.test(mode)) return "من الشبكة";
+  if (/standby/i.test(mode)) return "استعداد";
+  if (/fault/i.test(mode)) return "عطل";
+  return mode;
+}
+
+export function outputPriorityLabel(value?: string) {
+  if (!value) return "—";
+  if (/sbu/i.test(value)) return "SBU: شمس ← بطارية ← شبكة";
+  if (/sub|solar/i.test(value)) return "SUB: شمس ← شبكة ← بطارية";
+  if (/uti|utility/i.test(value)) return "الشبكة أولاً";
+  return value;
+}
+
+export function chargerPriorityLabel(value?: string) {
+  if (!value) return "—";
+  if (/only\s*pv/i.test(value)) return "من الشمس فقط";
+  if (/pv.*(and|&|\+).*(utility|grid)|solar.*utility|snu/i.test(value)) return "من الشمس والشبكة";
+  if (/utility|grid/i.test(value)) return "من الشبكة";
+  return value;
+}

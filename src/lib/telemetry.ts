@@ -12,6 +12,12 @@ export const telemetryInputSchema = z.object({
   battery_temperature: z.number().finite().optional(),
   grid_status: z.boolean(),
   grid_power: z.number().finite().optional(),
+  grid_voltage: z.number().finite().nonnegative().optional(),
+  inverter_temperature: z.number().finite().optional(),
+  load_percent: z.number().finite().min(0).max(300).optional(),
+  operating_mode: z.string().trim().max(64).optional(),
+  output_priority: z.string().trim().max(64).optional(),
+  charger_priority: z.string().trim().max(96).optional(),
   source: z.string().min(1).max(64).default("inverter"),
 });
 

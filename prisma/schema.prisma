@@ -86,6 +86,12 @@ model TelemetryLog {
   batteryTemperature Float?
   gridConnected Boolean
   gridPowerW Float?
+  gridVoltage Float?
+  inverterTemperature Float?
+  loadPercent Float?
+  operatingMode String?
+  outputPriority String?
+  chargerPriority String?
   source String @default("inverter")
   createdAt DateTime @default(now())
   @@index([timestamp])

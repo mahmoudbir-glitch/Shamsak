@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, Moon } from "lucide-react";
 import { EnergyFlow } from "@/components/energy-flow";
 import type { EnergySnapshot } from "@/lib/energy";
+import { chargerPriorityLabel, inverterModeLabel, outputPriorityLabel } from "@/lib/energy";
 
 const REFRESH_MS = 15_000;
 
@@ -63,6 +64,7 @@ export default function SolarDashboardClient() {
         batteryKw={(snapshot?.batteryPowerW ?? 0) / 1000}
         batteryPercentage={snapshot?.batterySoc ?? 0}
         gridConnected={snapshot?.gridConnected ?? false}
+        gridVoltage={snapshot?.gridVoltage}
         todayProductionKWh={snapshot?.todayProductionKWh}
         todayHomeUsageKWh={snapshot?.todayHomeUsageKWh}
         todayGridSavings={snapshot?.todayGridSavings}
@@ -79,6 +81,21 @@ export default function SolarDashboardClient() {
         </span>
         <ChevronLeft className="h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
       </Link>
+
+      {/* حالة الإنفرتر كما يرسلها بنفسه */}
+      {snapshot && (snapshot.operatingMode || snapshot.inverterTemperature !== undefined) && (
+        <section className="energy-card p-4">
+          <h2 className="text-sm font-black text-slate-900">حالة الإنفرتر</h2>
+          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <dt className="text-slate-500">التشغيل الآن</dt><dd className="font-black text-slate-800">{inverterModeLabel(snapshot.operatingMode)}</dd>
+            <dt className="text-slate-500">أولوية المصدر</dt><dd className="font-black text-slate-800">{outputPriorityLabel(snapshot.outputPriority)}</dd>
+            <dt className="text-slate-500">شحن البطارية</dt><dd className="font-black text-slate-800">{chargerPriorityLabel(snapshot.chargerPriority)}</dd>
+            <dt className="text-slate-500">الحمل من قدرته</dt><dd className="font-black text-slate-800">{snapshot.loadPercent !== undefined ? `${Math.round(snapshot.loadPercent)}%` : "—"}</dd>
+            <dt className="text-slate-500">حرارة الإنفرتر</dt><dd className={"font-black " + ((snapshot.inverterTemperature ?? 0) >= 60 ? "text-rose-600" : "text-slate-800")}>{snapshot.inverterTemperature !== undefined ? `${Math.round(snapshot.inverterTemperature)}°م` : "—"}</dd>
+            <dt className="text-slate-500">جهد مدخل الشبكة</dt><dd className="font-black text-slate-800">{snapshot.gridVoltage !== undefined ? `${Math.round(snapshot.gridVoltage)} V` : "—"}</dd>
+          </dl>
+        </section>
+      )}
     </div>
   );
 }
