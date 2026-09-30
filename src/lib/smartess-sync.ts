@@ -149,6 +149,11 @@ async function run(): Promise<SyncResult> {
         devaddr: Number(device.devaddr ?? 1),
         sn: String(device.sn ?? row.dataloggerDeviceIdentifier ?? ""),
       };
+      // Discovery costs up to seven slow calls; remember the result.
+      extras = { ...extras, dessDevice: target };
+      await prisma.inverterConnection
+        .update({ where: { id: row.id }, data: { inverterLinkCode: encryptSecret(JSON.stringify(extras)) } })
+        .catch((error) => console.error("[smartess] remember_device_failed", error));
     }
 
     const reading = await readLastData(auth, target, cloudUrl, timeout);
@@ -178,13 +183,19 @@ async function run(): Promise<SyncResult> {
 }
 
 /** Safe to call on every dashboard poll: it throttles itself and never throws. */
+const RUN_BUDGET_MS = 45_000;
+let inFlightSince = 0;
+
 export async function syncSmartEss(): Promise<SyncResult> {
-  if (inFlight) return inFlight;
   const now = Date.now();
+  // A run cut off by the platform never settles; without this the stale
+  // promise would be returned forever and no sync would ever run again.
+  if (inFlight && now - inFlightSince < RUN_BUDGET_MS + 15_000) return inFlight;
   if (now - lastAttemptAt < MIN_GAP_MS) return { ok: false, skipped: true, reason: "throttled" };
   lastAttemptAt = now;
+  inFlightSince = now;
 
-  inFlight = (async () => {
+  const attempt = (async (): Promise<SyncResult> => {
     try {
       // Another server instance may have synced moments ago.
       const latest = await prisma.telemetryLog.findFirst({
@@ -193,15 +204,22 @@ export async function syncSmartEss(): Promise<SyncResult> {
         select: { timestamp: true },
       });
       if (latest && now - latest.timestamp.getTime() < MIN_GAP_MS) {
-        return { ok: false, skipped: true, reason: "recent_sample_exists" } as SyncResult;
+        return { ok: false, skipped: true, reason: "recent_sample_exists" };
       }
-      return await run();
+      // Stay inside the function's time limit; a slow SmartESS is transient.
+      const budget = new Promise<SyncResult>((resolve) => setTimeout(() => resolve({ ok: false, reason: "transient" }), RUN_BUDGET_MS));
+      return await Promise.race([run(), budget]);
     } catch (error) {
       console.error("[smartess] sync_crashed", error);
-      return { ok: false, reason: "sync_crashed" } as SyncResult;
-    } finally {
-      inFlight = null;
+      return { ok: false, reason: "sync_crashed" };
     }
   })();
+
+  inFlight = attempt.then((result) => {
+    if (!(result.ok === false && result.skipped)) console.info("[smartess] sync_result", result.ok ? "stored" : result.reason.slice(0, 200));
+    return result;
+  }).finally(() => {
+    inFlight = null;
+  });
   return inFlight;
 }

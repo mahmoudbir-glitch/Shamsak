@@ -376,3 +376,10 @@ test("a read that only timed out is transient, not a broken connection", () => {
   const lib = read("src/lib/dessmonitor.ts");
   assert.match(lib, /if \(networkError && failures\.every\(\(entry\) => !\/:ERR_\/\.test\(entry\)\)\) throw networkError;/);
 });
+
+test("a sync cut off by the platform cannot block every later sync", () => {
+  const sync = read("src/lib/smartess-sync.ts");
+  assert.match(sync, /if \(inFlight && now - inFlightSince < RUN_BUDGET_MS \+ 15_000\) return inFlight;/);
+  assert.match(sync, /Promise\.race\(\[run\(\), budget\]\)/);
+  assert.match(sync, /dessDevice: target \};/);
+});
