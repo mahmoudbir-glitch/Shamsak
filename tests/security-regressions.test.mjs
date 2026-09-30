@@ -241,3 +241,11 @@ test("dashboard polling refreshes readings from SmartESS without blocking", () =
   assert.match(read("src/lib/telemetry-store.ts"), /export async function ingestSample/);
   assert.match(route, /ingestSample\(input\)/);
 });
+
+test("SmartESS error codes are explained in plain language", () => {
+  const source = read("src/lib/dessmonitor.ts");
+  for (const code of ["NOT_FOUND_USR", "PASSWORD", "NOT_FOUND_DEVICE"]) {
+    assert.match(source, new RegExp(code), `${code} must have its own explanation`);
+  }
+  assert.match(read("src/app/api/inverter/test/route.ts"), /describeDessError\(error\)/);
+});

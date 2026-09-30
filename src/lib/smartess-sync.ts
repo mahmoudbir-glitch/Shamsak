@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { decryptSecret } from "@/lib/inverter-config-crypto";
-import { authenticate, listDevices, readLastData, DessError, type DessAuth, type DessReading } from "@/lib/dessmonitor";
+import { authenticate, describeDessError, listDevices, readLastData, type DessAuth, type DessReading } from "@/lib/dessmonitor";
 import { ingestSample } from "@/lib/telemetry-store";
 
 /**
@@ -110,7 +110,7 @@ async function run(): Promise<SyncResult> {
     // A rejected login must be retried with fresh credentials, not a cached token.
     cachedAuth = null;
     console.error("[smartess] sync_failed", error);
-    return await fail(error instanceof DessError ? `SmartESS رفض الطلب: ${error.message}` : "تعذر الوصول إلى خادم SmartESS.");
+    return await fail(describeDessError(error));
   }
 }
 

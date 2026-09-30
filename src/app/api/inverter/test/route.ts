@@ -4,7 +4,7 @@ import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { storeReading } from "@/lib/smartess-sync";
 import { assertPublicEndpoint, PrivateEndpointError } from "@/lib/net-guard";
 import { decryptSecret } from "@/lib/inverter-config-crypto";
-import { authenticate, DessError, listDevices, readLastData } from "@/lib/dessmonitor";
+import { authenticate, describeDessError, listDevices, readLastData } from "@/lib/dessmonitor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -152,10 +152,7 @@ export async function POST(request: NextRequest) {
           parameters: reading.parameters,
         });
       } catch (error) {
-        const message =
-          error instanceof DessError
-            ? `SmartESS رفض الطلب: ${error.message}`
-            : "تعذر الوصول إلى خادم SmartESS من شمسك.";
+        const message = describeDessError(error);
         console.error("[inverter] dessmonitor_test_failed", error);
         await prisma.inverterConnection
           .update({ where: { id: row.id }, data: { lastStatus: "error", lastTestResult: "error", lastTestReason: message } })

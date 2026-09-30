@@ -305,3 +305,15 @@ export async function readLastData(
   );
   return mapReading(body);
 }
+
+/** Plain-language (Arabic) explanation of the vendor's error codes. */
+export function describeDessError(error: unknown): string {
+  if (!(error instanceof DessError)) return "تعذر الوصول إلى خادم SmartESS من شمسك.";
+  const text = String(error.message || "");
+  if (/NOT_FOUND_USR/i.test(text)) return "اسم المستخدم غير موجود في SmartESS. جرّب الإيميل الذي تسجّل به.";
+  if (/PASSWORD/i.test(text)) return "كلمة مرور SmartESS غير صحيحة.";
+  if (/NOT_FOUND_DEVICE/i.test(text)) {
+    return "تم تسجيل الدخول بنجاح، لكن الحساب لا يحتوي أي انفرتر مرتبط بالدنجل. أضف الانفرتر من تطبيق SmartESS (الجهاز ثم +) وتأكد أن الدنجل متصل.";
+  }
+  return `SmartESS رفض الطلب: ${text}`;
+}
