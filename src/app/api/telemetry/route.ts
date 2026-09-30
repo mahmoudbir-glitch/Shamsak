@@ -8,6 +8,8 @@ import { syncSmartEss } from "@/lib/smartess-sync";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Room for the background SmartESS sync (login + read against a slow server).
+export const maxDuration = 60;
 
 // أي قراءة أقدم من هذه المدة تعتبر "قديمة" ولا تُعرض كبيانات حية
 const STALE_AFTER_SEC = 180;
@@ -62,7 +64,9 @@ export async function GET(request: NextRequest) {
   }
 
   // Refresh from the SmartESS cloud after responding; it throttles itself.
-  after(() => { void syncSmartEss(); });
+  // The callback must return the promise: with "void" the platform did not wait,
+  // froze the function after the response, and every SmartESS request timed out.
+  after(() => syncSmartEss());
 
   try {
     const row = await prisma.telemetryLog.findFirst({ orderBy: { timestamp: "desc" } });

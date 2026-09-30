@@ -231,7 +231,11 @@ test("connection save tolerates nulls the form echoes back", () => {
 
 test("dashboard polling refreshes readings from SmartESS without blocking", () => {
   const route = read("src/app/api/telemetry/route.ts");
-  assert.match(route, /after\(\(\) => \{ void syncSmartEss\(\); \}\)/);
+  // The background task must hand its promise to after(): with "void" the
+  // function was frozen after responding and every SmartESS call timed out.
+  assert.match(route, /after\(\(\) => syncSmartEss\(\)\)/);
+  assert.doesNotMatch(route, /void syncSmartEss/);
+  assert.match(route, /export const maxDuration = 60/);
   const sync = read("src/lib/smartess-sync.ts");
   // An offline device's last values must not be stored as live readings.
   assert.match(sync, /Number\(device\.status\) === 1/);
@@ -366,4 +370,9 @@ test("background sync reuses the remembered device and survives a slow SmartESS"
 test("kilowatt readings are scaled to watts", () => {
   // Battery power arrived as -0.547 kW and was shown as 0.547 W / idle.
   assert.match(read("src/lib/dessmonitor.ts"), /expectedUnit === "W" && \/\^\\s\*kw\\b\/i\.test\(unit\) \? numeric \* 1000/);
+});
+
+test("a read that only timed out is transient, not a broken connection", () => {
+  const lib = read("src/lib/dessmonitor.ts");
+  assert.match(lib, /if \(networkError && failures\.every\(\(entry\) => !\/:ERR_\/\.test\(entry\)\)\) throw networkError;/);
 });

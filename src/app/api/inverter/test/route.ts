@@ -6,6 +6,9 @@ import { assertPublicEndpoint, PrivateEndpointError } from "@/lib/net-guard";
 import { decryptSecret, encryptSecret } from "@/lib/inverter-config-crypto";
 import { authenticate, describeDessError, discoverDevices, pickDevice, readLastData } from "@/lib/dessmonitor";
 
+// Login, discovery and up to three read actions against a slow server.
+export const maxDuration = 60;
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 

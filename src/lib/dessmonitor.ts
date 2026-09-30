@@ -434,21 +434,35 @@ export async function readLastData(
   const params = { source: DEFAULT_SOURCE, devcode: device.devcode, pn: device.pn, devaddr: device.devaddr, sn: device.sn, i18n: "en_US" };
   const bodies: unknown[] = [];
   const failures: string[] = [];
+  let networkError: unknown;
   // querySPDeviceLastData covers energy-storage inverters; other device types
   // answer through queryDeviceLastData, and the energy-flow view carries the
   // headline PV/load/battery figures the app draws on its house picture.
   for (const action of ["querySPDeviceLastData", "queryDeviceLastData", "webQueryDeviceEnergyFlowEs"]) {
-    try {
-      const body = await authedCall(auth, action, params, baseUrl, timeoutMs);
-      bodies.push(body.dat);
-      const merged = mapReading({ dat: bodies });
-      const complete = [merged.solarPowerW, merged.loadPowerW, merged.batterySoc, merged.batteryPowerW, merged.gridConnected].every((value) => value !== undefined);
-      if (complete) return merged;
-    } catch (error) {
-      failures.push(`${action}:${error instanceof DessError ? error.message : "error"}`);
+    // SmartESS is slow and occasionally drops a request; one retry on a
+    // network/timeout error, never on a real API answer.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const body = await authedCall(auth, action, params, baseUrl, timeoutMs);
+        bodies.push(body.dat);
+        break;
+      } catch (error) {
+        if (error instanceof DessError) {
+          failures.push(`${action}:${error.message}`);
+          break;
+        }
+        networkError ??= error;
+        if (attempt === 1) failures.push(`${action}:${error instanceof Error ? `${error.name} ${error.message}`.slice(0, 80) : "error"}`);
+      }
     }
+    const merged = mapReading({ dat: bodies });
+    const complete = [merged.solarPowerW, merged.loadPowerW, merged.batterySoc, merged.batteryPowerW, merged.gridConnected].every((value) => value !== undefined);
+    if (complete) return merged;
   }
   if (!bodies.length) {
+    // Only timeouts/network failures: surface them as such so callers treat
+    // this as a transient outage, not as a broken connection.
+    if (networkError && failures.every((entry) => !/:ERR_/.test(entry))) throw networkError;
     throw new DessError(`READ_FAILED devcode=${device.devcode} devaddr=${device.devaddr} sn=${device.sn} | ${failures.join(" | ")}`, "read_failed");
   }
   return mapReading({ dat: bodies });
