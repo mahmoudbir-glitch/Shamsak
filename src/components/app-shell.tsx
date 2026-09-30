@@ -75,7 +75,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   طاقة ذكية
                 </span>
               </div>
-              <div className="mt-0.5 truncate text-[10px] font-bold text-slate-950 sm:text-[11px]">
+              <div className="mt-0.5 truncate text-[10px] font-extrabold text-slate-950 sm:text-[11px]">
                 الشمس تعمل من أجلك
               </div>
             </div>
