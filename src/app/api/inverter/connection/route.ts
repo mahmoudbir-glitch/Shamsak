@@ -257,13 +257,17 @@ export async function POST(request: NextRequest) {
     const shouldPrimary = input.isPrimary === true || existingRows === 0;
     if (shouldPrimary) await prisma.inverterConnection.updateMany({ data: { isPrimary: false } });
 
+    // A Wi-Fi datalogger reports to the SmartESS/DESSMonitor cloud, so it needs
+    // the same account credentials as a plain Cloud API connection.
+    const usesCloudCredentials = input.protocol === "Cloud API" || input.protocol === "Wi-Fi Datalogger";
+
     const extras = input.protocol === "MQTT" ? {
       mqttBroker: input.mqttBroker || "", mqttPort: input.mqttPort || 1883, mqttTls: input.mqttTls === true,
       mqttUsername: input.mqttUsername || "", ...(input.mqttPassword ? { mqttPassword: input.mqttPassword } : {}),
       mqttClientId: input.mqttClientId || "", mqttReadTopic: input.mqttReadTopic || "",
       mqttStatusTopic: input.mqttStatusTopic || "", mqttCommandTopic: input.mqttCommandTopic || "",
       mqttQos: input.mqttQos ?? 0, mqttKeepAlive: input.mqttKeepAlive ?? 60, retryCount: input.retryCount ?? 3,
-    } : input.protocol === "Cloud API" ? {
+    } : usesCloudCredentials ? {
       cloudApiUrl: input.cloudApiUrl || "", cloudAuthType: input.cloudAuthType || "api_key",
       ...(input.cloudApiKey ? { cloudApiKey: input.cloudApiKey } : {}),
       ...(input.cloudBearerToken ? { cloudBearerToken: input.cloudBearerToken } : {}),

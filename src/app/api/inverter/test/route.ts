@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { assertPublicEndpoint, PrivateEndpointError } from "@/lib/net-guard";
 import { decryptSecret } from "@/lib/inverter-config-crypto";
+import { authenticate, DessError, listDevices, readLastData } from "@/lib/dessmonitor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,35 +54,108 @@ export async function POST(request: NextRequest) {
     }
 
     if (row.protocol === "Wi-Fi Datalogger") {
-      const cloudUrl = process.env.SHAMSAK_DESSMONITOR_URL || "https://api.dessmonitor.com/public/";
+      const cloudUrl = process.env.SHAMSAK_DESSMONITOR_URL || undefined;
       const started = Date.now();
+
+      // Credentials live in the encrypted extras blob alongside the MQTT/Cloud ones.
+      let extras: Record<string, unknown> = {};
       try {
-        const response = await fetch(cloudUrl, { method: "GET", cache: "no-store", signal: AbortSignal.timeout(remoteTimeout(row.timeoutMs)) });
+        const raw = row.inverterLinkCode ? decryptSecret(row.inverterLinkCode) : "";
+        if (raw) extras = JSON.parse(raw);
+      } catch (error) {
+        console.error("[inverter] extras_decrypt_failed", error);
+      }
+
+      const username = typeof extras.cloudUsername === "string" ? extras.cloudUsername : "";
+      const password = typeof extras.cloudPassword === "string" ? extras.cloudPassword : "";
+
+      if (!username || !password) {
+        const message =
+          "أدخل اسم المستخدم وكلمة المرور لحساب SmartESS لقراءة بيانات الدنجل. بدونهما لا يمكن قراءة أي قيمة من الإنفرتر.";
+        await prisma.inverterConnection
+          .update({ where: { id: row.id }, data: { lastTestResult: "error", lastTestReason: message } })
+          .catch(() => {});
+        return NextResponse.json(
+          { ok: false, source: "dessmonitor", error: "cloud_credentials_missing", message },
+          { status: 422 },
+        );
+      }
+
+      try {
+        const auth = await authenticate(
+          { username, password, companyKey: typeof extras.cloudApiKey === "string" ? extras.cloudApiKey : undefined, baseUrl: cloudUrl },
+          remoteTimeout(row.timeoutMs),
+        );
+
+        // devcode/devaddr are not printed on the dongle, so they are discovered
+        // from the account rather than asked of the user.
+        const devices = await listDevices(auth, cloudUrl, remoteTimeout(row.timeoutMs));
+        const wanted = (row.dataloggerPn || "").trim();
+        const device =
+          devices.find((entry) => String(entry.pn ?? "").trim() === wanted) ?? devices[0];
+
+        if (!device) {
+          const message = "تم تسجيل الدخول إلى SmartESS، لكن الحساب لا يحتوي أي جهاز.";
+          await prisma.inverterConnection
+            .update({ where: { id: row.id }, data: { lastStatus: "error", lastTestResult: "error", lastTestReason: message } })
+            .catch(() => {});
+          return NextResponse.json({ ok: false, source: "dessmonitor", error: "no_devices", message }, { status: 502 });
+        }
+
+        const reading = await readLastData(
+          auth,
+          {
+            pn: String(device.pn ?? wanted),
+            devcode: Number(device.devcode ?? 0),
+            devaddr: Number(device.devaddr ?? 1),
+            sn: String(device.sn ?? row.dataloggerDeviceIdentifier ?? ""),
+          },
+          cloudUrl,
+          remoteTimeout(row.timeoutMs),
+        );
+
         const latencyMs = Date.now() - started;
+        const mapped = Object.entries(reading)
+          .filter(([key, value]) => key !== "parameters" && key !== "raw" && value !== undefined)
+          .map(([key]) => key);
+
         await prisma.inverterConnection.update({
           where: { id: row.id },
           data: {
-            lastStatus: response.ok ? "connected" : "error",
-            lastTestResult: response.ok ? "success" : "error",
+            lastStatus: "connected",
+            lastSeenAt: new Date(),
+            lastTestResult: "success",
             lastTestLatencyMs: latencyMs,
-            lastTestReason: response.ok ? "تم الوصول إلى خادم DESSMonitor. يلزم رمز المصادقة ومعرّفات الجهاز لإجراء قراءة فعلية." : "تعذر الوصول إلى خادم DESSMonitor.",
+            lastTestReason: null,
+            dataloggerPn: String(device.pn ?? row.dataloggerPn ?? "") || row.dataloggerPn,
+            dataloggerDeviceIdentifier: String(device.sn ?? row.dataloggerDeviceIdentifier ?? "") || row.dataloggerDeviceIdentifier,
           },
         });
-        if (!response.ok) return NextResponse.json({ ok: false, source: "dessmonitor", latencyMs, error: "cloud_unreachable", message: "تم إعداد الدنجل، لكن خادم DESSMonitor لم يستجب من بيئة شمسك." }, { status: 502 });
+
         return NextResponse.json({
           ok: true,
           source: "dessmonitor",
           latencyMs,
-          message: "تم الوصول إلى DESSMonitor بنجاح. هذا اختبار للخادم فقط؛ القراءة الفعلية تحتاج token وDevCode وDevAddr وSN من حساب SmartESS.",
-          device: {
-            dataloggerPn: row.dataloggerPn,
-            dataloggerStationName: row.dataloggerStationName,
-            dataloggerDeviceIdentifier: row.dataloggerDeviceIdentifier,
-          },
+          message: `تم تسجيل الدخول إلى SmartESS وقراءة ${Object.keys(reading.parameters).length} قيمة من الجهاز.`,
+          device: { pn: device.pn, devcode: device.devcode, devaddr: device.devaddr, sn: device.sn },
+          mappedFields: mapped,
+          // Every parameter the cloud returned, so a label this build does not
+          // recognise can be identified instead of silently dropped.
+          parameters: reading.parameters,
         });
-      } catch {
-        await prisma.inverterConnection.update({ where: { id: row.id }, data: { lastStatus: "error", lastTestResult: "error", lastTestReason: "تعذر الوصول إلى DESSMonitor من بيئة شمسك." } }).catch(() => {});
-        return NextResponse.json({ ok: false, source: "dessmonitor", error: "cloud_connection_failed", message: "تعذر الوصول إلى خادم DESSMonitor من شمسك." }, { status: 502 });
+      } catch (error) {
+        const message =
+          error instanceof DessError
+            ? `SmartESS رفض الطلب: ${error.message}`
+            : "تعذر الوصول إلى خادم SmartESS من شمسك.";
+        console.error("[inverter] dessmonitor_test_failed", error);
+        await prisma.inverterConnection
+          .update({ where: { id: row.id }, data: { lastStatus: "error", lastTestResult: "error", lastTestReason: message } })
+          .catch(() => {});
+        return NextResponse.json(
+          { ok: false, source: "dessmonitor", error: "dessmonitor_failed", message },
+          { status: 502 },
+        );
       }
     }
 
