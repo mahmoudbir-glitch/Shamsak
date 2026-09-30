@@ -103,6 +103,16 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: false, source: "dessmonitor", error: "no_devices", message }, { status: 502 });
         }
 
+        // status 1 = Offline in SmartESS: the login worked but the datalogger is
+        // not uploading, so reporting "connected" would be misleading.
+        if (Number(device.status) === 1) {
+          const message = "تم تسجيل الدخول إلى SmartESS، لكن الدنجل غير متصل بالإنترنت (Offline) فلا توجد قراءات. اربطه بواي فاي 2.4GHz من تطبيق SmartESS (إعداد الشبكة) ثم أعد الاختبار.";
+          await prisma.inverterConnection
+            .update({ where: { id: row.id }, data: { lastStatus: "error", lastTestResult: "error", lastTestReason: message } })
+            .catch(() => {});
+          return NextResponse.json({ ok: false, source: "dessmonitor", error: "device_offline", message }, { status: 502 });
+        }
+
         const reading = await readLastData(
           auth,
           {

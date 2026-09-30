@@ -497,7 +497,7 @@ export default function SettingsPage() {
       {/* إشعارات Toast بعد أي عملية */}
       {(error || message) && (
         <div className="pointer-events-none fixed inset-x-0 top-3 z-[60] flex justify-center px-3">
-          <div role={error ? "alert" : "status"} className={"pointer-events-auto flex w-full max-w-xl items-start gap-3 rounded-2xl p-4 text-sm font-black shadow-xl " + (error ? "bg-rose-600 text-white" : "bg-emerald-600 text-white")}>
+          <div role={error ? "alert" : "status"} className={"pointer-events-auto flex w-full max-w-xl items-start gap-3 rounded-2xl p-4 text-sm font-black shadow-xl " + (error ? "bg-rose-600 text-white" : message.includes("لكن") ? "bg-amber-500 text-white" : "bg-emerald-600 text-white")}>
             {error ? <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" /> : <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />}
             <span className="min-w-0 flex-1 break-words leading-6">{error || message}</span>
             <button type="button" aria-label="إغلاق" onClick={() => { setError(""); setMessage(""); }} className="rounded-lg p-1 transition hover:bg-white/20"><X className="h-4 w-4" aria-hidden="true" /></button>
