@@ -171,6 +171,22 @@ test("SmartESS mapper recognises the labels this installation reports", () => {
   assert.match(source, /reading\.batteryCurrent = Math\.abs\(charge\)/);
 });
 
+test("Wi-Fi datalogger form lets the owner enter SmartESS credentials", () => {
+  // The reader needs the SmartESS login, but the form only offered those fields
+  // under "Cloud API", so a Wi-Fi Datalogger owner had nowhere to type them.
+  const page = read("src/app/settings/page.tsx");
+  const section = page.slice(page.indexOf('draft.protocol === "Wi-Fi Datalogger" && ('));
+  const wifiBlock = section.slice(0, section.indexOf('draft.connectionMode === "gateway"'));
+  assert.match(wifiBlock, /updateDraft\("cloudUsername"/);
+  assert.match(wifiBlock, /updateDraft\("cloudPassword"/);
+});
+
+test("saving the connection form without retyping a password keeps it", () => {
+  const route = read("src/app/api/inverter/connection/route.ts");
+  assert.match(route, /preserveSecrets\(existing\?\.inverterLinkCode, extras\)/);
+  assert.match(route, /"cloudPassword"/);
+});
+
 test("gateway SSRF guard blocks loopback and private IPv4 ranges", () => {
   const source = read("src/lib/net-guard.ts");
   assert.match(source, /127\.0\.0\.1/);

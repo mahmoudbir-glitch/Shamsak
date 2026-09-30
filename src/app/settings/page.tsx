@@ -267,7 +267,10 @@ export default function SettingsPage() {
           {draft.protocol === "Wi-Fi Datalogger" && (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
               <h4 className="font-black text-emerald-900">☁️ بيانات SmartESS / DESSMonitor</h4>
+              <p className="mt-1 text-xs font-semibold leading-5 text-emerald-800">اسم المستخدم وكلمة المرور هما نفسهما اللذان تدخل بهما إلى تطبيق SmartESS على هاتفك. تُحفظ كلمة المرور مشفّرة ولا تُعرض مرة أخرى.</p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <SettingsField label="اسم مستخدم SmartESS"><input dir="ltr" autoComplete="username" value={draft.cloudUsername || ""} onChange={(e) => updateDraft("cloudUsername" as keyof Inverter, e.target.value)} placeholder="اسم الحساب في تطبيق SmartESS" className={input} /></SettingsField>
+                <SettingsField label="كلمة مرور SmartESS"><input dir="ltr" type="password" autoComplete="current-password" onChange={(e) => updateDraft("cloudPassword" as keyof Inverter, e.target.value)} placeholder={draft.hasCloudCredential ? "محفوظة — اتركها فارغة للإبقاء عليها" : "كلمة مرور تطبيق SmartESS"} className={input} /></SettingsField>
                 <SettingsField label="نوع الدنجل"><input dir="ltr" value={draft.dataloggerType || ""} onChange={(e) => updateDraft("dataloggerType", e.target.value)} className={input} /></SettingsField>
                 <SettingsField label="Firmware"><input dir="ltr" value={draft.dataloggerFirmware || ""} onChange={(e) => updateDraft("dataloggerFirmware", e.target.value)} className={input} /></SettingsField>
                 <SettingsField label="معرّف الجهاز الظاهر في SmartESS"><input dir="ltr" value={draft.dataloggerDeviceIdentifier || ""} onChange={(e) => updateDraft("dataloggerDeviceIdentifier", e.target.value)} className={input} /></SettingsField>

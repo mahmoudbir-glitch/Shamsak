@@ -74,6 +74,29 @@ const connectionSchema = z.object({
   batteryCapacityWh: z.number().finite().positive().optional(),
 });
 
+/**
+ * The form never echoes secrets back, so a save where the password field was
+ * left blank means "keep what is stored", not "clear it". Without this, saving
+ * any other field on the page silently erased the stored cloud/MQTT password.
+ */
+const SECRET_KEYS = ["mqttPassword", "cloudPassword", "cloudApiKey", "cloudBearerToken"] as const;
+
+function preserveSecrets(storedCipher: string | null | undefined, next: Record<string, unknown>) {
+  let stored: Record<string, unknown> = {};
+  try {
+    const raw = storedCipher ? decryptSecret(storedCipher) : "";
+    if (raw) stored = JSON.parse(raw);
+  } catch (error) {
+    console.error("[inverter] stored_extras_unreadable", error);
+    return next;
+  }
+  const merged = { ...next };
+  for (const key of SECRET_KEYS) {
+    if (!merged[key] && typeof stored[key] === "string" && stored[key]) merged[key] = stored[key];
+  }
+  return merged;
+}
+
 function tokenHash(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -306,7 +329,7 @@ export async function POST(request: NextRequest) {
       enabled: input.enabled !== false,
       isPrimary: shouldPrimary,
       ...(input.wifiPassword ? { wifiPasswordCipher: encryptSecret(input.wifiPassword) } : {}),
-      ...(extras ? { inverterLinkCode: encryptSecret(JSON.stringify(extras)) } : {}),
+      ...(extras ? { inverterLinkCode: encryptSecret(JSON.stringify(preserveSecrets(existing?.inverterLinkCode, extras))) } : {}),
     };
 
     const row = existing
