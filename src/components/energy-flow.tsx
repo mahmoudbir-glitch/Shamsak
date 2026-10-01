@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useId, useState } from 'react';
-import { BatteryCharging, Zap } from 'lucide-react';
-import { GridTowerIcon, HouseIcon, SolarPanelIcon } from '@/components/node-icons';
+import { BatteryCharging } from 'lucide-react';
+import { GridTowerIcon, HouseIcon, InverterIcon, SolarPanelIcon } from '@/components/node-icons';
 import { InfoTip } from '@/components/info-tip';
 import { batteryText, homeText, solarText } from '@/lib/energy';
 
@@ -38,7 +38,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   savingsCurrency = '$',
   isLive = false,
 }) => {
-  const [activeNode, setActiveNode] = useState<'solar' | 'battery' | 'home' | 'grid' | null>(null);
+  const [activeNode, setActiveNode] = useState<'solar' | 'battery' | 'home' | 'grid' | 'inverter' | null>(null);
   const flowId = useId().replace(/:/g, '');
   const arrowId = `${flowId}-arrow-flow`;
   const glowId = `${flowId}-energy-glow`;
@@ -101,6 +101,9 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
     { key: "home", path: "M 278 240 C 268 240, 258 240, 248 240", color: "#0EA5E9", active: homeActive, towardHub: false, kw: homeKw },
     { key: "battery", path: "M 200 318 C 200 308, 200 298, 200 288", color: "#10B981", active: batteryCharging || batteryDischarging, towardHub: batteryDischarging, kw: batteryKw },
   ];
+  // Power entering the inverter: sun + grid import + battery discharge.
+  const throughputKw = Math.max(0, solarKw) + Math.max(0, gridKw) + Math.max(0, -batteryKw);
+  const hubTurnSeconds = Math.round(Math.max(3, 14 - Math.min(throughputKw, 6) * 1.8) * 10) / 10;
   const spokeWidth = (kw: number) => 2.5 + Math.min(Math.abs(kw), 6) * 0.6;
   const spokeDuration = (kw: number) => Math.max(0.7, 2.4 - Math.min(Math.abs(kw), 6) * 0.28);
 
@@ -161,9 +164,19 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             );
           })}
 
-          <circle cx="200" cy="240" r="38" fill="white" stroke="#FDE68A" strokeWidth="1.5" opacity="0.95" />
-          <circle cx="200" cy="240" r="30" fill="#FFFBEB" stroke="#D97706" strokeWidth="1.5" filter={`url(#${glowId})`} />
-          <circle cx="200" cy="240" r="22" fill="white" />
+          {/* Inverter hub: a soft breathing glow and a dashed ring that turns
+              faster the more power passes through; still and grey when idle. */}
+          {liveFlowActive && (
+            <circle cx="200" cy="240" r="36" fill="#fde68a" opacity="0.35">
+              <animate attributeName="r" values="34;40;34" dur="2.6s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.35;0.08;0.35" dur="2.6s" repeatCount="indefinite" />
+            </circle>
+          )}
+          <circle cx="200" cy="240" r="36" fill="white" stroke={liveFlowActive ? "#fcd34d" : "#e2e8f0"} strokeWidth="1.5" />
+          <g>
+            <circle cx="200" cy="240" r="42" fill="none" stroke={liveFlowActive ? "#f59e0b" : "#cbd5e1"} strokeWidth="2" strokeDasharray="2 8" strokeLinecap="round" opacity={liveFlowActive ? 0.8 : 0.5} />
+            {liveFlowActive && <animateTransform attributeName="transform" type="rotate" from="0 200 240" to="360 200 240" dur={`${hubTurnSeconds}s`} repeatCount="indefinite" />}
+          </g>
         </svg>
 
         <button type="button" onClick={() => setActiveNode("solar")} aria-label="عرض تفاصيل الطاقة الشمسية" className="absolute left-1/2 top-[25%] z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
@@ -227,10 +240,9 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
         </button>
 
         <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
-          <div className="relative flex h-14 w-14 items-center justify-center rounded-full border border-amber-200 bg-white shadow-[0_8px_28px_rgba(245,158,11,0.22)]">
-            <span className="absolute inset-1 rounded-full border border-amber-300/40" />
-            <Zap className="h-6 w-6 text-amber-500" fill="currentColor" strokeWidth={1.8} />
-          </div>
+          <button type="button" onClick={() => setActiveNode("inverter")} aria-label="عرض تفاصيل الإنفرتر" className={"relative flex h-14 w-14 items-center justify-center rounded-full border-2 bg-white transition-transform active:scale-95 " + (liveFlowActive ? "border-amber-300 shadow-[0_8px_24px_rgba(245,158,11,0.25)]" : "border-slate-200")}>
+            <InverterIcon active={liveFlowActive} />
+          </button>
         </div>
       </div>
 
@@ -250,6 +262,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
                 {activeNode === "battery" && "تفاصيل البطارية"}
                 {activeNode === "home" && "تفاصيل المنزل"}
                 {activeNode === "grid" && "تفاصيل الشبكة"}
+                {activeNode === "inverter" && "الإنفرتر"}
               </div>
               <button type="button" onClick={() => setActiveNode(null)} className="rounded-lg px-2 py-1 text-xs font-black text-slate-500 hover:bg-slate-100">إغلاق</button>
             </div>
@@ -270,6 +283,12 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
                 <>
                   <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الاستهلاك الآن</div><div className={"mt-1 font-black " + homeToneClass}>{formatKw(homeKw)}</div></div>
                   <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الحمل</div><div className="mt-1 font-black text-slate-800">{homeActive ? "نشط" : "لا توجد قراءة حية مؤكدة"}</div></div>
+                </>
+              )}
+              {activeNode === "inverter" && (
+                <>
+                  <div className="rounded-xl bg-amber-50 p-3"><div className="font-bold text-slate-500">الطاقة المارّة الآن</div><div className="mt-1 font-black text-amber-700">{formatKw(throughputKw)}</div></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">دوره</div><div className="mt-1 font-black text-slate-800">يوزّع الطاقة بين الشمس والبطارية والشبكة والمنزل</div></div>
                 </>
               )}
               {activeNode === "grid" && (
