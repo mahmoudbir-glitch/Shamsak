@@ -91,8 +91,8 @@ export default function LoginForm() {
         <input
           name="password"
           type={showPassword ? "text" : "password"}
-          placeholder="كلمة مرور شمسك"
-          aria-label="كلمة مرور شمسك"
+          placeholder="كلمة المرور"
+          aria-label="كلمة المرور"
           autoComplete="current-password"
           required
           disabled={loading}
