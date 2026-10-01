@@ -75,7 +75,7 @@ export default function LoginForm() {
         <input
           name="username"
           type="text"
-          placeholder="اسم المستخدم"
+          placeholder="اسم مستخدم شمسك"
           autoComplete="username"
           autoCapitalize="none"
           spellCheck={false}
@@ -90,7 +90,7 @@ export default function LoginForm() {
         <input
           name="password"
           type={showPassword ? "text" : "password"}
-          placeholder="كلمة المرور"
+          placeholder="كلمة مرور شمسك"
           autoComplete="current-password"
           required
           disabled={loading}
