@@ -289,7 +289,8 @@ export default function SettingsPage() {
         )}
 
         {draft && <div className="space-y-4">
-          <div className="flex items-center justify-between gap-2 text-sm font-bold text-slate-600"><span className="truncate">{draft.systemName}</span><span className={"shrink-0 rounded-full px-3 py-1 text-xs font-black " + (draft.lastStatus === "connected" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600")}>{draft.lastStatus === "connected" ? "متصل" : draft.lastStatus === "error" ? "غير متصل" : "غير معروف"}</span></div>
+          <div className="flex items-center justify-between gap-2 text-sm font-bold text-slate-600"><span className="truncate">{draft.systemName}</span><span className={"shrink-0 rounded-full px-3 py-1 text-xs font-black " + (draft.lastStatus === "connected" ? "bg-emerald-100 text-emerald-700" : draft.lastStatus === "error" && /لا يرسل قراءات/.test(draft.lastTestReason ?? "") ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600")}>{draft.lastStatus === "connected" ? "متصل" : draft.lastStatus === "error" ? (/لا يرسل قراءات/.test(draft.lastTestReason ?? "") ? "الدنجل متوقف عن الإرسال" : "غير متصل") : "غير معروف"}</span></div>
+          {draft.lastStatus === "error" && /لا يرسل قراءات/.test(draft.lastTestReason ?? "") && <p className="rounded-xl bg-amber-50 p-3 text-xs font-bold leading-5 text-amber-800">حساب SmartESS سليم، لكن الدنجل توقف عن رفع القراءات إلى السحابة. أعد تشغيل الدنجل (افصله 20 ثانية ثم أعده)، وسيعود الاتصال تلقائيًا.</p>}
           <div className="grid gap-3 sm:grid-cols-2">
             <SettingsField label="اسم المنظومة"><input value={draft.systemName} onChange={(e) => updateDraft("systemName", e.target.value)} className={input} /></SettingsField>
             <SettingsField label="رقم Datalogger (PN)"><input dir="ltr" value={draft.dataloggerPn || ""} onChange={(e) => updateDraft("dataloggerPn", e.target.value)} className={input} /></SettingsField>
@@ -371,7 +372,7 @@ export default function SettingsPage() {
           </details>
 
           <p className="text-xs font-bold text-slate-500">آخر قراءة: {draft.lastSeenAt ? new Date(draft.lastSeenAt).toLocaleString("ar-u-nu-latn") : "لا توجد"}</p>
-          {draft.lastStatus === "error" && draft.lastTestReason && <p className="rounded-xl bg-rose-50 p-3 text-xs font-bold leading-5 text-rose-700">سبب عدم الاتصال: {draft.lastTestReason}</p>}
+          {draft.lastStatus === "error" && draft.lastTestReason && !/لا يرسل قراءات/.test(draft.lastTestReason) && <p className="rounded-xl bg-rose-50 p-3 text-xs font-bold leading-5 text-rose-700">سبب عدم الاتصال: {draft.lastTestReason}</p>}
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => void testConnection()} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-700"><Plug className="h-4 w-4" aria-hidden="true" />اختبار الاتصال</button>
             <button type="button" onClick={addInverter} className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-200"><Plus className="h-4 w-4" aria-hidden="true" />إضافة إنفرتر</button>
