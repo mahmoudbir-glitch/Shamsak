@@ -70,7 +70,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex min-w-0 items-center gap-3" aria-label="شمسك">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-[1.7rem] leading-none" aria-hidden="true">☀️</span>
+                <span className="sun-twinkle text-[1.7rem] leading-none" aria-hidden="true">☀️</span>
                 <div className="truncate text-xl font-black tracking-tight text-slate-950 sm:text-2xl">شمسك</div>
                 <span className="hidden rounded-full bg-emerald-50 px-2 py-1 text-[9px] font-black text-emerald-700 sm:inline-flex">
                   طاقة ذكية
