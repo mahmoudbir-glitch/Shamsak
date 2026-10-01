@@ -105,18 +105,18 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
     const n = d.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
     return `M ${n[6]} ${n[7]} C ${n[4]} ${n[5]}, ${n[2]} ${n[3]}, ${n[0]} ${n[1]}`;
   };
-  // Layout (400x480 drawing): hub at (200,240); the four icons sit on a plus
+  // Layout (400x530 drawing): hub at (200,265); the four icons sit on a plus
   // shape, 120 units from the hub, so every spoke is the same straight length.
   const spokes: Spoke[] = [
-    { key: "solar", path: "M 200 162 C 200 172, 200 182, 200 192", color: "#F59E0B", active: solarActive, towardHub: true, kw: solarKw },
-    { key: "grid", path: "M 122 240 C 132 240, 142 240, 152 240", color: "#8B5CF6", active: gridImporting || gridExporting, towardHub: !gridExporting, kw: gridKw },
-    { key: "home", path: "M 278 240 C 268 240, 258 240, 248 240", color: "#0EA5E9", active: homeActive, towardHub: false, kw: homeKw },
-    { key: "battery", path: "M 200 318 C 200 308, 200 298, 200 288", color: "#10B981", active: batteryCharging || batteryDischarging, towardHub: batteryDischarging, kw: batteryKw },
+    { key: "solar", path: "M 200 166 C 200 184, 200 201, 200 219", color: "#F59E0B", active: solarActive, towardHub: true, kw: solarKw },
+    { key: "grid", path: "M 113 265 C 127 265, 140 265, 154 265", color: "#8B5CF6", active: gridImporting || gridExporting, towardHub: !gridExporting, kw: gridKw },
+    { key: "home", path: "M 287 265 C 273 265, 260 265, 246 265", color: "#0EA5E9", active: homeActive, towardHub: false, kw: homeKw },
+    { key: "battery", path: "M 200 364 C 200 346, 200 329, 200 311", color: "#10B981", active: batteryCharging || batteryDischarging, towardHub: batteryDischarging, kw: batteryKw },
   ];
   // Power entering the inverter: sun + grid import + battery discharge.
   const throughputKw = Math.max(0, solarKw) + Math.max(0, gridKw) + Math.max(0, -batteryKw);
   const hubTurnSeconds = Math.round(Math.max(3, 14 - Math.min(throughputKw, 6) * 1.8) * 10) / 10;
-  const spokeWidth = (kw: number) => 2.5 + Math.min(Math.abs(kw), 6) * 0.6;
+  const spokeWidth = (kw: number) => 1.6 + Math.min(Math.abs(kw), 6) * 0.22;
   const spokeDuration = (kw: number) => Math.max(0.7, 2.4 - Math.min(Math.abs(kw), 6) * 0.28);
 
   return (
@@ -132,46 +132,54 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
         </div>
       </div>
 
-      <div className="relative mx-auto mt-1 aspect-[400/480] w-full max-w-lg">
-        <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 400 480" fill="none" aria-hidden="true">
+      <div className="relative mx-auto mt-1 aspect-[400/530] w-full max-w-lg">
+        <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 400 530" fill="none" aria-hidden="true">
           <defs>
-            <filter id={glowId}><feGaussianBlur stdDeviation="5" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+            <filter id={glowId}><feGaussianBlur stdDeviation="2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
             {[["solar", "#F59E0B"], ["grid", "#8B5CF6"], ["home", "#0EA5E9"], ["battery", "#10B981"]].map(([key, color]) => (
-              <marker key={key} id={`${arrowId}-${key}-head`} viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <marker key={key} id={`${arrowId}-${key}-head`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" markerUnits="userSpaceOnUse" orient="auto">
                 <path d="M 1 1 L 9.5 5 L 1 9 L 3.2 5 z" fill={color} strokeLinejoin="round" />
               </marker>
             ))}
           </defs>
 
+          {/* Thin geometric spokes. Idle: a quiet dotted line in the node's own
+              colour (still visible). Active: a fine line with dashes running in
+              the flow direction, two travelling sparks and a small chevron; the
+              faster and slightly thicker, the more power it carries. */}
           {spokes.map((spoke) => {
             const d = spoke.towardHub ? spoke.path : reverse(spoke.path);
+            const n = spoke.path.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+            const ends: Array<[number, number]> = [[n[0], n[1]], [n[6], n[7]]];
+            const w = spokeWidth(spoke.kw);
+            const dur = spokeDuration(spoke.kw);
             return (
               <g key={spoke.key}>
-                {/* soft wide track under the line */}
-                {spoke.active && <path d={d} stroke={spoke.color} strokeWidth={spokeWidth(spoke.kw) + 7} strokeLinecap="round" opacity={0.13} />}
                 <path
                   id={`${arrowId}-${spoke.key}`}
                   d={d}
-                  stroke={spoke.active ? spoke.color : "#CBD5E1"}
-                  strokeWidth={spoke.active ? spokeWidth(spoke.kw) : 2}
+                  stroke={spoke.color}
+                  strokeWidth={spoke.active ? w : 2}
                   strokeLinecap="round"
-                  strokeDasharray={spoke.active ? undefined : "3 6"}
-                  opacity={spoke.active ? 0.95 : 0.55}
-                  markerEnd={spoke.active ? `url(#${arrowId}-${spoke.key}-head)` : undefined}
+                  strokeDasharray={spoke.active ? undefined : "0.1 5"}
+                  opacity={spoke.active ? 0.35 : 0.8}
                 />
-                {/* light pulses marching along the line in the flow direction */}
+                {/* connector studs where the spoke meets the icon and the hub */}
+                {ends.map(([x, y], i) => (
+                  <circle key={i} cx={x} cy={y} r="2.3" fill="white" stroke={spoke.color} strokeWidth="1.3" opacity={spoke.active ? 1 : 0.8} />
+                ))}
                 {spoke.active && (
-                  <path d={d} stroke="white" strokeWidth={Math.max(1.2, spokeWidth(spoke.kw) - 1.6)} strokeLinecap="round" strokeDasharray="2 11" opacity={0.75}>
-                    <animate attributeName="stroke-dashoffset" from="13" to="0" dur={`${spokeDuration(spoke.kw) / 2}s`} repeatCount="indefinite" />
+                  <path d={d} stroke={spoke.color} strokeWidth={w} strokeLinecap="round" strokeDasharray="7 9" markerEnd={`url(#${arrowId}-${spoke.key}-head)`}>
+                    <animate attributeName="stroke-dashoffset" from="16" to="0" dur={`${dur / 2}s`} repeatCount="indefinite" />
                   </path>
                 )}
-                {spoke.active && (
-                  <circle r={2.5 + Math.min(Math.abs(spoke.kw), 6) * 0.25} fill={spoke.color} filter={`url(#${glowId})`}>
-                    <animateMotion dur={`${spokeDuration(spoke.kw)}s`} repeatCount="indefinite" rotate="auto">
+                {spoke.active && [0, 0.5].map((offset) => (
+                  <circle key={offset} r={1.9 + Math.min(Math.abs(spoke.kw), 6) * 0.12} fill="white" stroke={spoke.color} strokeWidth="1.4" filter={`url(#${glowId})`}>
+                    <animateMotion dur={`${dur}s`} begin={`${offset * dur}s`} repeatCount="indefinite" rotate="auto">
                       <mpath href={`#${arrowId}-${spoke.key}`} />
                     </animateMotion>
                   </circle>
-                )}
+                ))}
               </g>
             );
           })}
@@ -179,19 +187,19 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           {/* Inverter hub: a soft breathing glow and a dashed ring that turns
               faster the more power passes through; still and grey when idle. */}
           {liveFlowActive && (
-            <circle cx="200" cy="240" r="36" fill="#fde68a" opacity="0.35">
+            <circle cx="200" cy="265" r="36" fill="#fde68a" opacity="0.35">
               <animate attributeName="r" values="34;40;34" dur="2.6s" repeatCount="indefinite" />
               <animate attributeName="opacity" values="0.35;0.08;0.35" dur="2.6s" repeatCount="indefinite" />
             </circle>
           )}
-          <circle cx="200" cy="240" r="36" fill="white" stroke={liveFlowActive ? "#fcd34d" : "#e2e8f0"} strokeWidth="1.5" />
+          <circle cx="200" cy="265" r="36" fill="white" stroke={liveFlowActive ? "#fcd34d" : "#e2e8f0"} strokeWidth="1.5" />
           <g>
-            <circle cx="200" cy="240" r="42" fill="none" stroke={liveFlowActive ? "#f59e0b" : "#cbd5e1"} strokeWidth="2" strokeDasharray="2 8" strokeLinecap="round" opacity={liveFlowActive ? 0.8 : 0.5} />
-            {liveFlowActive && <animateTransform attributeName="transform" type="rotate" from="0 200 240" to="360 200 240" dur={`${hubTurnSeconds}s`} repeatCount="indefinite" />}
+            <circle cx="200" cy="265" r="42" fill="none" stroke={liveFlowActive ? "#f59e0b" : "#cbd5e1"} strokeWidth="2" strokeDasharray="2 8" strokeLinecap="round" opacity={liveFlowActive ? 0.8 : 0.5} />
+            {liveFlowActive && <animateTransform attributeName="transform" type="rotate" from="0 200 265" to="360 200 265" dur={`${hubTurnSeconds}s`} repeatCount="indefinite" />}
           </g>
         </svg>
 
-        <button type="button" onClick={() => setActiveNode("solar")} aria-label="عرض تفاصيل الطاقة الشمسية" className="absolute left-1/2 top-[25%] z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
+        <button type="button" onClick={() => setActiveNode("solar")} aria-label="عرض تفاصيل الطاقة الشمسية" className="absolute left-1/2 top-[23.58%] z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
           <div
             className={"relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border-2 bg-white " + (solarActive ? "border-amber-300" : "border-slate-200")}
             style={solarActive ? { boxShadow: `0 10px 28px rgba(245,158,11,${solarGlowStrength}), 0 0 ${Math.round(18 + Math.abs(solarKw) * 3)}px rgba(245,158,11,${solarGlowStrength * 0.55})`, animation: `energy-node-pulse ${solarPulseDuration}s ease-in-out infinite` } : undefined}
@@ -206,7 +214,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           </div>
         </button>
 
-        <button type="button" onClick={() => setActiveNode("grid")} aria-label="عرض تفاصيل الشبكة" className="absolute left-[20%] top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
+        <button type="button" onClick={() => setActiveNode("grid")} aria-label="عرض تفاصيل الشبكة" className="absolute left-[18%] top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
           <div
             className={gridConnected ? "relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border-2 border-violet-300 bg-white" : "relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border-2 border-slate-200 bg-slate-50"}
             style={gridConnected && (gridImporting || gridExporting) ? { boxShadow: `0 10px 24px rgba(139,92,246,${gridGlowStrength}), 0 0 ${Math.round(16 + Math.abs(gridKw) * 2.5)}px rgba(139,92,246,${gridGlowStrength * 0.5})`, animation: `energy-node-pulse ${gridPulseDuration}s ease-in-out infinite` } : undefined}
@@ -220,7 +228,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           </div>
         </button>
 
-        <button type="button" onClick={() => setActiveNode("home")} aria-label="عرض تفاصيل المنزل" className="absolute left-[80%] top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
+        <button type="button" onClick={() => setActiveNode("home")} aria-label="عرض تفاصيل المنزل" className="absolute left-[82%] top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
           <div
             className="relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border-2 border-sky-300 bg-white"
             style={homeActive ? { boxShadow: `0 10px 24px rgba(14,165,233,${homeGlowStrength}), 0 0 ${Math.round(16 + Math.abs(homeKw) * 2.5)}px rgba(14,165,233,${homeGlowStrength * 0.5})`, animation: `energy-node-pulse ${homePulseDuration}s ease-in-out infinite` } : undefined}
@@ -234,7 +242,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           </div>
         </button>
 
-        <button type="button" onClick={() => setActiveNode("battery")} aria-label="عرض تفاصيل البطارية" className="absolute left-1/2 top-[75%] z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
+        <button type="button" onClick={() => setActiveNode("battery")} aria-label="عرض تفاصيل البطارية" className="absolute left-1/2 top-[76.42%] z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
           <div
             className="relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border-2 border-emerald-300 bg-white"
             style={batteryCharging || batteryDischarging ? { boxShadow: `0 10px 28px rgba(16,185,129,${batteryGlowStrength}), 0 0 ${Math.round(18 + Math.abs(batteryKw) * 3)}px rgba(16,185,129,${batteryGlowStrength * 0.55})`, animation: `energy-node-pulse ${batteryPulseDuration}s ease-in-out infinite` } : undefined}
