@@ -46,12 +46,12 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
   const buckets = useMemo(() => hourly(points, now), [points, now]);
   const maxW = niceMax(Math.max(1, ...buckets.map((b) => Math.max(b.homeW ?? 0, b.solarW ?? 0))));
   const hourFmt = useMemo(() => new Intl.DateTimeFormat("en-US", { timeZone, hour: "2-digit", hourCycle: "h23" }), [timeZone]);
-  const labelFmt = useMemo(() => new Intl.DateTimeFormat("ar-LB-u-nu-latn", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }), [timeZone]);
+  const labelFmt = useMemo(() => new Intl.DateTimeFormat("en-US", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }), [timeZone]);
 
   const plotW = W - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
   const slot = plotW / 24;
-  const barW = Math.max(3, Math.min(9, (slot - 4) / 2));
+  const barW = Math.max(3, Math.min(7, (slot - 9) / 2));
   const y = (w: number) => PAD.top + plotH - (w / maxW) * plotH;
   const yTicks = [0, maxW / 2, maxW];
 
@@ -63,30 +63,27 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
   const bar = (x: number, w: number, color: string, key: string) => {
     const h = Math.max(0, (w / maxW) * plotH);
     if (h < 0.5) return null;
-    const r = Math.min(barW / 2, 3, h);
-    const top = PAD.top + plotH - h;
-    // Rounded top, square base anchored to the baseline.
-    return (
-      <path
-        key={key}
-        d={`M${x},${PAD.top + plotH} V${top + r} Q${x},${top} ${x + r},${top} H${x + barW - r} Q${x + barW},${top} ${x + barW},${top + r} V${PAD.top + plotH} Z`}
-        fill={color}
-      />
-    );
+    const r = barW / 2;
+    return <rect key={key} x={x} y={PAD.top + plotH - Math.max(h, r * 2)} width={barW} height={Math.max(h, r * 2)} rx={r} fill={color} />;
   };
 
   const shown = active !== null ? buckets[active] : null;
+  const homes = buckets.filter((b) => b.homeW !== null).map((b) => b.homeW as number);
+  const peakHomeW = homes.length ? Math.max(...homes) : null;
+
+  const stat = (label: string, value: string, unit: string, color: string) => (
+    <div className="rounded-xl bg-slate-50 px-3 py-2 text-center">
+      <div className="text-[10px] font-bold text-slate-400">{label}</div>
+      <div className="whitespace-nowrap text-base font-black" style={{ color }}>{value} <span className="text-[10px] font-bold text-slate-400">{unit}</span></div>
+    </div>
+  );
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-4 text-[11px] font-bold text-slate-500">
-          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: HOME }} />استهلاك المنزل</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: SOLAR }} />الإنتاج الشمسي</span>
-        </div>
-        <div className="text-[11px] font-bold text-slate-500" dir="rtl">
-          {homeKWh.toFixed(1)} ك.و.س استهلاك · {solarKWh.toFixed(1)} ك.و.س إنتاج
-        </div>
+      <div className="grid grid-cols-3 gap-2" dir="rtl">
+        {stat("استهلاك", `${homeKWh.toFixed(1)}`, "ك.و.س", HOME)}
+        {stat("إنتاج", `${solarKWh.toFixed(1)}`, "ك.و.س", SOLAR)}
+        {stat("ذروة المنزل", peakHomeW === null ? "—" : kw(peakHomeW), "kW", "#0369a1")}
       </div>
 
       <div className="relative" dir="ltr">
@@ -111,11 +108,12 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
             const isActive = active === i;
             return (
               <g key={b.start}>
-                {isActive && <rect x={x0 + 1} y={PAD.top} width={slot - 2} height={plotH} rx={4} fill="#f1f5f9" />}
+                {isActive && <rect x={x0 + 1} y={PAD.top - 2} width={slot - 2} height={plotH + 4} rx={5} fill="#f8fafc" stroke="#e2e8f0" />}
                 {b.homeW === null ? (
                   <line x1={center - 3} x2={center + 3} y1={PAD.top + plotH - 2} y2={PAD.top + plotH - 2} stroke="#cbd5e1" strokeWidth={2} strokeLinecap="round" />
                 ) : (
                   <>
+                    <rect x={center - barW - 2.5} y={PAD.top} width={barW * 2 + 5} height={plotH} rx={barW / 2 + 2.5} fill="#f1f5f9" />
                     {bar(center - barW - 1, b.solarW ?? 0, SOLAR, "s")}
                     {bar(center + 1, b.homeW, HOME, "h")}
                   </>
@@ -150,12 +148,17 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
               <div>لا توجد قراءات</div>
             ) : (
               <>
-                <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: HOME }} />المنزل: {kw(shown.homeW)} kW</div>
-                <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: SOLAR }} />الشمس: {kw(shown.solarW ?? 0)} kW</div>
+                <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: HOME }} />المنزل: {kw(shown.homeW)} kW</div>
+                <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: SOLAR }} />الشمس: {kw(shown.solarW ?? 0)} kW</div>
               </>
             )}
           </div>
         )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-bold text-slate-500" dir="rtl">
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: HOME }} />استهلاك المنزل</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: SOLAR }} />الإنتاج الشمسي</span>
       </div>
 
       <p className="text-[11px] font-semibold text-slate-400">
