@@ -433,3 +433,10 @@ test("inverter status fields are mapped, stored and shown", () => {
   assert.match(read("prisma/migrations/20261001010000_inverter_status_fields/migration.sql"), /ADD COLUMN IF NOT EXISTS "inverterTemperature"/);
   assert.match(read("src/components/solar-dashboard-client.tsx"), /حالة الإنفرتر/);
 });
+
+test("cron sync endpoint requires CRON_SECRET and compares in constant time", () => {
+  const src = fs.readFileSync(new URL("../src/app/api/telemetry/sync/route.ts", import.meta.url), "utf8");
+  assert.match(src, /process\.env\.CRON_SECRET/);
+  assert.match(src, /timingSafeEqual/);
+  assert.match(src, /status: 401/);
+});
