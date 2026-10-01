@@ -457,6 +457,16 @@ export function mapReading(body: Record<string, unknown>): DessReading {
 }
 
 /** Reads the latest values the datalogger has uploaded for one device. */
+/** Logs when SmartESS says the reading was taken, to tell fresh data from a cached copy. */
+function logDataTime(action: string, dat: unknown) {
+  if (!dat || typeof dat !== "object") return;
+  const stamps: string[] = [];
+  for (const [key, value] of Object.entries(dat as Record<string, unknown>)) {
+    if (/time|gts|date/i.test(key) && (typeof value === "string" || typeof value === "number")) stamps.push(`${key}=${value}`);
+  }
+  console.info(`[smartess] data_time ${action} ${stamps.join(" ") || "keys=" + Object.keys(dat as object).slice(0, 12).join(",")}`);
+}
+
 export async function readLastData(
   auth: DessAuth,
   device: DessDevice,
@@ -477,6 +487,7 @@ export async function readLastData(
       try {
         const body = await authedCall(auth, action, params, baseUrl, timeoutMs);
         bodies.push(body.dat);
+        logDataTime(action, body.dat);
         break;
       } catch (error) {
         if (error instanceof DessError) {
