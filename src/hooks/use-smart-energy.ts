@@ -172,6 +172,7 @@ export function useSmartEnergy() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [batteryCapacityWh, setBatteryCapacityWh] = useState(4800);
+  const [reservePct, setReservePct] = useState(SAFETY_RESERVE);
   const [nightLoadStats, setNightLoadStats] = useState<LoadStabilityResult>({ averageW: null, coefficientOfVariation: null, confidence: "غير كافية", sampleCount: 0 });
 
   const load = useCallback(async (mode: "initial" | "refresh" = "refresh"): Promise<boolean> => {
@@ -267,10 +268,16 @@ export function useSmartEnergy() {
         const nowKey = currentHourKey(site.timezone);
         const simulated = dayIndex === 0 ? points.filter((point) => point.time >= nowKey) : points;
 
+        // Only the rest of the current hour is still ahead of us.
+        const minuteNow = Number(new Intl.DateTimeFormat("en-US", { timeZone: site.timezone, minute: "2-digit" }).format(new Date())) || 0;
         for (const point of simulated) {
-          const homeKWh = currentLoadW / 1000;
-          const directHome = Math.min(homeKWh, point.solarKWh);
-          const netSolarAfterHome = Math.max(0, point.solarKWh - directHome);
+          const isNowHour = dayIndex === 0 && point.time === nowKey;
+          const share = isNowHour ? Math.max(0, 60 - minuteNow) / 60 : 1;
+          const startMinute = isNowHour ? minuteNow : 0;
+          const pointSolarKWh = point.solarKWh * share;
+          const homeKWh = (currentLoadW / 1000) * share;
+          const directHome = Math.min(homeKWh, pointSolarKWh);
+          const netSolarAfterHome = Math.max(0, pointSolarKWh - directHome);
           const batteryCanTake = Math.max(0, batteryCapacityWh - modeledBatteryWh) / 1000;
           const charge = Math.min(netSolarAfterHome, batteryCanTake);
           const remaining = Math.max(0, netSolarAfterHome - charge);
@@ -280,12 +287,13 @@ export function useSmartEnergy() {
           surplusKWh += remaining;
           point.surplusKWh = Math.round(remaining * 100) / 100;
 
-          if (point.solarKWh < homeKWh) {
-            const deficitWh = (homeKWh - point.solarKWh) * 1000;
+          if (pointSolarKWh < homeKWh) {
+            const deficitWh = (homeKWh - pointSolarKWh) * 1000;
             const usableWh = Math.max(0, modeledBatteryWh - batteryCapacityWh * site.reservePct / 100);
             modeledBatteryWh -= Math.min(deficitWh, usableWh);
           }
 
+          const beforeChargeWh = modeledBatteryWh;
           modeledBatteryWh = clamp(modeledBatteryWh + charge * 1000, batteryCapacityWh * site.reservePct / 100, batteryCapacityWh);
 
           if (sunrise && point.time >= sunrise && sunriseSoc === dayStartSoc) {
@@ -295,7 +303,12 @@ export function useSmartEnergy() {
             sunsetSoc = modeledBatteryWh / batteryCapacityWh * 100;
           }
           if (!fullChargeTime && modeledBatteryWh >= batteryCapacityWh * 0.995 && point.time <= sunset) {
-            fullChargeTime = point.time;
+            // Minute within the hour when the battery tops up, assuming the
+            // hour's surplus arrives evenly.
+            const neededWh = Math.max(0, batteryCapacityWh - beforeChargeWh);
+            const rateWhPerMin = netSolarAfterHome > 0 ? (netSolarAfterHome * 1000) / Math.max(1, 60 - startMinute) : 0;
+            const minute = Math.min(59, Math.round(startMinute + (rateWhPerMin > 0 ? neededWh / rateWhPerMin : 0)));
+            fullChargeTime = `${point.time.slice(0, 14)}${String(minute).padStart(2, "0")}`;
           }
         }
 
@@ -338,6 +351,7 @@ export function useSmartEnergy() {
 
       snapshotRef.current = nextSnapshot;
       setBatteryCapacityWh(batteryCapacityWh);
+      setReservePct(site.reservePct);
       setSnapshot(nextSnapshot);
       setNightLoadStats(updateNightLoadHistory(nextSnapshot));
       setWeather(nextWeather);
@@ -368,6 +382,7 @@ export function useSmartEnergy() {
     error,
     nightLoadStats,
     batteryCapacityWh,
+    reservePct,
     refresh: () => load("refresh"),
   };
 }

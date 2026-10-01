@@ -54,6 +54,7 @@ function NightCard({
   confidence,
   sampleCount,
   capacityWh,
+  reservePct,
 }: {
   title: string;
   startSoc: number;
@@ -63,9 +64,10 @@ function NightCard({
   confidence: LoadStability;
   sampleCount: number;
   capacityWh: number;
+  reservePct: number;
 }) {
   const effectiveLoadW = averageNightLoadW ?? loadW;
-  const result = calculateAutonomy(startSoc, capacityWh, effectiveLoadW, hours);
+  const result = calculateAutonomy(startSoc, capacityWh, effectiveLoadW, hours, reservePct);
   const hasEnoughSamples = sampleCount >= 3;
   const confidenceClass = hasEnoughSamples
     ? result.sufficient
@@ -116,7 +118,7 @@ function NightCard({
 }
 
 export function SmartForecast() {
-  const { forecasts, weather, snapshot, loading, isRefreshing, error, nightLoadStats, batteryCapacityWh, refresh } = useSmartEnergy();
+  const { forecasts, weather, snapshot, loading, isRefreshing, error, nightLoadStats, batteryCapacityWh, reservePct, refresh } = useSmartEnergy();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showHourlyDetails, setShowHourlyDetails] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -275,7 +277,7 @@ export function SmartForecast() {
                 <strong className="mt-1 block text-lg font-black text-slate-900">{selected.chargeAtSunsetPct}%</strong>
               </div>
               <div className="rounded-2xl bg-slate-50 p-4">
-                <span className="text-xs font-bold text-slate-500">شحن عند الشروق</span>
+                <span className="text-xs font-bold text-slate-500">{selectedIndex === 0 && Date.now() > new Date(selected.sunrise).getTime() ? "الشحن الآن" : "شحن عند الشروق"}</span>
                 <strong className="mt-1 block text-lg font-black text-slate-900">{selected.chargeAtSunrisePct}%</strong>
               </div>
               <div className="rounded-2xl bg-slate-50 p-4">
@@ -290,12 +292,12 @@ export function SmartForecast() {
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-black text-slate-900">🌙 كفاية الليل</h2>
               <InfoTip label="كيف نحسب كفاية الليل" title="كفاية الليل">
-                تقدير تقريبي يعتمد على نسبة البطارية، سعة البطارية، الاستهلاك الحالي والوقت المتوقع حتى الشروق، مع احتساب احتياطي أمان 10%.
+                تقدير تقريبي يعتمد على نسبة البطارية، سعة البطارية، الاستهلاك الحالي والوقت المتوقع حتى الشروق، مع إبقاء حد الاحتياطي المحفوظ في الإعدادات.
               </InfoTip>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {currentNight && <NightCard title={currentNight.inProgress ? "الليلة الحالية" : "الليلة القادمة"} startSoc={currentNight.startSoc} hours={currentNight.hours} loadW={loadW} averageNightLoadW={nightLoadStats.averageW} confidence={nightLoadStats.confidence} sampleCount={nightLoadStats.sampleCount} capacityWh={batteryCapacityWh} />}
-              {tomorrowNight && <NightCard title="ليلة الغد" startSoc={tomorrowNight.startSoc} hours={tomorrowNight.hours} loadW={loadW} averageNightLoadW={nightLoadStats.averageW} confidence={nightLoadStats.confidence} sampleCount={nightLoadStats.sampleCount} capacityWh={batteryCapacityWh} />}
+              {currentNight && <NightCard title={currentNight.inProgress ? "الليلة الحالية" : "الليلة القادمة"} startSoc={currentNight.startSoc} hours={currentNight.hours} loadW={loadW} averageNightLoadW={nightLoadStats.averageW} confidence={nightLoadStats.confidence} sampleCount={nightLoadStats.sampleCount} capacityWh={batteryCapacityWh} reservePct={reservePct} />}
+              {tomorrowNight && <NightCard title="ليلة الغد" startSoc={tomorrowNight.startSoc} hours={tomorrowNight.hours} loadW={loadW} averageNightLoadW={nightLoadStats.averageW} confidence={nightLoadStats.confidence} sampleCount={nightLoadStats.sampleCount} capacityWh={batteryCapacityWh} reservePct={reservePct} />}
             </div>
           </section>
 
