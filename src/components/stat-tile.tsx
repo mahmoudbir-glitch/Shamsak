@@ -16,7 +16,7 @@ export type StatTone = keyof typeof TONES;
  * grey label and a bold value. `big` tiles (text-2xl) lead; plain slate tiles
  * (text-lg) carry the secondary numbers.
  */
-export function StatTile({ label, value, unit, tone = "slate", big = false, amps, ampTone }: { label: string; value: string; unit?: string; tone?: StatTone; big?: boolean; amps?: number | null; ampTone?: "sky" | "amber" | "emerald" | "violet" }) {
+export function StatTile({ label, value, unit, tone = "slate", big = false, amps, ampTone, ampUnit = "A" }: { label: string; value: string; unit?: string; tone?: StatTone; big?: boolean; amps?: number | null; ampTone?: "sky" | "amber" | "emerald" | "violet"; ampUnit?: "A" | "Ah" }) {
   const t = TONES[tone];
   return (
     <div className={`rounded-2xl p-4 ${t.bg}`}>
@@ -25,7 +25,7 @@ export function StatTile({ label, value, unit, tone = "slate", big = false, amps
         <bdi dir="ltr">{value}</bdi>
         {unit && <small className="text-sm"> {unit}</small>}
       </strong>
-      {ampTone && <span className="mt-1.5 block"><AmpPill tone={ampTone} amps={amps} /></span>}
+      {ampTone && <span className="mt-1.5 block"><AmpPill tone={ampTone} amps={amps} unit={ampUnit} /></span>}
     </div>
   );
 }

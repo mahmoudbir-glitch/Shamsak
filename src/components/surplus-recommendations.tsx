@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useSharedSmartEnergy } from "@/components/smart-energy-provider";
+import { AmpPill } from "@/components/amp-pill";
+import { acAmpHours } from "@/lib/energy";
 
 function formatHour(iso: string) {
   return new Intl.DateTimeFormat("ar-LB-u-nu-latn", {
@@ -77,6 +79,7 @@ export function SurplusRecommendations() {
           <div className="hidden shrink-0 rounded-2xl bg-amber-50 px-3 py-2 text-center text-amber-800 ring-1 ring-amber-100 sm:block">
             <span className="block text-[10px] font-bold text-amber-600">الفائض المتوقع</span>
             <strong className="mt-1 block text-lg font-black">{Math.round(best.kwh * 10) / 10} ك.و.س</strong>
+            <span className="mt-1.5 block"><AmpPill tone="amber" unit="Ah" amps={acAmpHours(best.kwh)} /></span>
           </div>
         )}
       </div>
@@ -105,6 +108,7 @@ export function SurplusRecommendations() {
                 <strong className="mt-1 block text-lg font-black text-slate-900">
                   نحو {Math.round(best.kwh * 10) / 10} ك.و.س
                 </strong>
+                <span className="mt-1.5 block"><AmpPill tone="amber" unit="Ah" amps={acAmpHours(best.kwh)} /></span>
               </div>
             </div>
             {!todayBest && (

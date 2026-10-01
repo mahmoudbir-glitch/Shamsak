@@ -5,7 +5,7 @@ import { Home, Loader2, RefreshCw } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
 import { PageHeader } from "@/components/page-header";
 import { LoadChart, type LoadPoint } from "@/components/load-chart";
-import { homeText, acAmps } from "@/lib/energy";
+import { homeText, acAmps, acAmpHours } from "@/lib/energy";
 import { AmpPill } from "@/components/amp-pill";
 import { startVisiblePolling } from "@/lib/visible-polling";
 
@@ -134,6 +134,7 @@ export default function HomeConsumptionPage() {
         <div className="energy-card p-4">
           <div className="text-[11px] font-bold text-slate-500">استهلاك اليوم</div>
           <div className="mt-1 text-xl font-black text-sky-600">{snapshot?.todayHomeUsageKWh !== undefined ? snapshot.todayHomeUsageKWh.toFixed(1) : "—"} <span className="text-[11px]">ك.و.س</span></div>
+          <div className="mt-1.5"><AmpPill tone="sky" unit="Ah" amps={acAmpHours(snapshot?.todayHomeUsageKWh)} /></div>
         </div>
         <div className="energy-card p-4">
           <div className="text-[11px] font-bold text-slate-500">أعلى حمل اليوم</div>

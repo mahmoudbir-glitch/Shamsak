@@ -98,8 +98,8 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
     <div className="space-y-3">
       <div className="space-y-3" dir="rtl">
         <div className="grid grid-cols-2 gap-3">
-          <StatTile big tone="sky" label="استهلاك المنزل" value={homeKWh.toFixed(1)} unit="ك.و.س" />
-          <StatTile big tone="amber" label="الإنتاج الشمسي" value={solarKWh.toFixed(1)} unit="ك.و.س" />
+          <StatTile big tone="sky" label="استهلاك المنزل" value={homeKWh.toFixed(1)} unit="ك.و.س" ampTone="sky" ampUnit="Ah" amps={(homeKWh * 1000) / AC_VOLTS} />
+          <StatTile big tone="amber" label="الإنتاج الشمسي" value={solarKWh.toFixed(1)} unit="ك.و.س" ampTone="amber" ampUnit="Ah" amps={(solarKWh * 1000) / AC_VOLTS} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <StatTile label="ذروة المنزل" value={peakHomeW === null ? "—" : kw(peakHomeW)} unit="kW" ampTone="sky" amps={peakHomeW === null ? null : peakHomeW / AC_VOLTS} />

@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { BatteryCharging, Clock, Gauge, Loader2, Thermometer, Zap } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
-import { arabicDuration, batteryAmps, batteryState, batteryStateLabel, batteryText } from "@/lib/energy";
+import { arabicDuration, batteryAmpHours, batteryAmps, batteryState, batteryStateLabel, batteryText } from "@/lib/energy";
 import { AmpPill } from "@/components/amp-pill";
 import { PageHeader } from "@/components/page-header";
 import { SocChart } from "@/components/soc-chart";
@@ -124,8 +124,8 @@ export default function BatteryPage() {
       <section className="energy-card p-4">
         <h2 className="text-sm font-black text-slate-900">البطارية اليوم</h2>
         <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-          <div><div className="text-[11px] font-bold text-slate-500">شحن</div><div className="text-base font-black text-emerald-600">{history?.batteryToday ? history.batteryToday.chargeKWh.toFixed(1) : "—"} <span className="text-[10px]">ك.و.س</span></div></div>
-          <div><div className="text-[11px] font-bold text-slate-500">تفريغ</div><div className="text-base font-black text-amber-600">{history?.batteryToday ? history.batteryToday.dischargeKWh.toFixed(1) : "—"} <span className="text-[10px]">ك.و.س</span></div></div>
+          <div><div className="text-[11px] font-bold text-slate-500">شحن</div><div className="text-base font-black text-emerald-600">{history?.batteryToday ? history.batteryToday.chargeKWh.toFixed(1) : "—"} <span className="text-[10px]">ك.و.س</span></div><div className="mt-1.5"><AmpPill tone="emerald" unit="Ah" amps={history?.batteryToday ? batteryAmpHours(history.batteryToday.chargeKWh, settings?.batteryNominalVoltage) : null} /></div></div>
+          <div><div className="text-[11px] font-bold text-slate-500">تفريغ</div><div className="text-base font-black text-amber-600">{history?.batteryToday ? history.batteryToday.dischargeKWh.toFixed(1) : "—"} <span className="text-[10px]">ك.و.س</span></div><div className="mt-1.5"><AmpPill tone="amber" unit="Ah" amps={history?.batteryToday ? batteryAmpHours(history.batteryToday.dischargeKWh, settings?.batteryNominalVoltage) : null} /></div></div>
           <div><div className="text-[11px] font-bold text-slate-500">أدنى / أعلى</div><div className="text-base font-black text-slate-800">{history?.socToday ? `${Math.round(history.socToday.min)}–${Math.round(history.socToday.max)}%` : "—"}</div></div>
         </div>
       </section>
@@ -146,7 +146,7 @@ export default function BatteryPage() {
           <h2 className="text-sm font-black text-slate-900">مواصفات البطارية</h2>
           <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <dt className="text-slate-500">النوع</dt><dd className="text-left font-black text-slate-800" dir="ltr">{settings.batteryChemistry || "—"}</dd>
-            <dt className="text-slate-500">السعة</dt><dd className="text-left font-black text-slate-800" dir="ltr">{(settings.batteryCapacityWh / 1000).toFixed(2)} kWh</dd>
+            <dt className="text-slate-500">السعة</dt><dd className="text-left font-black text-slate-800" dir="ltr">{(settings.batteryCapacityWh / 1000).toFixed(2)} kWh <AmpPill tone="emerald" unit="Ah" amps={batteryAmpHours(settings.batteryCapacityWh / 1000, settings.batteryNominalVoltage)} className="ml-1 align-middle" /></dd>
             <dt className="text-slate-500">الجهد الاسمي</dt><dd className="text-left font-black text-slate-800" dir="ltr">{settings.batteryNominalVoltage ? `${settings.batteryNominalVoltage} V` : "—"}</dd>
             <dt className="text-slate-500">حد الاحتياطي</dt><dd className="text-left font-black text-slate-800" dir="ltr">{settings.batteryMinReservePct}%</dd>
           </dl>

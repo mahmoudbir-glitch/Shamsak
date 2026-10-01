@@ -205,3 +205,23 @@ export function batteryAmps(snapshot: { batteryCurrent?: number; batteryVoltage?
   const volts = snapshot.batteryVoltage && snapshot.batteryVoltage > 20 ? snapshot.batteryVoltage : 51.2;
   return Number.isFinite(snapshot.batteryPowerW) ? Math.abs(snapshot.batteryPowerW) / volts : null;
 }
+
+/** Energy on the 230 V side expressed as amp-hours (kWh × 1000 ÷ 230). */
+export function acAmpHours(kWh: number | null | undefined): number | null {
+  if (typeof kWh !== "number" || !Number.isFinite(kWh)) return null;
+  return (Math.abs(kWh) * 1000) / AC_VOLTS;
+}
+
+/** Real working voltage of a battery bank from its nominal class (LiFePO4: 3.2 V per cell). */
+export function batteryWorkingVolts(nominal?: number | null): number {
+  if (nominal === 48) return 51.2;
+  if (nominal === 24) return 25.6;
+  if (nominal === 12) return 12.8;
+  return nominal && nominal > 0 ? nominal : 51.2;
+}
+
+/** Battery energy expressed as amp-hours at the battery's own voltage. */
+export function batteryAmpHours(kWh: number | null | undefined, nominal?: number | null): number | null {
+  if (typeof kWh !== "number" || !Number.isFinite(kWh)) return null;
+  return (Math.abs(kWh) * 1000) / batteryWorkingVolts(nominal);
+}

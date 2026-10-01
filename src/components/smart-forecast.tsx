@@ -6,7 +6,7 @@ import { useSharedSmartEnergy } from "@/components/smart-energy-provider";
 import { calculateAutonomy, weatherIcon, weatherLabel, type DayForecast, type LoadStability } from "@/lib/smart-forecast";
 import { InfoTip } from "@/components/info-tip";
 import { AmpPill } from "@/components/amp-pill";
-import { acAmps } from "@/lib/energy";
+import { acAmpHours, acAmps } from "@/lib/energy";
 
 function formatHour(iso?: string | null) {
   if (!iso) return "—";
@@ -265,6 +265,7 @@ export function SmartForecast() {
               <div className="rounded-2xl bg-amber-50 p-4">
                 <span className="text-xs font-bold text-slate-500">إنتاج الألواح المتوقع</span>
                 <strong className="mt-1 block text-2xl font-black text-amber-700">{selected.productionKWh} <small className="text-sm">ك.و.س</small></strong>
+                <span className="mt-1.5 block"><AmpPill tone="amber" unit="Ah" amps={acAmpHours(selected.productionKWh)} /></span>
               </div>
               <div className="rounded-2xl bg-emerald-50 p-4">
                 <span className="text-xs font-bold text-slate-500">ثقة التوقع الجوي</span>
@@ -319,14 +320,15 @@ export function SmartForecast() {
             <p className="mt-2 text-xs font-bold text-slate-500">إجمالي الإنتاج الشمسي المتوقع: {selected.productionKWh} ك.و.س</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               {[
-                ["استهلاك المنزل نهارًا", selected.homePct, selected.homeKWh, "text-sky-700", "bg-sky-50"],
-                ["شحن البطارية", selected.batteryPct, selected.batteryKWh, "text-emerald-700", "bg-emerald-50"],
-                ["فائض بلا استخدام", selected.surplusPct, selected.surplusKWh, "text-amber-700", "bg-amber-50"],
-              ].map(([label, pct, kwh, textColor, bg]) => (
+                ["استهلاك المنزل نهارًا", selected.homePct, selected.homeKWh, "text-sky-700", "bg-sky-50", "sky"],
+                ["شحن البطارية", selected.batteryPct, selected.batteryKWh, "text-emerald-700", "bg-emerald-50", "emerald"],
+                ["فائض بلا استخدام", selected.surplusPct, selected.surplusKWh, "text-amber-700", "bg-amber-50", "amber"],
+              ].map(([label, pct, kwh, textColor, bg, ampTone]) => (
                 <div key={String(label)} className={String(bg) + " rounded-2xl p-3"}>
                   <span className="block text-xs font-bold text-slate-500">{label}</span>
                   <strong className={"mt-1 block text-xl font-black " + String(textColor)}>{String(pct)}%</strong>
                   <span className="text-xs font-bold text-slate-500">{String(kwh)} ك.و.س</span>
+                  <span className="mt-1.5 block"><AmpPill tone={ampTone as "sky" | "emerald" | "amber"} unit="Ah" amps={acAmpHours(Number(kwh))} /></span>
                 </div>
               ))}
             </div>

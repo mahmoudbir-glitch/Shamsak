@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Wallet } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { moneyTone, semanticBg, semanticBorder, semanticText } from "@/lib/energy";
+import { AmpPill } from "@/components/amp-pill";
+import { acAmpHours } from "@/lib/energy";
 
 type FinanceData = {
   periodDays: number;
@@ -189,24 +191,28 @@ export default function MoneyDashboard() {
               <strong className="mt-1 block text-lg font-black text-slate-950">
                 {formatNumber(data.totals.homeKWh)} <small className="text-[10px]">ك.و.س</small>
               </strong>
+              <span className="mt-1.5 block"><AmpPill tone="sky" unit="Ah" amps={acAmpHours(data.totals.homeKWh)} /></span>
             </div>
             <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-3 shadow-sm">
               <span className="text-[10px] font-bold text-amber-700">من الشمس</span>
               <strong className="mt-1 block text-lg font-black text-amber-800">
                 {formatNumber(data.sources.solarKWh)} <small className="text-[10px]">ك.و.س</small>
               </strong>
+              <span className="mt-1.5 block"><AmpPill tone="amber" unit="Ah" amps={acAmpHours(data.sources.solarKWh)} /></span>
             </div>
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3 shadow-sm">
               <span className="text-[10px] font-bold text-emerald-700">من البطارية</span>
               <strong className="mt-1 block text-lg font-black text-emerald-800">
                 {formatNumber(data.sources.batteryKWh)} <small className="text-[10px]">ك.و.س</small>
               </strong>
+              <span className="mt-1.5 block"><AmpPill tone="emerald" unit="Ah" amps={acAmpHours(data.sources.batteryKWh)} /></span>
             </div>
             <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-3 shadow-sm">
               <span className="text-[10px] font-bold text-violet-700">من الشبكة</span>
               <strong className="mt-1 block text-lg font-black text-violet-800">
                 {formatNumber(data.sources.gridKWh)} <small className="text-[10px]">ك.و.س</small>
               </strong>
+              <span className="mt-1.5 block"><AmpPill tone="violet" unit="Ah" amps={acAmpHours(data.sources.gridKWh)} /></span>
             </div>
           </section>
 
@@ -242,7 +248,7 @@ export default function MoneyDashboard() {
                     </div>
                     <strong className="text-sm font-black text-slate-900">{row.pct}%</strong>
                   </div>
-                  <div className="mt-1 text-[11px] font-bold text-slate-500">{formatNumber(row.kwh)} ك.و.س</div>
+                  <div className="mt-1 flex items-center gap-2 text-[11px] font-bold text-slate-500">{formatNumber(row.kwh)} ك.و.س <AmpPill tone={row.key === "solar" ? "amber" : row.key === "battery" ? "emerald" : "violet"} unit="Ah" amps={acAmpHours(row.kwh)} /></div>
                 </div>
               ))}
             </div>
@@ -273,6 +279,7 @@ export default function MoneyDashboard() {
                 <span className="mt-1 block text-[10px] font-semibold text-slate-500">
                   {formatNumber(data.totals.gridImportKWh)} ك.و.س مشتراة
                 </span>
+                <span className="mt-1.5 block"><AmpPill tone="violet" unit="Ah" amps={acAmpHours(data.totals.gridImportKWh)} /></span>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -287,6 +294,7 @@ export default function MoneyDashboard() {
                 <strong className="mt-1 block text-xl font-black text-amber-800">
                   {formatNumber(data.totals.gridExportKWh)} ك.و.س
                 </strong>
+                <span className="mt-1.5 block"><AmpPill tone="amber" unit="Ah" amps={acAmpHours(data.totals.gridExportKWh)} /></span>
               </div>
             </div>
 

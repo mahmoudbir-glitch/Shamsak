@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { AmpPill } from "@/components/amp-pill";
-import { AC_VOLTS } from "@/lib/energy";
+import { AC_VOLTS, batteryAmpHours } from "@/lib/energy";
 import { AlertCircle, Bell, CheckCircle2, ChevronDown, Cpu, Database, Eye, EyeOff, Plug, Plus, Radio, RotateCcw, Save, Search, Settings as SettingsIcon, ShieldCheck, X, type LucideIcon } from "lucide-react";
 
 type Protocol = "Modbus RTU" | "Modbus TCP" | "MQTT" | "Cloud API" | "Wi-Fi Datalogger";
@@ -97,12 +97,12 @@ function SettingsSection({ icon: Icon, title, subtitle, tone = "sky", summary, k
 }
 
 /** بطاقة صغيرة في «نظرة سريعة» أعلى الصفحة. */
-function GlanceTile({ label, value, dot, amps, ampTone }: { label: string; value: React.ReactNode; dot: string; amps?: number | null; ampTone?: "sky" | "amber" | "emerald" | "violet" }) {
+function GlanceTile({ label, value, dot, amps, ampTone, ampUnit = "A" }: { label: string; value: React.ReactNode; dot: string; amps?: number | null; ampTone?: "sky" | "amber" | "emerald" | "violet"; ampUnit?: "A" | "Ah" }) {
   return (
     <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
       <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500"><span className={"h-2 w-2 rounded-full " + dot} />{label}</div>
       <div className="mt-1 truncate text-base font-black text-slate-900">{value}</div>
-      {ampTone && <div className="mt-1.5"><AmpPill tone={ampTone} amps={amps} /></div>}
+      {ampTone && <div className="mt-1.5"><AmpPill tone={ampTone} amps={amps} unit={ampUnit} /></div>}
     </div>
   );
 }
@@ -326,7 +326,7 @@ export default function SettingsPage() {
             value={draft?.lastStatus === "connected" ? "متصل" : draft?.lastStatus === "error" ? (/لا يرسل قراءات/.test(draft.lastTestReason ?? "") ? "الدنجل متوقف" : "غير متصل") : draft ? "غير معروف" : "لا إنفرتر"}
           />
           <GlanceTile label="الألواح" dot="bg-amber-400" ampTone="amber" amps={settings.panelPowerW / AC_VOLTS} value={<bdi dir="ltr">{(settings.panelPowerW / 1000).toLocaleString("en-US", { maximumFractionDigits: 2 })} kW</bdi>} />
-          <GlanceTile label="البطارية" dot="bg-emerald-400" value={<bdi dir="ltr">{(settings.batteryCapacityWh / 1000).toLocaleString("en-US", { maximumFractionDigits: 1 })} kWh</bdi>} />
+          <GlanceTile label="البطارية" dot="bg-emerald-400" ampTone="emerald" ampUnit="Ah" amps={batteryAmpHours(settings.batteryCapacityWh / 1000, settings.batteryNominalVoltage)} value={<bdi dir="ltr">{(settings.batteryCapacityWh / 1000).toLocaleString("en-US", { maximumFractionDigits: 1 })} kWh</bdi>} />
           <GlanceTile label="الإنفرتر" dot="bg-sky-400" ampTone="sky" amps={settings.inverterRatedPowerKw ? (settings.inverterRatedPowerKw * 1000) / AC_VOLTS : null} value={<bdi dir="ltr">{settings.inverterRatedPowerKw ? `${settings.inverterRatedPowerKw} kW` : "—"}</bdi>} />
         </div>
       )}
@@ -438,7 +438,7 @@ export default function SettingsPage() {
       <SettingsSection icon={Cpu} tone="amber" summary={<bdi dir="ltr">{`${(settings.panelPowerW / 1000).toLocaleString("en-US", { maximumFractionDigits: 2 })} kW · ${(settings.batteryCapacityWh / 1000).toLocaleString("en-US", { maximumFractionDigits: 1 })} kWh · ${settings.currency}`}</bdi>} query={query} keywords="ألواح بطارية سعة جهد كيلوواط شبكة طور ميل اتجاه موقع خط العرض خط الطول منطقة زمنية عملة" onReset={() => resetSection(["panelPowerW","batteryCapacityWh","batteryNominalVoltage","batteryChemistry","batteryMinReservePct","inverterRatedPowerKw","gridType","gridPhase","panelTilt","panelAzimuth","latitude","longitude","timezone","currency"], "مواصفات العتاد")} title="مواصفات العتاد" subtitle="الألواح والبطارية والإنفرتر والموقع">
         <div className="grid gap-3 sm:grid-cols-2">
           <SettingsField label={<>إجمالي قدرة الألواح <bdi dir="ltr">(kW)</bdi></>}><input type="number" min={0.1} max={100} step={0.1} value={settings.panelPowerW / 1000} onChange={(e) => updateSetting("panelPowerW", Number(e.target.value) * 1000)} className={input} /><span className="mt-1.5 block"><AmpPill tone="amber" amps={settings.panelPowerW / AC_VOLTS} /></span>{settings.panelPowerW > 100_000 && <p className="mt-1 text-xs font-bold text-rose-600">القيمة بالكيلوواط وليس بالواط: لألواح 6000 واط اكتب 6.</p>}</SettingsField>
-          <SettingsField label={<>سعة البطاريات <bdi dir="ltr">(kWh)</bdi></>}><input type="number" min={0.1} step="0.1" value={settings.batteryCapacityWh / 1000} onChange={(e) => { if (e.target.value !== "") updateSetting("batteryCapacityWh", Number(e.target.value) * 1000); }} className={input} /></SettingsField>
+          <SettingsField label={<>سعة البطاريات <bdi dir="ltr">(kWh)</bdi></>}><input type="number" min={0.1} step="0.1" value={settings.batteryCapacityWh / 1000} onChange={(e) => { if (e.target.value !== "") updateSetting("batteryCapacityWh", Number(e.target.value) * 1000); }} className={input} /><span className="mt-1.5 block"><AmpPill tone="emerald" unit="Ah" amps={batteryAmpHours(settings.batteryCapacityWh / 1000, settings.batteryNominalVoltage)} /></span></SettingsField>
           <SettingsField label={<>جهد البطارية الاسمي <bdi dir="ltr">(V)</bdi></>}><select value={settings.batteryNominalVoltage} onChange={(e) => updateSetting("batteryNominalVoltage", Number(e.target.value))} className={input}><option value={12}>12</option><option value={24}>24</option><option value={48}>48</option></select></SettingsField>
           <SettingsField label="نوع البطارية"><select value={settings.batteryChemistry || ""} onChange={(e) => updateSetting("batteryChemistry", e.target.value || null)} className={input}><option value="">غير محدد</option><option>LiFePO4</option><option>Lithium-ion</option><option>Lead-acid</option><option>Gel</option><option>AGM</option></select></SettingsField>
           <SettingsField label={<>قدرة الإنفرتر الاسمية <bdi dir="ltr">(kW)</bdi></>}><input type="number" min={0} value={settings.inverterRatedPowerKw ?? ""} onChange={(e) => updateSetting("inverterRatedPowerKw", e.target.value ? Number(e.target.value) : null)} className={input} /><span className="mt-1.5 block"><AmpPill tone="sky" amps={settings.inverterRatedPowerKw ? (settings.inverterRatedPowerKw * 1000) / AC_VOLTS : null} /></span></SettingsField>
