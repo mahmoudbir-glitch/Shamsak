@@ -16,7 +16,7 @@ interface EnergyFlowProps {
   /** Voltage the inverter measures on its grid input. */
   gridVoltage?: number;
   /** Inverter operating mode as reported (e.g. "Off-Grid Mode", "Mains Mode"). */
-  operatingMode?: string;
+  inverterMode?: string;
   todayProductionKWh?: number;
   todayHomeUsageKWh?: number;
   todayGridSavings?: number;
@@ -34,7 +34,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   batteryPercentage,
   gridConnected = true,
   gridVoltage,
-  operatingMode,
+  inverterMode,
   todayProductionKWh,
   todayHomeUsageKWh,
   todayGridSavings,
@@ -70,7 +70,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   // In off-grid (battery) mode this inverter still reports ~230 V on "Grid
   // Voltage" even with the mains cut (its own screen shows 0 V), so that
   // number cannot prove the grid is there: say it is unused, show no voltage.
-  const inverterOffGrid = /off.?grid|battery/i.test(operatingMode ?? "") && !gridImporting && !gridExporting;
+  const inverterOffGrid = /off.?grid|battery/i.test(inverterMode ?? "") && !gridImporting && !gridExporting;
 
 
   const formatKw = (value: number) => Math.abs(value).toFixed(2) + ' kW';

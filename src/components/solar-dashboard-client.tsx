@@ -65,7 +65,7 @@ export default function SolarDashboardClient() {
         batteryPercentage={snapshot?.batterySoc ?? 0}
         gridConnected={snapshot?.gridConnected ?? false}
         gridVoltage={snapshot?.gridVoltage}
-        operatingMode={snapshot?.operatingMode}
+        inverterMode={snapshot?.operatingMode}
         todayProductionKWh={snapshot?.todayProductionKWh}
         todayHomeUsageKWh={snapshot?.todayHomeUsageKWh}
         todayGridSavings={snapshot?.todayGridSavings}
