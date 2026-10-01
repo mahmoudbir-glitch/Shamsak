@@ -228,6 +228,8 @@ async function run(): Promise<SyncResult> {
       parametersLogged = true;
       console.info("[smartess] parameters", Object.entries(reading.parameters).map(([label, { value, unit }]) => `${label}=${value}${unit}`).join(" | ").slice(0, 3000));
     }
+    // One short line per read, to measure how often the dongle really uploads.
+    console.info(`[smartess] sig pvV=${reading.parameters["PV Voltage"]?.value ?? "-"} grid=${reading.gridPowerW ?? "-"} load=${reading.loadPowerW ?? "-"} soc=${reading.batterySoc ?? "-"}`);
     if (await isFrozen(reading)) {
       return await fail("الدنجل لا يرسل قراءات جديدة: القيم نفسها منذ 15 دقيقة. تأكد أن الدنجل متصل بالواي فاي.");
     }
