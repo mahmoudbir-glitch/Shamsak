@@ -44,30 +44,49 @@ const defaults: Settings = {
 };
 
 // نمط موحّد للحقول: خلفية رمادية فاتحة، حدّ يتغيّر عند المرور، وحلقة تركيز زرقاء
-const input = "w-full min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold text-slate-800 outline-none transition hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100";
+const input = "w-full min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold text-slate-800 outline-none transition hover:border-slate-300 focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-100";
+
+type SectionTone = "violet" | "amber" | "emerald" | "rose" | "sky";
+
+/* Each section carries the colour of what it controls (same palette as the
+ * rest of the app): connection violet, equipment amber, battery/charging
+ * emerald, alerts rose, data sky. Full class strings so Tailwind keeps them. */
+const SECTION_TONES: Record<SectionTone, { tile: string; stripe: string; chip: string; open: string }> = {
+  violet: { tile: "bg-violet-50 text-violet-600 ring-violet-100", stripe: "bg-violet-400", chip: "bg-violet-50 text-violet-700", open: "group-open:border-violet-200" },
+  amber: { tile: "bg-amber-50 text-amber-600 ring-amber-100", stripe: "bg-amber-400", chip: "bg-amber-50 text-amber-800", open: "group-open:border-amber-200" },
+  emerald: { tile: "bg-emerald-50 text-emerald-600 ring-emerald-100", stripe: "bg-emerald-400", chip: "bg-emerald-50 text-emerald-700", open: "group-open:border-emerald-200" },
+  rose: { tile: "bg-rose-50 text-rose-600 ring-rose-100", stripe: "bg-rose-400", chip: "bg-rose-50 text-rose-700", open: "group-open:border-rose-200" },
+  sky: { tile: "bg-sky-50 text-sky-600 ring-sky-100", stripe: "bg-sky-400", chip: "bg-sky-50 text-sky-700", open: "group-open:border-sky-200" },
+};
 
 /**
- * بطاقة قسم قابلة للطي: أيقونة + عنوان + وصف، وزر «إعادة» يرجع حقول القسم لآخر قيم محفوظة.
+ * بطاقة قسم قابلة للطي: شريط لوني + أيقونة + عنوان + ملخص القيم الحالية،
+ * وزر «إعادة» يرجع حقول القسم لآخر قيم محفوظة.
  * عند البحث يُخفى القسم غير المطابق ويُفتح القسم المطابق تلقائياً.
  */
-function SettingsSection({ icon: Icon, title, subtitle, keywords = "", query = "", onReset, children, open = false }: { icon: LucideIcon; title: string; subtitle: string; keywords?: string; query?: string; onReset?: () => void; children: React.ReactNode; open?: boolean }) {
+function SettingsSection({ icon: Icon, title, subtitle, tone = "sky", summary, keywords = "", query = "", onReset, children, open = false }: { icon: LucideIcon; title: string; subtitle: string; tone?: SectionTone; summary?: React.ReactNode; keywords?: string; query?: string; onReset?: () => void; children: React.ReactNode; open?: boolean }) {
   const q = query.trim().toLowerCase();
   if (q && !`${title} ${subtitle} ${keywords}`.toLowerCase().includes(q)) return null;
+  const t = SECTION_TONES[tone];
   return (
-    <details open={open || Boolean(q)} className="group overflow-visible rounded-3xl border border-slate-200/80 bg-white shadow-sm transition hover:shadow-md">
-      <summary className="flex cursor-pointer list-none items-center gap-3 rounded-3xl px-4 py-4 outline-none transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-300 sm:px-5 [&::-webkit-details-marker]:hidden">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600"><Icon className="h-5 w-5" aria-hidden="true" /></span>
+    <details open={open || Boolean(q)} className={"group relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm transition hover:shadow-md " + t.open}>
+      <span aria-hidden="true" className={"absolute right-0 top-5 h-11 w-1 rounded-l-full " + t.stripe} />
+      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 outline-none transition hover:bg-slate-50/70 focus-visible:ring-2 focus-visible:ring-slate-300 sm:px-5 [&::-webkit-details-marker]:hidden">
+        <span className={"flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ring-1 " + t.tile}><Icon className="h-5 w-5" aria-hidden="true" /></span>
         <span className="min-w-0 flex-1">
           <span className="block text-base font-black text-slate-900 sm:text-lg">{title}</span>
           <span className="mt-0.5 block text-xs font-semibold text-slate-500">{subtitle}</span>
+          {summary && <span className={"mt-2 inline-flex max-w-full items-center gap-1.5 truncate rounded-full px-2.5 py-1 text-[11px] font-black " + t.chip}>{summary}</span>}
         </span>
-        <ChevronDown className="h-5 w-5 shrink-0 text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true" />
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition group-open:bg-slate-100">
+          <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" />
+        </span>
       </summary>
       <div className="space-y-4 border-t border-slate-100 p-4 sm:p-5">
         {children}
         {onReset && (
           <div className="flex justify-end border-t border-slate-100 pt-3">
-            <button type="button" onClick={onReset} className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-black text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 focus-visible:ring-2 focus-visible:ring-blue-300"><RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />إعادة هذا القسم لآخر قيم محفوظة</button>
+            <button type="button" onClick={onReset} className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-black text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 focus-visible:ring-2 focus-visible:ring-slate-300"><RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />إعادة هذا القسم لآخر قيم محفوظة</button>
           </div>
         )}
       </div>
@@ -75,11 +94,21 @@ function SettingsSection({ icon: Icon, title, subtitle, keywords = "", query = "
   );
 }
 
+/** بطاقة صغيرة في «نظرة سريعة» أعلى الصفحة. */
+function GlanceTile({ label, value, dot }: { label: string; value: React.ReactNode; dot: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
+      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500"><span className={"h-2 w-2 rounded-full " + dot} />{label}</div>
+      <div className="mt-1 truncate text-base font-black text-slate-900">{value}</div>
+    </div>
+  );
+}
+
 /** كتلة «متقدم» قابلة للطي للخيارات الثانوية حتى لا تزدحم الواجهة اليومية. */
 function AdvancedBlock({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <details className="group/adv rounded-2xl border border-slate-200 bg-slate-50/60">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-2xl px-4 py-3 text-sm font-black text-slate-700 outline-none transition hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-blue-300 [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-2xl px-4 py-3 text-sm font-black text-slate-700 outline-none transition hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-300 [&::-webkit-details-marker]:hidden">
         {title}
         <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open/adv:rotate-180" aria-hidden="true" />
       </summary>
@@ -285,10 +314,24 @@ export default function SettingsPage() {
         <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ابحث عن إعداد… مثل: بطارية، تنبيه، عملة" aria-label="بحث في الإعدادات" className={input + " bg-white pr-12"} />
       </div>
 
-      <SettingsSection icon={Radio} query={query} keywords="إنفرتر اتصال دنجل SmartESS اسم المستخدم كلمة المرور PN بوابة MQTT Modbus" title="الإنفرترات والاتصال" subtitle="ربط الإنفرتر بحساب SmartESS واختبار الاتصال" onReset={selectedId ? () => { const item = inverters.find((entry) => entry.id === selectedId); if (item) { setDraft({ ...item }); setMessage("تمت إعادة «الاتصال» لآخر قيم محفوظة."); setError(""); } } : undefined}>
+      {/* نظرة سريعة على المنظومة */}
+      {!query.trim() && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <GlanceTile
+            label="الاتصال"
+            dot={draft?.lastStatus === "connected" ? "bg-emerald-500" : draft?.lastStatus === "error" ? "bg-amber-500" : "bg-slate-300"}
+            value={draft?.lastStatus === "connected" ? "متصل" : draft?.lastStatus === "error" ? (/لا يرسل قراءات/.test(draft.lastTestReason ?? "") ? "الدنجل متوقف" : "غير متصل") : draft ? "غير معروف" : "لا إنفرتر"}
+          />
+          <GlanceTile label="الألواح" dot="bg-amber-400" value={<bdi dir="ltr">{(settings.panelPowerW / 1000).toLocaleString("en-US", { maximumFractionDigits: 2 })} kW</bdi>} />
+          <GlanceTile label="البطارية" dot="bg-emerald-400" value={<bdi dir="ltr">{(settings.batteryCapacityWh / 1000).toLocaleString("en-US", { maximumFractionDigits: 1 })} kWh</bdi>} />
+          <GlanceTile label="الإنفرتر" dot="bg-sky-400" value={<bdi dir="ltr">{settings.inverterRatedPowerKw ? `${settings.inverterRatedPowerKw} kW` : "—"}</bdi>} />
+        </div>
+      )}
+
+      <SettingsSection icon={Radio} tone="violet" summary={draft ? `${draft.dataloggerCloud || draft.protocol}${draft.isPrimary ? " · أساسي" : ""}` : undefined} query={query} keywords="إنفرتر اتصال دنجل SmartESS اسم المستخدم كلمة المرور PN بوابة MQTT Modbus" title="الإنفرترات والاتصال" subtitle="ربط الإنفرتر بحساب SmartESS واختبار الاتصال" onReset={selectedId ? () => { const item = inverters.find((entry) => entry.id === selectedId); if (item) { setDraft({ ...item }); setMessage("تمت إعادة «الاتصال» لآخر قيم محفوظة."); setError(""); } } : undefined}>
         {inverters.length > 1 && (
           <div className="grid gap-2 sm:grid-cols-2">{inverters.map((item) => (
-            <button type="button" key={item.id} onClick={() => selectInverter(item)} className={"rounded-2xl border p-3 text-right transition hover:border-blue-300 " + (selected?.id === item.id ? "border-blue-400 bg-blue-50" : "border-slate-200 bg-white")}>
+            <button type="button" key={item.id} onClick={() => selectInverter(item)} className={"rounded-2xl border p-3 text-right transition hover:border-violet-300 " + (selected?.id === item.id ? "border-violet-400 bg-violet-50" : "border-slate-200 bg-white")}>
               <strong className="block truncate">{item.systemName}</strong>
               <span className="mt-1 block truncate text-xs text-slate-500">{item.inverterModel}</span>
             </button>
@@ -383,13 +426,13 @@ export default function SettingsPage() {
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => void testConnection()} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-700"><Plug className="h-4 w-4" aria-hidden="true" />اختبار الاتصال</button>
             <button type="button" onClick={addInverter} className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-200"><Plus className="h-4 w-4" aria-hidden="true" />إضافة إنفرتر</button>
-            {draft.id && !draft.isPrimary && <button type="button" onClick={() => void setPrimary()} className="rounded-xl bg-blue-100 px-4 py-3 text-sm font-black text-blue-700">تعيين كأساسي</button>}
+            {draft.id && !draft.isPrimary && <button type="button" onClick={() => void setPrimary()} className="rounded-xl bg-violet-100 px-4 py-3 text-sm font-black text-violet-700">تعيين كأساسي</button>}
             {draft.id && <button type="button" onClick={() => void deleteInverter()} className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-black text-rose-700">حذف</button>}
           </div>
         </div>}
       </SettingsSection>
 
-      <SettingsSection icon={Cpu} query={query} keywords="ألواح بطارية سعة جهد كيلوواط شبكة طور ميل اتجاه موقع خط العرض خط الطول منطقة زمنية عملة" onReset={() => resetSection(["panelPowerW","batteryCapacityWh","batteryNominalVoltage","batteryChemistry","batteryMinReservePct","inverterRatedPowerKw","gridType","gridPhase","panelTilt","panelAzimuth","latitude","longitude","timezone","currency"], "مواصفات العتاد")} title="مواصفات العتاد" subtitle="الألواح والبطارية والإنفرتر والموقع">
+      <SettingsSection icon={Cpu} tone="amber" summary={<bdi dir="ltr">{`${(settings.panelPowerW / 1000).toLocaleString("en-US", { maximumFractionDigits: 2 })} kW · ${(settings.batteryCapacityWh / 1000).toLocaleString("en-US", { maximumFractionDigits: 1 })} kWh · ${settings.currency}`}</bdi>} query={query} keywords="ألواح بطارية سعة جهد كيلوواط شبكة طور ميل اتجاه موقع خط العرض خط الطول منطقة زمنية عملة" onReset={() => resetSection(["panelPowerW","batteryCapacityWh","batteryNominalVoltage","batteryChemistry","batteryMinReservePct","inverterRatedPowerKw","gridType","gridPhase","panelTilt","panelAzimuth","latitude","longitude","timezone","currency"], "مواصفات العتاد")} title="مواصفات العتاد" subtitle="الألواح والبطارية والإنفرتر والموقع">
         <div className="grid gap-3 sm:grid-cols-2">
           <SettingsField label={<>إجمالي قدرة الألواح <bdi dir="ltr">(kW)</bdi></>}><input type="number" min={0.1} max={100} step={0.1} value={settings.panelPowerW / 1000} onChange={(e) => updateSetting("panelPowerW", Number(e.target.value) * 1000)} className={input} />{settings.panelPowerW > 100_000 && <p className="mt-1 text-xs font-bold text-rose-600">القيمة بالكيلوواط وليس بالواط: لألواح 6000 واط اكتب 6.</p>}</SettingsField>
           <SettingsField label={<>سعة البطاريات <bdi dir="ltr">(kWh)</bdi></>}><input type="number" min={0.1} step="0.1" value={settings.batteryCapacityWh / 1000} onChange={(e) => { if (e.target.value !== "") updateSetting("batteryCapacityWh", Number(e.target.value) * 1000); }} className={input} /></SettingsField>
@@ -412,7 +455,7 @@ export default function SettingsPage() {
         </AdvancedBlock>
       </SettingsSection>
 
-      <SettingsSection icon={ShieldCheck} query={query} keywords="شحن جهد Bulk Float Cut-off تيار أولوية Safe Zone حماية" onReset={() => resetSection(["bulkChargeVoltage","floatChargeVoltage","lowDcCutoffVoltage","backToGridVoltage","maxChargeCurrentA","batteryMaxChargeA","outputSourcePriority","chargerSourcePriority"], "الشحن والحماية")} title="الشحن والحماية" subtitle="جهود الشحن وأولوية المصدر">
+      <SettingsSection icon={ShieldCheck} tone="emerald" summary={<bdi dir="ltr">{`${settings.outputSourcePriority} · ${settings.bulkChargeVoltage ?? "—"} V`}</bdi>} query={query} keywords="شحن جهد Bulk Float Cut-off تيار أولوية Safe Zone حماية" onReset={() => resetSection(["bulkChargeVoltage","floatChargeVoltage","lowDcCutoffVoltage","backToGridVoltage","maxChargeCurrentA","batteryMaxChargeA","outputSourcePriority","chargerSourcePriority"], "الشحن والحماية")} title="الشحن والحماية" subtitle="جهود الشحن وأولوية المصدر">
         <p className="rounded-xl bg-amber-50 p-3 text-xs font-bold leading-5 text-amber-900">اعتمد قيم شركة البطارية وBMS. شمسك يرفض الحفظ إن كان Low DC Cut-off ≥ Back to Grid أو Float ≥ Bulk.</p>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <SettingsField label={<>Bulk / CV <bdi dir="ltr">(V)</bdi></>}><input dir="ltr" type="number" step="0.1" min={20} max={60} value={settings.bulkChargeVoltage ?? ""} onChange={(e) => updateSetting("bulkChargeVoltage", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
@@ -437,11 +480,11 @@ export default function SettingsPage() {
             updateSetting("maxChargeCurrentA", lithium ? 50 : 30); updateSetting("batteryMaxChargeA", lithium ? 50 : 30);
             updateSetting("outputSourcePriority", "SBU"); updateSetting("chargerSourcePriority", "CSO");
             setMessage("تم تحميل قالب Safe Zone على الحقول. اضغط «حفظ» لتطبيقه داخل شمسك."); setError("");
-          }} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white"><ShieldCheck className="ml-1.5 inline h-4 w-4" aria-hidden="true" />تحميل Safe Zone</button>
+          }} className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700"><ShieldCheck className="ml-1.5 inline h-4 w-4" aria-hidden="true" />تحميل Safe Zone</button>
         </div>
       </SettingsSection>
 
-      <SettingsSection icon={Bell} query={query} keywords="تنبيه بطارية منخفضة حرجة انقطاع تحميل زائد هدوء بريد" onReset={() => resetSection(["lowBatteryPct","criticalBatteryPct","offlineMinutes","overloadPct","gridOutageAlert","faultAlert","channels","quietHoursStart","quietHoursEnd"], "التنبيهات")} title="التنبيهات" subtitle="حدود البطارية والانقطاع والأعطال">
+      <SettingsSection icon={Bell} tone="rose" summary={`منخفضة ${settings.lowBatteryPct}% · حرجة ${settings.criticalBatteryPct}%`} query={query} keywords="تنبيه بطارية منخفضة حرجة انقطاع تحميل زائد هدوء بريد" onReset={() => resetSection(["lowBatteryPct","criticalBatteryPct","offlineMinutes","overloadPct","gridOutageAlert","faultAlert","channels","quietHoursStart","quietHoursEnd"], "التنبيهات")} title="التنبيهات" subtitle="حدود البطارية والانقطاع والأعطال">
         <div className="grid gap-3 sm:grid-cols-2">
           <SettingsField label={<>بطارية منخفضة <bdi dir="ltr">(%)</bdi></>}><input type="number" min={5} max={50} value={settings.lowBatteryPct} onChange={(e) => updateSetting("lowBatteryPct", Number(e.target.value))} className={input} /></SettingsField>
           <SettingsField label={<>بطارية حرجة <bdi dir="ltr">(%)</bdi></>}><input type="number" min={5} max={30} value={settings.criticalBatteryPct} onChange={(e) => updateSetting("criticalBatteryPct", Number(e.target.value))} className={input} /></SettingsField>
@@ -458,7 +501,7 @@ export default function SettingsPage() {
         </AdvancedBlock>
       </SettingsSection>
 
-      <SettingsSection icon={Database} query={query} keywords="بيانات تصدير CSV سجل النشاط مسح الاحتفاظ حفظ" onReset={() => resetSection(["retentionDays"], "البيانات")} title="البيانات" subtitle="مدة الحفظ والتصدير">
+      <SettingsSection icon={Database} tone="sky" summary={`الحفظ ${settings.retentionDays} يوم`} query={query} keywords="بيانات تصدير CSV سجل النشاط مسح الاحتفاظ حفظ" onReset={() => resetSection(["retentionDays"], "البيانات")} title="البيانات" subtitle="مدة الحفظ والتصدير">
           <SettingsField label="مدة حفظ السجل التاريخي"><select value={settings.retentionDays} onChange={(e) => updateSetting("retentionDays", Number(e.target.value))} className={input}><option value={30}>30 يوماً</option><option value={90}>90 يوماً</option><option value={180}>180 يوماً</option><option value={365}>365 يوماً</option><option value={0}>بلا حد</option></select></SettingsField>
         <div className="flex flex-wrap gap-2">
           <a href="/api/settings/export" className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-black text-white">تصدير CSV</a>
@@ -483,14 +526,17 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {!draft && <button type="button" onClick={addInverter} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-4 font-black text-white shadow-lg transition hover:bg-blue-700"><Plus className="h-5 w-5" aria-hidden="true" />أضف أول إنفرتر للبدء</button>}
+      {!draft && <button type="button" onClick={addInverter} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-4 font-black text-white shadow-lg transition hover:bg-slate-800"><Plus className="h-5 w-5" aria-hidden="true" />أضف أول إنفرتر للبدء</button>}
       {query.trim() && <p className="rounded-2xl bg-white p-4 text-center text-sm font-bold text-slate-500">لا توجد نتائج أخرى مطابقة للبحث.</p>}
 
       {/* شريط الحفظ في نهاية الصفحة (غير ثابت) */}
       <div>
-        <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-          <span className={"text-xs font-black " + (dirty ? "text-amber-600" : "text-slate-500")}>{dirty ? "● لديك تغييرات غير محفوظة" : "كل التغييرات محفوظة"}</span>
-          <button type="button" disabled={saving || !settingsLoaded} onClick={() => void saveAll()} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-blue-700 focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50">
+        <div className={"flex items-center justify-between gap-3 rounded-2xl border bg-white p-3 shadow-sm transition " + (dirty ? "border-amber-200" : "border-slate-200")}>
+          <span className={"inline-flex items-center gap-2 text-xs font-black " + (dirty ? "text-amber-700" : "text-slate-500")}>
+            <span className={"h-2 w-2 rounded-full " + (dirty ? "animate-pulse bg-amber-500" : "bg-emerald-500")} aria-hidden="true" />
+            {dirty ? "لديك تغييرات غير محفوظة" : "كل التغييرات محفوظة"}
+          </span>
+          <button type="button" disabled={saving || !settingsLoaded} onClick={() => void saveAll()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-black text-white shadow-[0_8px_20px_rgba(15,23,42,0.18)] transition hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-50">
             <Save className="h-4 w-4" aria-hidden="true" />{saving ? "جاري الحفظ…" : "حفظ التغييرات"}
           </button>
         </div>
