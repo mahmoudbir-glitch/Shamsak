@@ -92,12 +92,13 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
     const n = d.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
     return `M ${n[6]} ${n[7]} C ${n[4]} ${n[5]}, ${n[2]} ${n[3]}, ${n[0]} ${n[1]}`;
   };
+  // Layout (400x480 drawing): hub at (200,240); the four icons sit on a plus
+  // shape, 120 units from the hub, so every spoke is the same straight length.
   const spokes: Spoke[] = [
-    // node -> hub, drawn as cubic curves in the 400x400 drawing
-    { key: "solar", path: "M 238 62 C 300 72, 300 150, 234 172", color: "#F59E0B", active: solarActive, towardHub: true, kw: solarKw },
-    { key: "grid", path: "M 100 176 C 130 176, 126 200, 156 200", color: "#8B5CF6", active: gridImporting || gridExporting, towardHub: !gridExporting, kw: gridKw },
-    { key: "home", path: "M 300 176 C 270 176, 274 200, 244 200", color: "#0EA5E9", active: homeActive, towardHub: false, kw: homeKw },
-    { key: "battery", path: "M 154 286 C 112 282, 118 244, 166 230", color: "#10B981", active: batteryCharging || batteryDischarging, towardHub: batteryDischarging, kw: batteryKw },
+    { key: "solar", path: "M 200 162 C 200 172, 200 182, 200 192", color: "#F59E0B", active: solarActive, towardHub: true, kw: solarKw },
+    { key: "grid", path: "M 122 240 C 132 240, 142 240, 152 240", color: "#8B5CF6", active: gridImporting || gridExporting, towardHub: !gridExporting, kw: gridKw },
+    { key: "home", path: "M 278 240 C 268 240, 258 240, 248 240", color: "#0EA5E9", active: homeActive, towardHub: false, kw: homeKw },
+    { key: "battery", path: "M 200 318 C 200 308, 200 298, 200 288", color: "#10B981", active: batteryCharging || batteryDischarging, towardHub: batteryDischarging, kw: batteryKw },
   ];
   const spokeWidth = (kw: number) => 2.5 + Math.min(Math.abs(kw), 6) * 0.6;
   const spokeDuration = (kw: number) => Math.max(0.7, 2.4 - Math.min(Math.abs(kw), 6) * 0.28);
@@ -115,8 +116,8 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
         </div>
       </div>
 
-      <div className="relative mx-auto mt-1 aspect-square w-full max-w-lg p-2 sm:p-4">
-        <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 400 400" fill="none" aria-hidden="true">
+      <div className="relative mx-auto mt-1 aspect-[400/480] w-full max-w-lg">
+        <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 400 480" fill="none" aria-hidden="true">
           <defs>
             <filter id={glowId}><feGaussianBlur stdDeviation="5" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
             {[["solar", "#F59E0B"], ["grid", "#8B5CF6"], ["home", "#0EA5E9"], ["battery", "#10B981"]].map(([key, color]) => (
@@ -159,61 +160,69 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             );
           })}
 
-          <circle cx="200" cy="200" r="38" fill="white" stroke="#FDE68A" strokeWidth="1.5" opacity="0.95" />
-          <circle cx="200" cy="200" r="30" fill="#FFFBEB" stroke="#D97706" strokeWidth="1.5" filter={`url(#${glowId})`} />
-          <circle cx="200" cy="200" r="22" fill="white" />
+          <circle cx="200" cy="240" r="38" fill="white" stroke="#FDE68A" strokeWidth="1.5" opacity="0.95" />
+          <circle cx="200" cy="240" r="30" fill="#FFFBEB" stroke="#D97706" strokeWidth="1.5" filter={`url(#${glowId})`} />
+          <circle cx="200" cy="240" r="22" fill="white" />
         </svg>
 
-        <button type="button" onClick={() => setActiveNode("solar")} aria-label="عرض تفاصيل الطاقة الشمسية" className="absolute left-1/2 top-[6%] z-10 w-[32%] min-w-[100px] -translate-x-1/2 text-center transition-transform active:scale-95">
+        <button type="button" onClick={() => setActiveNode("solar")} aria-label="عرض تفاصيل الطاقة الشمسية" className="absolute left-1/2 top-[25%] z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
           <div
-            className="relative mx-auto flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.35rem] border border-amber-200 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-100"
+            className="relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-amber-200 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-100"
             style={solarActive ? { boxShadow: `0 10px 28px rgba(245,158,11,${solarGlowStrength}), 0 0 ${Math.round(18 + Math.abs(solarKw) * 3)}px rgba(245,158,11,${solarGlowStrength * 0.55})`, animation: `energy-node-pulse ${solarPulseDuration}s ease-in-out infinite` } : undefined}
           >
             <span className={solarActive ? "absolute inset-1 rounded-[1rem] border border-amber-300/50 animate-pulse" : "hidden"} />
-            <Sun className="h-9 w-9 text-amber-500" strokeWidth={2.2} />
+            <Sun className="h-8 w-8 text-amber-500" strokeWidth={2.2} />
           </div>
-          <div className="mt-1.5 text-xs font-black text-slate-700">الطاقة الشمسية</div>
-          <div className={"text-base font-black " + solarToneClass}>{formatKw(solarKw)}</div>
-          <div className="text-[10px] font-bold text-slate-500">{solarActive ? "إنتاج الآن" : "لا يوجد توليد"}</div>
+          <div className="pointer-events-none absolute bottom-full left-1/2 mb-1.5 w-[7.5rem] -translate-x-1/2 text-center">
+            <div className="text-xs font-black text-slate-700">الطاقة الشمسية</div>
+            <div className={"text-sm font-black " + solarToneClass}>{formatKw(solarKw)}</div>
+            <div className="text-[10px] font-bold text-slate-500">{solarActive ? "إنتاج الآن" : "لا يوجد توليد"}</div>
+          </div>
         </button>
 
-        <button type="button" onClick={() => setActiveNode("grid")} aria-label="عرض تفاصيل الشبكة" className="absolute left-[1%] top-1/2 z-10 w-[29%] min-w-[94px] -translate-y-1/2 text-center transition-transform active:scale-95">
+        <button type="button" onClick={() => setActiveNode("grid")} aria-label="عرض تفاصيل الشبكة" className="absolute left-[20%] top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
           <div
-            className={gridConnected ? "mx-auto flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-violet-200 bg-gradient-to-br from-violet-50 to-blue-50" : "mx-auto flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-slate-200 bg-slate-100"}
+            className={gridConnected ? "relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-violet-200 bg-gradient-to-br from-violet-50 to-blue-50" : "relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-slate-200 bg-slate-100"}
             style={gridConnected && (gridImporting || gridExporting) ? { boxShadow: `0 10px 24px rgba(139,92,246,${gridGlowStrength}), 0 0 ${Math.round(16 + Math.abs(gridKw) * 2.5)}px rgba(139,92,246,${gridGlowStrength * 0.5})`, animation: `energy-node-pulse ${gridPulseDuration}s ease-in-out infinite` } : undefined}
           >
             <RadioTower className={gridConnected ? "h-8 w-8 text-violet-500" : "h-8 w-8 text-slate-400"} strokeWidth={2.1} />
           </div>
-          <div className="mt-1.5 text-xs font-black text-slate-700">الشبكة</div>
-          <div className={gridConnected ? "text-sm font-black text-violet-600" : "text-sm font-black text-slate-500"}>{!gridConnected ? "مقطوعة" : gridImporting ? "تسحب منها" : gridExporting ? "تصدير" : "جهد متوفر"}</div>
-          <div className="text-[10px] font-bold text-slate-500">{gridConnected ? `${gridVoltage ? Math.round(gridVoltage) + " V · " : ""}${gridImporting ? "سحب الطاقة" : gridExporting ? "تصدير الفائض" : "غير مستخدمة الآن"}` : "لا جهد على المدخل"}</div>
+          <div className="pointer-events-none absolute left-1/2 top-full mt-1.5 w-[7.5rem] -translate-x-1/2 text-center">
+            <div className="text-xs font-black text-slate-700">الشبكة</div>
+            <div className={gridConnected ? "text-sm font-black text-violet-600" : "text-sm font-black text-slate-500"}>{!gridConnected ? "مقطوعة" : gridImporting ? "تسحب منها" : gridExporting ? "تصدير" : "جهد متوفر"}</div>
+            <div className="text-[10px] font-bold text-slate-500">{gridConnected ? `${gridVoltage ? Math.round(gridVoltage) + " V · " : ""}${gridImporting ? "سحب الطاقة" : gridExporting ? "تصدير الفائض" : "غير مستخدمة الآن"}` : "لا جهد على المدخل"}</div>
+          </div>
         </button>
 
-        <button type="button" onClick={() => setActiveNode("home")} aria-label="عرض تفاصيل المنزل" className="absolute right-[1%] top-1/2 z-10 w-[29%] min-w-[94px] -translate-y-1/2 text-center transition-transform active:scale-95">
+        <button type="button" onClick={() => setActiveNode("home")} aria-label="عرض تفاصيل المنزل" className="absolute left-[80%] top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
           <div
-            className="mx-auto flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-100"
+            className="relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-100"
             style={homeActive ? { boxShadow: `0 10px 24px rgba(14,165,233,${homeGlowStrength}), 0 0 ${Math.round(16 + Math.abs(homeKw) * 2.5)}px rgba(14,165,233,${homeGlowStrength * 0.5})`, animation: `energy-node-pulse ${homePulseDuration}s ease-in-out infinite` } : undefined}
           >
             <Home className="h-8 w-8 text-sky-500" strokeWidth={2.1} />
           </div>
-          <div className="mt-1.5 text-xs font-black text-slate-700">المنزل</div>
-          <div className={"text-sm font-black " + homeToneClass}>{formatKw(homeKw)}</div>
-          <div className="text-[10px] font-bold text-slate-500">{homeActive ? "استهلاك الآن" : "لا توجد قراءة"}</div>
+          <div className="pointer-events-none absolute left-1/2 top-full mt-1.5 w-[7.5rem] -translate-x-1/2 text-center">
+            <div className="text-xs font-black text-slate-700">المنزل</div>
+            <div className={"text-sm font-black " + homeToneClass}>{formatKw(homeKw)}</div>
+            <div className="text-[10px] font-bold text-slate-500">{homeActive ? "استهلاك الآن" : "لا توجد قراءة"}</div>
+          </div>
         </button>
 
-        <button type="button" onClick={() => setActiveNode("battery")} aria-label="عرض تفاصيل البطارية" className="absolute bottom-[6%] left-1/2 z-10 w-[34%] min-w-[110px] -translate-x-1/2 text-center transition-transform active:scale-95">
+        <button type="button" onClick={() => setActiveNode("battery")} aria-label="عرض تفاصيل البطارية" className="absolute left-1/2 top-[75%] z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
           <div
-            className="relative mx-auto flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.35rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-100"
+            className="relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-100"
             style={batteryCharging || batteryDischarging ? { boxShadow: `0 10px 28px rgba(16,185,129,${batteryGlowStrength}), 0 0 ${Math.round(18 + Math.abs(batteryKw) * 3)}px rgba(16,185,129,${batteryGlowStrength * 0.55})`, animation: `energy-node-pulse ${batteryPulseDuration}s ease-in-out infinite` } : undefined}
           >
-            <div className="relative flex h-12 w-12 items-center justify-center rounded-full border-[5px] border-emerald-400 bg-white/80">
-              <BatteryCharging className="absolute h-5 w-5 -translate-y-3 text-emerald-500" strokeWidth={2.3} />
-              <span className={"mt-2 text-sm font-black " + batteryToneClass}>{batteryPercentage.toFixed(0)}%</span>
+            <div className="relative flex h-11 w-11 items-center justify-center rounded-full border-4 border-emerald-400 bg-white/80">
+              <BatteryCharging className="absolute h-4 w-4 -translate-y-2.5 text-emerald-500" strokeWidth={2.3} />
+              <span className={"mt-2 text-xs font-black " + batteryToneClass}>{batteryPercentage.toFixed(0)}%</span>
             </div>
           </div>
-          <div className="mt-1.5 text-xs font-black text-slate-700">البطارية</div>
-          <div className={"text-sm font-black " + batteryToneClass}>{formatKw(batteryKw)}</div>
-          <div className="text-[10px] font-bold text-slate-500">{batteryCharging ? "تشحن الآن" : batteryDischarging ? "تفرغ الآن" : "ثابتة"}</div>
+          <div className="pointer-events-none absolute left-1/2 top-full mt-1.5 w-[7.5rem] -translate-x-1/2 text-center">
+            <div className="text-xs font-black text-slate-700">البطارية</div>
+            <div className={"text-sm font-black " + batteryToneClass}>{formatKw(batteryKw)}</div>
+            <div className="text-[10px] font-bold text-slate-500">{batteryCharging ? "تشحن الآن" : batteryDischarging ? "تفرغ الآن" : "ثابتة"}</div>
+          </div>
         </button>
 
         <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
