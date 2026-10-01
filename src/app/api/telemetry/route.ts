@@ -103,7 +103,11 @@ export async function GET(request: NextRequest) {
         ageSeconds,
         todayProductionKWh: today ? Math.round(today.solarKWh * 100) / 100 : undefined,
         todayHomeUsageKWh: today ? Math.round(today.homeKWh * 100) / 100 : undefined,
-        todayGridSavings: today ? Math.round(today.savings * 100) / 100 : undefined,
+        // Priced with the current tariff, so correcting the tariff in Settings
+        // also corrects today's figure (the stored running sum used old prices).
+        todayGridSavings: today
+          ? Math.round((Math.max(0, today.homeKWh - today.gridImportKWh) * (settings?.gridTariff ?? 0) + today.gridExportKWh * (settings?.exportTariff ?? 0)) * 100) / 100
+          : undefined,
         currency: settings?.currency ?? undefined,
       },
       { headers: { "Cache-Control": "no-store" } },

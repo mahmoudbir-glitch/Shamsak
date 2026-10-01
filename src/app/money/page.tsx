@@ -58,6 +58,9 @@ function formatNumber(value: number, digits = 1) {
   });
 }
 
+/** Money with at most two decimals (0.325 -> 0.33), Latin digits. */
+const money = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: n % 1 ? 2 : 0 });
+
 export default function MoneyDashboard() {
   const [data, setData] = useState<FinanceData | null>(null);
   const [tariff, setTariff] = useState(0);
@@ -246,7 +249,7 @@ export default function MoneyDashboard() {
               <div className={"rounded-2xl border p-4 " + semanticBorder[savedTone] + " " + semanticBg[savedTone]}>
                 <span className={"text-[11px] font-bold " + semanticText[savedTone]}>الوفر التقديري</span>
                 <strong className={"mt-1 block text-2xl font-black " + semanticText[savedTone]}>
-                  {savedAmount.toLocaleString()} {currency}
+                  {money(savedAmount)} {currency}
                 </strong>
                 <span className="mt-1 block text-[10px] font-semibold opacity-75">من الشمس والبطارية والتصدير</span>
               </div>
@@ -254,7 +257,7 @@ export default function MoneyDashboard() {
               <div className="rounded-2xl border border-violet-100 bg-violet-50 p-4">
                 <span className="text-[11px] font-bold text-violet-700">تكلفة الشبكة الفعلية</span>
                 <strong className="mt-1 block text-2xl font-black text-violet-800">
-                  {gridCost.toLocaleString()} {currency}
+                  {money(gridCost)} {currency}
                 </strong>
                 <span className="mt-1 block text-[10px] font-semibold text-slate-500">
                   {formatNumber(data.totals.gridImportKWh)} ك.و.س مشتراة
@@ -264,7 +267,7 @@ export default function MoneyDashboard() {
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <span className="text-[11px] font-bold text-slate-600">تكلفة افتراضية بلا النظام الشمسي</span>
                 <strong className="mt-1 block text-xl font-black text-slate-800">
-                  {hypotheticalCost.toLocaleString()} {currency}
+                  {money(hypotheticalCost)} {currency}
                 </strong>
               </div>
 
