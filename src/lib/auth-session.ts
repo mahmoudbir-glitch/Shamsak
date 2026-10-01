@@ -16,7 +16,8 @@ function unb64(value: string) {
   return new TextDecoder().decode(bytes);
 }
 function getSessionSecret() {
-  return process.env.AUTH_SECRET || process.env.SHAMSAK_PASSWORD || process.env.SHAMSAK_PASSWORD_HASH || "";
+  // Sessions are signed with AUTH_SECRET only; never fall back to the password.
+  return process.env.AUTH_SECRET || "";
 }
 async function sign(value: string, secret: string) {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), {name:"HMAC",hash:"SHA-256"}, false, ["sign"]);
@@ -36,7 +37,7 @@ export type SessionPayload = { sub:string; username:string; exp:number };
 
 export async function createSessionToken(username:string) {
   const secret=getSessionSecret();
-  if(!secret) throw new Error("SHAMSAK_PASSWORD or AUTH_SECRET is not configured");
+  if(!secret) throw new Error("AUTH_SECRET is not configured");
   const payload={sub:username,username,exp:Math.floor(Date.now()/1000)+SESSION_TTL_SECONDS};
   const encoded=b64(JSON.stringify(payload));
   return encoded+"."+await sign(encoded,secret);

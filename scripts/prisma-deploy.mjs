@@ -25,6 +25,14 @@ import { spawnSync } from "node:child_process";
  */
 const RECOVERABLE = new Set(["20260930140000_enable_rls_deny_public_roles"]);
 
+// Preview deployments share the production database (same DATABASE_URL), so
+// a preview build must never change its schema. Only production builds (or
+// local/CI builds outside Vercel) apply migrations.
+if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") {
+  console.log(`[shamsak] Skipping migrations on a ${process.env.VERCEL_ENV} build (database is shared with production).`);
+  process.exit(0);
+}
+
 const databaseUrl =
   process.env.DATABASE_URL || process.env.PRISMA_DATABASE_URL || process.env.POSTGRES_URL;
 

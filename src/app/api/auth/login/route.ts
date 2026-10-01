@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
   const config = getAuthConfig();
   if (!config.configured) {
-    console.error("[auth] Missing SHAMSAK_USER/SHAMSAK_PASSWORD configuration.");
+    console.error("[auth] Missing SHAMSAK_USER, SHAMSAK_PASSWORD or AUTH_SECRET configuration.");
     return NextResponse.json({ error: "auth_not_configured" }, { status: 503 });
   }
 

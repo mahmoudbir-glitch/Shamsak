@@ -440,3 +440,30 @@ test("cron sync endpoint requires CRON_SECRET and compares in constant time", ()
   assert.match(src, /timingSafeEqual/);
   assert.match(src, /status: 401/);
 });
+
+test("preview builds never run migrations against the shared database", () => {
+  const source = read("scripts/prisma-deploy.mjs");
+  assert.match(source, /VERCEL_ENV\s*&&\s*process\.env\.VERCEL_ENV\s*!==\s*"production"/);
+  assert.ok(source.indexOf("VERCEL_ENV") < source.indexOf('["migrate", "deploy"]'));
+});
+
+test("gateway refuses to start or serve without GATEWAY_TOKEN", () => {
+  const source = read("gateway/gateway.py");
+  assert.match(source, /if not TOKEN:\s*\n\s*raise SystemExit/);
+  assert.match(source, /if not TOKEN or self\.headers\.get\("Authorization"\)/);
+});
+
+test("session signing uses AUTH_SECRET only, never the password", () => {
+  const session = read("src/lib/auth-session.ts");
+  const config = read("src/lib/auth-config.ts");
+  assert.doesNotMatch(session, /AUTH_SECRET\s*\|\|\s*process\.env\.SHAMSAK_PASSWORD/);
+  assert.match(config, /const secret = process\.env\.AUTH_SECRET \|\| "";/);
+});
+
+test("settings page cannot save placeholder defaults before real settings load", () => {
+  const source = read("src/app/settings/page.tsx");
+  assert.match(source, /if \(!settingsLoaded\)/);
+  assert.match(source, /disabled=\{saving \|\| !settingsLoaded\}/);
+  assert.match(source, /currency: "USD"/);
+  assert.match(source, /lowDcCutoffVoltage: 44\.0, backToGridVoltage: 52\.0/);
+});

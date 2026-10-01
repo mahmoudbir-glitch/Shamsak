@@ -49,7 +49,7 @@ export default function LoginForm() {
           invalid_username: "اسم المستخدم غير موجود.",
           invalid_password: "كلمة المرور غير صحيحة.",
           invalid_credentials: "اسم المستخدم أو كلمة المرور غير صحيحة.",
-          auth_not_configured: "إعدادات تسجيل الدخول غير مكتملة على الخادم. تأكد من SHAMSAK_USER و SHAMSAK_PASSWORD في Vercel.",
+          auth_not_configured: "إعدادات تسجيل الدخول غير مكتملة على الخادم. تأكد من SHAMSAK_USER و SHAMSAK_PASSWORD و AUTH_SECRET في Vercel.",
           too_many_attempts: "تم تجاوز عدد محاولات الدخول. حاول بعد 10 دقائق.",
           session_creation_failed: "تم التحقق من البيانات لكن تعذر إنشاء الجلسة. تحقق من إعداد AUTH_SECRET في Vercel.",
           invalid_json: "تعذر قراءة طلب تسجيل الدخول.",

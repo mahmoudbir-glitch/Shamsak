@@ -176,7 +176,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path != "/v1/inverter/test":
             return json_response(self, 404, {"ok": False, "error": "not_found"})
-        if TOKEN and self.headers.get("Authorization") != "Bearer " + TOKEN:
+        if not TOKEN or self.headers.get("Authorization") != "Bearer " + TOKEN:
             return json_response(self, 401, {"ok": False, "error": "unauthorized"})
         try:
             length = int(self.headers.get("Content-Length", "0"))
@@ -216,6 +216,8 @@ def poll_loop():
             print("poll failed:", exc)
 
 if __name__ == "__main__":
+    if not TOKEN:
+        raise SystemExit("GATEWAY_TOKEN is not set. Refusing to start without authentication: set GATEWAY_TOKEN to the token shown in Shamsak settings.")
     print(f"Shamsak Gateway listening on {HOST}:{PORT}, profile={PROFILE}")
     threading.Thread(target=poll_loop, daemon=True).start()
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()

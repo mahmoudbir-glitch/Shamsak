@@ -14,10 +14,7 @@ export function getAuthConfig() {
   ).trim();
   const ownerPassword = process.env.SHAMSAK_OWNER_PASSWORD || "";
 
-  const secret =
-    process.env.AUTH_SECRET ||
-    password ||
-    passwordHash;
+  const secret = process.env.AUTH_SECRET || "";
 
   return {
     username,

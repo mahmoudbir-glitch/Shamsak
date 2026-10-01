@@ -26,7 +26,7 @@ Linux:
 | --- | --- |
 | `INVERTER_PROFILE` | Register map to use. Must match the inverter model. Bundled: `ivem6048-ii` (Felicity IVEM6048-II). The gateway refuses to read without it. `FELICITY_PROFILE` is still accepted. |
 | `INVERTER_REGISTER_OFFSET` | Offset applied to every register address, for maps documented 1-based. Defaults to 0. |
-| `GATEWAY_TOKEN` | Shared secret this gateway requires on `POST /v1/inverter/test`. Paste the token Shamsak shows once after "rotate gateway token". |
+| `GATEWAY_TOKEN` | **Required.** Shared secret this gateway requires on `POST /v1/inverter/test`; the gateway refuses to start without it. Paste the token Shamsak shows once after "rotate gateway token". |
 | `SHAMSAK_API_URL` | Base URL of the Shamsak deployment, used by the polling loop. |
 | `SHAMSAK_TELEMETRY_TOKEN` | Must equal `TELEMETRY_INGEST_TOKEN` in Shamsak, or every push is rejected. |
 | `POLL_INTERVAL_SECONDS` | Seconds between Modbus reads. Minimum 2, default 10. |

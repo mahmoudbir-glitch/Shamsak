@@ -33,10 +33,10 @@ type Settings = {
 };
 
 const defaults: Settings = {
-  panelPowerW: 6000, batteryCapacityWh: 4800, gridTariff: 0, exportTariff: 0, currency: "SYP",
+  panelPowerW: 6000, batteryCapacityWh: 4800, gridTariff: 0, exportTariff: 0, currency: "USD",
   latitude: 33.8938, longitude: 35.5018, timezone: "Asia/Beirut", panelTilt: null, panelAzimuth: null,
   batteryNominalVoltage: 48, batteryChemistry: "LiFePO4", batteryMinReservePct: 20,
-  bulkChargeVoltage: 56.4, floatChargeVoltage: 54.0, lowDcCutoffVoltage: 45.0, backToGridVoltage: 46.0,
+  bulkChargeVoltage: 56.4, floatChargeVoltage: 54.0, lowDcCutoffVoltage: 44.0, backToGridVoltage: 52.0,
   maxChargeCurrentA: 50, outputSourcePriority: "SBU", chargerSourcePriority: "CSO",
   batteryMaxChargeA: 50, batteryMaxDischargeA: null, inverterRatedPowerKw: 8.2, gridPhase: "single", gridType: "hybrid", retentionDays: 365, pollIntervalSec: 10,
   lowBatteryPct: 20, criticalBatteryPct: 10, gridOutageAlert: true, faultAlert: true, offlineMinutes: 10,
@@ -106,6 +106,9 @@ export default function SettingsPage() {
   const [selectedId, setSelectedId] = useState<string>("");
   const [draft, setDraft] = useState<Inverter | null>(null);
   const [loading, setLoading] = useState(true);
+  // True only once the real settings arrived; saving is blocked until then so
+  // the placeholder defaults can never overwrite the saved values.
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -125,7 +128,7 @@ export default function SettingsPage() {
       const sd = await s.json().catch(() => ({}));
       const cd = await c.json().catch(() => ({}));
       const errors: string[] = [];
-      if (s.ok) { setSettings((value) => ({ ...value, ...sd })); setSaved((value) => ({ ...value, ...sd })); }
+      if (s.ok) { setSettings((value) => ({ ...value, ...sd })); setSaved((value) => ({ ...value, ...sd })); setSettingsLoaded(true); }
       else errors.push(sd.message || "تعذر تحميل إعدادات المنظومة.");
       if (c.ok) {
         const list = (cd.connections || []) as Inverter[];
@@ -170,6 +173,10 @@ export default function SettingsPage() {
   const updateDraft = <K extends keyof Inverter>(key: K, value: Inverter[K]) => setDraft((old) => old ? ({ ...old, [key]: value }) : old);
 
   const saveAll = async () => {
+    if (!settingsLoaded) {
+      setError("لم تُحمَّل إعداداتك المحفوظة بعد، لذلك أُوقف الحفظ كي لا تُستبدل بقيم افتراضية. أعد تحميل الصفحة ثم حاول مجددًا.");
+      return false;
+    }
     setSaving(true); setMessage(""); setError("");
     try {
       const settingsResponse = await fetch("/api/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(settings) });
@@ -483,7 +490,7 @@ export default function SettingsPage() {
       <div>
         <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
           <span className={"text-xs font-black " + (dirty ? "text-amber-600" : "text-slate-500")}>{dirty ? "● لديك تغييرات غير محفوظة" : "كل التغييرات محفوظة"}</span>
-          <button type="button" disabled={saving} onClick={() => void saveAll()} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-blue-700 focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50">
+          <button type="button" disabled={saving || !settingsLoaded} onClick={() => void saveAll()} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-blue-700 focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-50">
             <Save className="h-4 w-4" aria-hidden="true" />{saving ? "جاري الحفظ…" : "حفظ التغييرات"}
           </button>
         </div>
