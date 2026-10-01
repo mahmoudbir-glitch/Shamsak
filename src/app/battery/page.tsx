@@ -34,7 +34,7 @@ function Metric({ icon: Icon, label, value }: { icon: React.ComponentType<{ clas
   return (
     <div className="energy-card flex items-center gap-3 p-4">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500"><Icon className="h-5 w-5" /></span>
-      <div className="min-w-0"><div className="text-[11px] font-bold text-slate-400">{label}</div><div className="truncate text-lg font-black text-slate-900">{value}</div></div>
+      <div className="min-w-0"><div className="text-[11px] font-bold text-slate-400">{label}</div><div className="text-lg font-black leading-snug text-slate-900">{value}</div></div>
     </div>
   );
 }

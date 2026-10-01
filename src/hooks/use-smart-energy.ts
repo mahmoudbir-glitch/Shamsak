@@ -142,7 +142,7 @@ async function loadSiteConfig(): Promise<SiteConfig> {
     const num = (value: unknown, alt: number) => (typeof value === "number" && Number.isFinite(value) && value > 0 ? value : alt);
     const opt = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : null);
     return {
-      panelCapacityKw: num(data.panelPowerW, fallback.panelCapacityKw * 1000) / 1000,
+      panelCapacityKw: (() => { const w = num(data.panelPowerW, fallback.panelCapacityKw * 1000); return (w > 100_000 ? w / 1000 : w) / 1000; })(),
       batteryCapacityWh: num(data.batteryCapacityWh, fallback.batteryCapacityWh),
       latitude: typeof data.latitude === "number" && Number.isFinite(data.latitude) ? data.latitude : fallback.latitude,
       longitude: typeof data.longitude === "number" && Number.isFinite(data.longitude) ? data.longitude : fallback.longitude,

@@ -10,8 +10,16 @@ export const dynamic = "force-dynamic";
 // إصلاح: كانت \\d داخل regex literal تعني "شرطة مائلة + d" فترفض أي وقت صحيح مثل 08:30
 const TIME_HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+/**
+ * A home array is at most tens of kW. A value above 100 kW means watts were
+ * typed into the kW field (6000 -> 6,000,000 W), which made the forecast
+ * promise 21,000 kWh a day; read it back as kW instead.
+ */
+const MAX_PANEL_W = 100_000;
+const normalizePanelW = (w: number) => (w > MAX_PANEL_W ? w / 1000 : w);
+
 const settingsSchema = z.object({
-  panelPowerW: z.number().finite().positive().optional(),
+  panelPowerW: z.number().finite().positive().transform(normalizePanelW).refine((w) => w <= MAX_PANEL_W, "قدرة الألواح يجب ألا تتجاوز 100 كيلوواط.").optional(),
   batteryCapacityWh: z.number().finite().positive().optional(),
   gridTariff: z.number().finite().nonnegative().optional(),
   exportTariff: z.number().finite().nonnegative().optional(),
@@ -148,6 +156,11 @@ export async function GET(request: NextRequest) {
       },
       update: {},
     });
+    if (settings.panelPowerW > MAX_PANEL_W) {
+      const fixed = normalizePanelW(settings.panelPowerW);
+      await prisma.energySettings.update({ where: { id: "default" }, data: { panelPowerW: fixed } }).catch(() => {});
+      settings.panelPowerW = fixed;
+    }
     return NextResponse.json(settings, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("[settings] read_failed", error);

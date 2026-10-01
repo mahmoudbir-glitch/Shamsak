@@ -82,7 +82,9 @@ function NightCard({
             {hasEnoughSamples
               ? result.sufficient
                 ? "تكفي حتى الصباح"
-                : "قد لا تكفي حتى الصباح"
+                : result.probability >= 90
+                  ? "تكفي تقريبًا — على الحافة"
+                  : "قد لا تكفي حتى الصباح"
               : "تقدير أولي — البيانات التاريخية غير كافية"}
           </h3>
         </div>
@@ -92,7 +94,7 @@ function NightCard({
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-emerald-50 p-3">
-          <span className="text-xs font-bold text-slate-500">احتمال الصمود</span>
+          <span className="text-xs font-bold text-slate-500">تغطية الليل</span>
           <strong className={"mt-1 block font-black " + (hasEnoughSamples ? "text-2xl text-emerald-700" : "text-sm text-slate-500")}>{hasEnoughSamples ? `${result.probability}%` : "غير كافٍ للتقدير بعد"}</strong>
         </div>
         <div className="rounded-xl bg-sky-50 p-3">
@@ -146,16 +148,18 @@ export function SmartForecast() {
     // After midnight and before today's sunrise we are still inside last night.
     const todaySunrise = new Date(today.sunrise).getTime();
     if (Number.isFinite(todaySunrise) && now < todaySunrise) {
-      return { startSoc: snapshot?.batterySoc ?? today.chargeAtSunrisePct, hours: Math.max(0.5, (todaySunrise - now) / 3600000) };
+      return { inProgress: true, startSoc: snapshot?.batterySoc ?? today.chargeAtSunrisePct, hours: Math.max(0.5, (todaySunrise - now) / 3600000) };
     }
     const todaySunset = new Date(today.sunset).getTime();
     if (Number.isFinite(todaySunset) && now < todaySunset) {
       return {
+        inProgress: false,
         startSoc: today.chargeAtSunsetPct,
         hours: Math.max(0.5, (new Date(tomorrow.sunrise).getTime() - todaySunset) / 3600000),
       };
     }
     return {
+      inProgress: true,
       startSoc: snapshot?.batterySoc ?? today.chargeAtSunsetPct,
       hours: Math.max(0.5, (new Date(tomorrow.sunrise).getTime() - now) / 3600000),
     };
@@ -290,7 +294,7 @@ export function SmartForecast() {
               </InfoTip>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {currentNight && <NightCard title="الليلة الحالية" startSoc={currentNight.startSoc} hours={currentNight.hours} loadW={loadW} averageNightLoadW={nightLoadStats.averageW} confidence={nightLoadStats.confidence} sampleCount={nightLoadStats.sampleCount} capacityWh={batteryCapacityWh} />}
+              {currentNight && <NightCard title={currentNight.inProgress ? "الليلة الحالية" : "الليلة القادمة"} startSoc={currentNight.startSoc} hours={currentNight.hours} loadW={loadW} averageNightLoadW={nightLoadStats.averageW} confidence={nightLoadStats.confidence} sampleCount={nightLoadStats.sampleCount} capacityWh={batteryCapacityWh} />}
               {tomorrowNight && <NightCard title="ليلة الغد" startSoc={tomorrowNight.startSoc} hours={tomorrowNight.hours} loadW={loadW} averageNightLoadW={nightLoadStats.averageW} confidence={nightLoadStats.confidence} sampleCount={nightLoadStats.sampleCount} capacityWh={batteryCapacityWh} />}
             </div>
           </section>
