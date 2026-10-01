@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useId, useState } from 'react';
-import { BatteryCharging, Home, RadioTower, Sun, Zap } from 'lucide-react';
+import { BatteryCharging, Zap } from 'lucide-react';
+import { GridTowerIcon, HouseIcon, SolarPanelIcon } from '@/components/node-icons';
 import { InfoTip } from '@/components/info-tip';
 import { batteryText, homeText, solarText } from '@/lib/energy';
 
@@ -167,11 +168,11 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
 
         <button type="button" onClick={() => setActiveNode("solar")} aria-label="عرض تفاصيل الطاقة الشمسية" className="absolute left-1/2 top-[25%] z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
           <div
-            className="relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-amber-200 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-100"
+            className={"relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border-2 bg-white " + (solarActive ? "border-amber-300" : "border-slate-200")}
             style={solarActive ? { boxShadow: `0 10px 28px rgba(245,158,11,${solarGlowStrength}), 0 0 ${Math.round(18 + Math.abs(solarKw) * 3)}px rgba(245,158,11,${solarGlowStrength * 0.55})`, animation: `energy-node-pulse ${solarPulseDuration}s ease-in-out infinite` } : undefined}
           >
             <span className={solarActive ? "absolute inset-1 rounded-[1rem] border border-amber-300/50 animate-pulse" : "hidden"} />
-            <Sun className="h-8 w-8 text-amber-500" strokeWidth={2.2} />
+            <SolarPanelIcon active={solarActive} />
           </div>
           <div className="pointer-events-none absolute bottom-full left-1/2 mb-1.5 w-[7.5rem] -translate-x-1/2 text-center">
             <div className="text-xs font-black text-slate-700">الطاقة الشمسية</div>
@@ -182,10 +183,10 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
 
         <button type="button" onClick={() => setActiveNode("grid")} aria-label="عرض تفاصيل الشبكة" className="absolute left-[20%] top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
           <div
-            className={gridConnected ? "relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-violet-200 bg-gradient-to-br from-violet-50 to-blue-50" : "relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-slate-200 bg-slate-100"}
+            className={gridConnected ? "relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border-2 border-violet-300 bg-white" : "relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border-2 border-slate-200 bg-slate-50"}
             style={gridConnected && (gridImporting || gridExporting) ? { boxShadow: `0 10px 24px rgba(139,92,246,${gridGlowStrength}), 0 0 ${Math.round(16 + Math.abs(gridKw) * 2.5)}px rgba(139,92,246,${gridGlowStrength * 0.5})`, animation: `energy-node-pulse ${gridPulseDuration}s ease-in-out infinite` } : undefined}
           >
-            <RadioTower className={gridConnected ? "h-8 w-8 text-violet-500" : "h-8 w-8 text-slate-400"} strokeWidth={2.1} />
+            <GridTowerIcon active={gridConnected} />
           </div>
           <div className="pointer-events-none absolute left-1/2 top-full mt-1.5 w-[7.5rem] -translate-x-1/2 text-center">
             <div className="text-xs font-black text-slate-700">الشبكة</div>
@@ -196,10 +197,10 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
 
         <button type="button" onClick={() => setActiveNode("home")} aria-label="عرض تفاصيل المنزل" className="absolute left-[80%] top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
           <div
-            className="relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-100"
+            className="relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border-2 border-sky-300 bg-white"
             style={homeActive ? { boxShadow: `0 10px 24px rgba(14,165,233,${homeGlowStrength}), 0 0 ${Math.round(16 + Math.abs(homeKw) * 2.5)}px rgba(14,165,233,${homeGlowStrength * 0.5})`, animation: `energy-node-pulse ${homePulseDuration}s ease-in-out infinite` } : undefined}
           >
-            <Home className="h-8 w-8 text-sky-500" strokeWidth={2.1} />
+            <HouseIcon />
           </div>
           <div className="pointer-events-none absolute left-1/2 top-full mt-1.5 w-[7.5rem] -translate-x-1/2 text-center">
             <div className="text-xs font-black text-slate-700">المنزل</div>
@@ -210,7 +211,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
 
         <button type="button" onClick={() => setActiveNode("battery")} aria-label="عرض تفاصيل البطارية" className="absolute left-1/2 top-[75%] z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
           <div
-            className="relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-100"
+            className="relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border-2 border-emerald-300 bg-white"
             style={batteryCharging || batteryDischarging ? { boxShadow: `0 10px 28px rgba(16,185,129,${batteryGlowStrength}), 0 0 ${Math.round(18 + Math.abs(batteryKw) * 3)}px rgba(16,185,129,${batteryGlowStrength * 0.55})`, animation: `energy-node-pulse ${batteryPulseDuration}s ease-in-out infinite` } : undefined}
           >
             <div className="relative flex h-11 w-11 items-center justify-center rounded-full border-4 border-emerald-400 bg-white/80">
