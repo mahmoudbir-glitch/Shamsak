@@ -282,7 +282,7 @@ export function SmartForecast() {
               </div>
               <div className="rounded-2xl bg-slate-50 p-4">
                 <span className="text-xs font-bold text-slate-500">الشروق / الغروب</span>
-                <strong className="mt-1 block text-lg font-black text-slate-900">{formatHour(selected.sunrise)} / {formatHour(selected.sunset)}</strong>
+                <strong className="mt-1 block whitespace-nowrap text-base font-black text-slate-900">{formatHour(selected.sunrise)} / {formatHour(selected.sunset)}</strong>
               </div>
             </div>
           </section>
