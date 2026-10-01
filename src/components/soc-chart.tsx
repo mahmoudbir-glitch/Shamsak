@@ -3,6 +3,8 @@
 import React, { useMemo, useState } from "react";
 import type { LoadPoint } from "@/components/load-chart";
 import { StatTile, type StatTone } from "@/components/stat-tile";
+import { AmpPill } from "@/components/amp-pill";
+import { batteryAmps } from "@/lib/energy";
 
 const HOUR = 3_600_000;
 const W = 640;
@@ -139,7 +141,7 @@ export function SocChart({ points, timeZone, now, reservePct }: { points: LoadPo
                 {shown.max - shown.min >= 1 && <div className="text-slate-500">المدى: {shown.min}% – {shown.max}%</div>}
                 {shown.powerW !== null && Math.abs(shown.powerW) >= 30 && (
                   <div className={shown.powerW > 0 ? "text-emerald-600" : "text-amber-600"}>
-                    {shown.powerW > 0 ? "شحن" : "تفريغ"} ≈ {Math.round(Math.abs(shown.powerW)).toLocaleString("en-US")} واط
+                    {shown.powerW > 0 ? "شحن" : "تفريغ"} ≈ {Math.round(Math.abs(shown.powerW)).toLocaleString("en-US")} واط <AmpPill tone="emerald" amps={batteryAmps({ batteryPowerW: shown.powerW })} className="mr-1 align-middle" />
                   </div>
                 )}
               </>

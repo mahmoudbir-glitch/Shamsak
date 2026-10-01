@@ -5,6 +5,8 @@ import { ChevronDown, CloudSun, Loader2, MoonStar, RefreshCw, SunMedium } from "
 import { useSharedSmartEnergy } from "@/components/smart-energy-provider";
 import { calculateAutonomy, weatherIcon, weatherLabel, type DayForecast, type LoadStability } from "@/lib/smart-forecast";
 import { InfoTip } from "@/components/info-tip";
+import { AmpPill } from "@/components/amp-pill";
+import { acAmps } from "@/lib/energy";
 
 function formatHour(iso?: string | null) {
   if (!iso) return "—";
@@ -106,7 +108,7 @@ function NightCard({
         </div>
       </div>
       <div className="mt-3 space-y-2 text-sm font-semibold text-slate-500">
-        <p>تغطية تقديرية {result.hoursCovered} ساعة عند متوسط استهلاك ليلي {Math.round(effectiveLoadW).toLocaleString("en-US")} واط.</p>
+        <p>تغطية تقديرية {result.hoursCovered} ساعة عند متوسط استهلاك ليلي {Math.round(effectiveLoadW).toLocaleString("en-US")} واط <AmpPill tone="sky" amps={acAmps(effectiveLoadW)} className="mr-1 align-middle" /></p>
         <div className="flex flex-wrap items-center gap-2">
           <span className={confidence === "عالية" ? "rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700" : confidence === "متوسطة" ? "rounded-full bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-700" : confidence === "منخفضة" ? "rounded-full bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700" : "rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600"}>ثقة استقرار الاستهلاك: {confidence}</span>
           <span className="text-xs">عينات ليلية: {sampleCount}</span>
@@ -358,6 +360,7 @@ export function SmartForecast() {
                       <span>{Math.round(point.irradianceWm2)} W/m²</span>
                     </div>
                     <span className="text-xs font-semibold text-slate-500">إنتاج متوقع {point.solarKWh.toFixed(2)} ك.و.س • مطر {Math.round(point.precipitationProbability)}%</span>
+                    {point.solarKWh > 0 && <span className="mt-1 block"><AmpPill tone="amber" amps={acAmps(point.solarKWh * 1000)} /></span>}
                   </div>
                   <span className="text-xs font-black text-amber-700">فائض {point.surplusKWh.toFixed(2)}</span>
                 </div>

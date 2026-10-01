@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import { StatTile } from "@/components/stat-tile";
 import { AC_VOLTS } from "@/lib/energy";
+import { AmpPill } from "@/components/amp-pill";
 
 export type LoadPoint = { t: number; loadW: number; solarW: number; soc?: number; batteryW?: number };
 
@@ -177,8 +178,8 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
               <div>لا توجد قراءات</div>
             ) : (
               <>
-                <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: HOME }} />المنزل: {kw(shown.homeW)} kW</div>
-                <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: SOLAR }} />الشمس: {kw(shown.solarW ?? 0)} kW</div>
+                <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: HOME }} />المنزل: {kw(shown.homeW)} kW <AmpPill tone="sky" amps={shown.homeW / AC_VOLTS} className="mr-1" /></div>
+                <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: SOLAR }} />الشمس: {kw(shown.solarW ?? 0)} kW <AmpPill tone="amber" amps={(shown.solarW ?? 0) / AC_VOLTS} className="mr-1" /></div>
               </>
             )}
           </div>

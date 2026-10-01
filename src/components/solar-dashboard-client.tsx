@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, Moon } from "lucide-react";
 import { EnergyFlow } from "@/components/energy-flow";
 import type { EnergySnapshot } from "@/lib/energy";
-import { chargerPriorityLabel, inverterModeLabel, outputPriorityLabel, batteryAmps } from "@/lib/energy";
+import { chargerPriorityLabel, inverterModeLabel, outputPriorityLabel, batteryAmps, AC_VOLTS } from "@/lib/energy";
 import { startVisiblePolling } from "@/lib/visible-polling";
 
 const REFRESH_MS = 15_000;
@@ -52,7 +52,7 @@ export default function SolarDashboardClient() {
     const hours = usableWh / load;
     if (hours <= 0) return "البطارية عند حد الاحتياطي الآن.";
     const shown = hours >= 24 ? "أكثر من 24 ساعة" : `نحو ${hours >= 10 ? Math.round(hours) : Math.round(hours * 10) / 10} ساعة`;
-    return `بالحمل الحالي (${Math.round(load)} واط) تكفي ${shown} حتى حد الاحتياطي ${battery.reservePct}%.`;
+    return `بالحمل الحالي (${Math.round(load)} واط ≈ ${(load / AC_VOLTS).toFixed(1)} أمبير) تكفي ${shown} حتى حد الاحتياطي ${battery.reservePct}%.`;
   })();
 
   return (

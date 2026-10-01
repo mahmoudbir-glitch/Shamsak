@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AC_VOLTS } from "@/lib/energy";
 
 type Setup = {
   systemName?: string;
@@ -75,7 +76,7 @@ export default function InverterReviewPage() {
     ["اسم النظام", setup.systemName || "—"],
     ["الشركة المصنعة", setup.manufacturer || "—"],
     ["الموديل", setup.model || "—"],
-    ["قدرة الألواح", setup.panelCapacity ? setup.panelCapacity + " kW" : "—"],
+    ["قدرة الألواح", setup.panelCapacity ? `${setup.panelCapacity} kW ≈ ${((Number(setup.panelCapacity) * 1000) / AC_VOLTS).toFixed(1)} A` : "—"],
     ["سعة البطاريات", setup.batteryCapacity ? setup.batteryCapacity + " Wh" : "—"],
     ["بروتوكول الاتصال", setup.protocol || "—"],
     ["عنوان / منفذ الاتصال", setup.inverterAddress || "—"],
