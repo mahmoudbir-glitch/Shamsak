@@ -48,20 +48,23 @@ async function isFrozen(reading: DessReading) {
     nearlyEqual(row.batteryPowerW, next.battery) &&
     nearlyEqual(row.batteryVoltage, next.voltage);
 
-  // Case 1: the value was already stored more than 15 minutes ago and nothing
-  // different has arrived since (frozen values already being skipped).
-  const latest = await prisma.telemetryLog.findFirst({ where: { source: SMARTESS_SOURCE }, orderBy: { timestamp: "desc" }, select });
-  if (latest && same(latest) && Date.now() - latest.timestamp.getTime() > FROZEN_WINDOW_MS) return true;
-
-  // Case 2: every reading of the last 15 minutes is identical to this one.
-  const rows = await prisma.telemetryLog.findMany({
-    where: { source: SMARTESS_SOURCE, timestamp: { gte: new Date(Date.now() - FROZEN_WINDOW_MS) } },
-    orderBy: { timestamp: "asc" },
+  // Find when these exact values first appeared: walk back through recent rows
+  // until one differs. If they have been unchanged for longer than the window,
+  // the dongle has stopped uploading. (Judging by the run's start rather than
+  // by the rows inside the window keeps the verdict stable: skipped readings
+  // no longer thin the window out and let a frozen value slip back in.)
+  const recent = await prisma.telemetryLog.findMany({
+    where: { source: SMARTESS_SOURCE, timestamp: { gte: new Date(Date.now() - 6 * 3_600_000) } },
+    orderBy: { timestamp: "desc" },
+    take: 400,
     select,
   });
-  // Need readings spread over most of the window before judging.
-  if (rows.length < 6 || Date.now() - rows[0].timestamp.getTime() < FROZEN_WINDOW_MS * 0.8) return false;
-  return rows.every(same);
+  let runStart: Date | null = null;
+  for (const row of recent) {
+    if (!same(row)) break;
+    runStart = row.timestamp;
+  }
+  return runStart !== null && Date.now() - runStart.getTime() > FROZEN_WINDOW_MS;
 }
 let inFlight: Promise<SyncResult> | null = null;
 let lastAttemptAt = 0;
