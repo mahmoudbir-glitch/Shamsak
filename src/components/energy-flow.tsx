@@ -95,8 +95,8 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   const spokes: Spoke[] = [
     // node -> hub, drawn as cubic curves in the 400x400 drawing
     { key: "solar", path: "M 238 62 C 300 72, 300 150, 234 172", color: "#F59E0B", active: solarActive, towardHub: true, kw: solarKw },
-    { key: "grid", path: "M 100 176 C 125 176, 140 186, 157 193", color: "#8B5CF6", active: gridImporting || gridExporting, towardHub: !gridExporting, kw: gridKw },
-    { key: "home", path: "M 300 176 C 275 176, 260 186, 243 193", color: "#0EA5E9", active: homeActive, towardHub: false, kw: homeKw },
+    { key: "grid", path: "M 100 176 C 130 176, 126 200, 156 200", color: "#8B5CF6", active: gridImporting || gridExporting, towardHub: !gridExporting, kw: gridKw },
+    { key: "home", path: "M 300 176 C 270 176, 274 200, 244 200", color: "#0EA5E9", active: homeActive, towardHub: false, kw: homeKw },
     { key: "battery", path: "M 154 286 C 112 282, 118 244, 166 230", color: "#10B981", active: batteryCharging || batteryDischarging, towardHub: batteryDischarging, kw: batteryKw },
   ];
   const spokeWidth = (kw: number) => 2.5 + Math.min(Math.abs(kw), 6) * 0.6;
@@ -121,7 +121,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             <filter id={glowId}><feGaussianBlur stdDeviation="5" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
             {[["solar", "#F59E0B"], ["grid", "#8B5CF6"], ["home", "#0EA5E9"], ["battery", "#10B981"]].map(([key, color]) => (
               <marker key={key} id={`${arrowId}-${key}-head`} viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill={color} />
+                <path d="M 1 1 L 9.5 5 L 1 9 L 3.2 5 z" fill={color} strokeLinejoin="round" />
               </marker>
             ))}
           </defs>
@@ -130,6 +130,8 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             const d = spoke.towardHub ? spoke.path : reverse(spoke.path);
             return (
               <g key={spoke.key}>
+                {/* soft wide track under the line */}
+                {spoke.active && <path d={d} stroke={spoke.color} strokeWidth={spokeWidth(spoke.kw) + 7} strokeLinecap="round" opacity={0.13} />}
                 <path
                   id={`${arrowId}-${spoke.key}`}
                   d={d}
@@ -137,9 +139,15 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
                   strokeWidth={spoke.active ? spokeWidth(spoke.kw) : 2}
                   strokeLinecap="round"
                   strokeDasharray={spoke.active ? undefined : "3 6"}
-                  opacity={spoke.active ? 0.9 : 0.55}
+                  opacity={spoke.active ? 0.95 : 0.55}
                   markerEnd={spoke.active ? `url(#${arrowId}-${spoke.key}-head)` : undefined}
                 />
+                {/* light pulses marching along the line in the flow direction */}
+                {spoke.active && (
+                  <path d={d} stroke="white" strokeWidth={Math.max(1.2, spokeWidth(spoke.kw) - 1.6)} strokeLinecap="round" strokeDasharray="2 11" opacity={0.75}>
+                    <animate attributeName="stroke-dashoffset" from="13" to="0" dur={`${spokeDuration(spoke.kw) / 2}s`} repeatCount="indefinite" />
+                  </path>
+                )}
                 {spoke.active && (
                   <circle r={2.5 + Math.min(Math.abs(spoke.kw), 6) * 0.25} fill={spoke.color} filter={`url(#${glowId})`}>
                     <animateMotion dur={`${spokeDuration(spoke.kw)}s`} repeatCount="indefinite" rotate="auto">
