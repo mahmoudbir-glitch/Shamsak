@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { decryptSecret, encryptSecret } from "@/lib/inverter-config-crypto";
-import { authenticate, DessError, describeDessError, discoverDevices, listCollectors, pickDevice, probeFreshness, probeHosts, readLastData, type DessAuth, type DessDevice, type DessReading } from "@/lib/dessmonitor";
+import { authenticate, DessError, describeDessError, discoverDevices, listCollectors, pickDevice, probeFreshness, readLastData, type DessAuth, type DessDevice, type DessReading } from "@/lib/dessmonitor";
 import { ingestSample } from "@/lib/telemetry-store";
 
 /**
@@ -228,10 +228,9 @@ async function run(): Promise<SyncResult> {
     }
 
     const reading = await readLastData(auth, target, cloudUrl, timeout);
-    if (Date.now() - lastProbeAt > 3 * 60_000) {
+    if (Date.now() - lastProbeAt > 15 * 60_000) {
       lastProbeAt = Date.now();
       await probeFreshness(auth, target, cloudUrl, timeout);
-      await probeHosts(auth.usr ?? username, password, target, 6000);
     }
     if (!parametersLogged) {
       parametersLogged = true;
