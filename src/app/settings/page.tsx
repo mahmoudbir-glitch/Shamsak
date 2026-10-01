@@ -339,7 +339,7 @@ export default function SettingsPage() {
         )}
 
         {draft && <div className="space-y-4">
-          <div className="flex items-center justify-between gap-2 text-sm font-bold text-slate-600"><span className="truncate">{draft.systemName}</span><span className={"shrink-0 rounded-full px-3 py-1 text-xs font-black " + (draft.lastStatus === "connected" ? "bg-emerald-100 text-emerald-700" : draft.lastStatus === "error" && /لا يرسل قراءات/.test(draft.lastTestReason ?? "") ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600")}>{draft.lastStatus === "connected" ? "متصل" : draft.lastStatus === "error" ? (/لا يرسل قراءات/.test(draft.lastTestReason ?? "") ? "الدنجل متوقف عن الإرسال" : "غير متصل") : "غير معروف"}</span></div>
+          {/* الحالة تظهر في «نظرة سريعة» أعلى الصفحة؛ هنا يبقى الشرح فقط عند توقف الدنجل. */}
           {draft.lastStatus === "error" && /لا يرسل قراءات/.test(draft.lastTestReason ?? "") && <p className="rounded-xl bg-amber-50 p-3 text-xs font-bold leading-5 text-amber-800">حساب SmartESS سليم، لكن الدنجل توقف عن رفع القراءات إلى السحابة. أعد تشغيل الدنجل (افصله 20 ثانية ثم أعده)، وسيعود الاتصال تلقائيًا.</p>}
           <div className="grid gap-3 sm:grid-cols-2">
             <SettingsField label="اسم المنظومة"><input value={draft.systemName} onChange={(e) => updateDraft("systemName", e.target.value)} className={input} /></SettingsField>
