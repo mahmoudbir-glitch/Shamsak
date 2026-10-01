@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { decryptSecret, encryptSecret } from "@/lib/inverter-config-crypto";
-import { authenticate, DessError, describeDessError, discoverDevices, listCollectors, pickDevice, readLastData, type DessAuth, type DessDevice, type DessReading } from "@/lib/dessmonitor";
+import { authenticate, DessError, describeDessError, discoverDevices, listCollectors, pickDevice, probeFreshness, readLastData, type DessAuth, type DessDevice, type DessReading } from "@/lib/dessmonitor";
 import { ingestSample } from "@/lib/telemetry-store";
 
 /**
@@ -16,6 +16,7 @@ export type SyncResult = { ok: true; stored: true } | { ok: false; skipped?: boo
 let cachedAuth: { key: string; auth: DessAuth } | null = null;
 let lastStatusCheckAt = 0;
 let parametersLogged = false;
+let lastProbeAt = 0;
 
 /** How long identical readings may repeat before they count as frozen. */
 const FROZEN_WINDOW_MS = 15 * 60_000;
@@ -227,6 +228,10 @@ async function run(): Promise<SyncResult> {
     }
 
     const reading = await readLastData(auth, target, cloudUrl, timeout);
+    if (Date.now() - lastProbeAt > 10 * 60_000) {
+      lastProbeAt = Date.now();
+      await probeFreshness(auth, target, cloudUrl, timeout);
+    }
     if (!parametersLogged) {
       parametersLogged = true;
       console.info("[smartess] parameters", Object.entries(reading.parameters).map(([label, { value, unit }]) => `${label}=${value}${unit}`).join(" | ").slice(0, 3000));

@@ -457,6 +457,28 @@ export function mapReading(body: Record<string, unknown>): DessReading {
 }
 
 /** Reads the latest values the datalogger has uploaded for one device. */
+/**
+ * Diagnostic: dumps what a few endpoints say right now, to find which one (if
+ * any) has fresher data than the "last data" endpoint. Never throws.
+ */
+export async function probeFreshness(auth: DessAuth, device: DessDevice, baseUrl?: string, timeoutMs?: number) {
+  const base = { pn: device.pn, devcode: device.devcode, devaddr: device.devaddr, sn: device.sn, i18n: "en_US" };
+  const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Beirut" }).format(new Date());
+  const probes: Array<[string, Record<string, string | number | undefined>]> = [
+    ["queryDeviceDataOneDayPaging", { ...base, date: day, page: 0, pagesize: 3 }],
+    ["webQueryDeviceEnergyFlowEs", { ...base, source: DEFAULT_SOURCE }],
+    ["webQueryCollectorsEs", { page: 0, pagesize: 10 }],
+  ];
+  for (const [action, params] of probes) {
+    try {
+      const body = await authedCall(auth, action, params, baseUrl, timeoutMs);
+      console.info(`[smartess] probe ${action} ${JSON.stringify(body.dat ?? body).slice(0, 1500)}`);
+    } catch (error) {
+      console.info(`[smartess] probe ${action} failed ${error instanceof Error ? error.message.slice(0, 160) : "error"}`);
+    }
+  }
+}
+
 /** Logs when SmartESS says the reading was taken, to tell fresh data from a cached copy. */
 function logDataTime(action: string, dat: unknown) {
   if (!dat || typeof dat !== "object") return;
