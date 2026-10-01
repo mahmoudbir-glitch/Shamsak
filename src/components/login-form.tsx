@@ -69,46 +69,48 @@ export default function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} dir="rtl" className="w-full space-y-3.5" noValidate={false}>
+    <form onSubmit={handleSubmit} dir="rtl" className="w-full space-y-3" noValidate={false}>
       <div className="relative">
-        <User size={20} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+        <User size={18} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true" />
         <input
           name="username"
           type="text"
           placeholder="اسم مستخدم شمسك"
+          aria-label="اسم مستخدم شمسك"
           autoComplete="username"
           autoCapitalize="none"
           spellCheck={false}
           required
           disabled={loading}
-          className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3 pl-12 pr-11 text-right font-semibold text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100/70 disabled:opacity-60"
+          className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-right text-sm font-semibold text-slate-800 outline-none transition placeholder:font-medium placeholder:text-slate-400 focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-100 disabled:opacity-60"
         />
       </div>
 
       <div className="relative">
-        <Lock size={20} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Lock size={18} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true" />
         <input
           name="password"
           type={showPassword ? "text" : "password"}
           placeholder="كلمة مرور شمسك"
+          aria-label="كلمة مرور شمسك"
           autoComplete="current-password"
           required
           disabled={loading}
-          className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-12 pr-11 text-right outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+          className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-right text-sm font-semibold text-slate-800 outline-none transition placeholder:font-medium placeholder:text-slate-400 focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-100 disabled:opacity-60"
         />
         <button
           type="button"
           onClick={() => setShowPassword((value) => !value)}
           disabled={loading}
           aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-400 transition hover:bg-slate-200 hover:text-slate-600 disabled:opacity-50"
+          className="absolute left-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-200 hover:text-slate-600 disabled:opacity-50"
         >
-          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
         </button>
       </div>
 
       {error && (
-        <div role="alert" aria-live="polite" className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold leading-6 text-red-700">
+        <div role="alert" aria-live="polite" className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold leading-6 text-rose-700">
           {error}
         </div>
       )}
@@ -116,7 +118,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="h-12 w-full rounded-2xl bg-gradient-to-l from-blue-700 to-blue-600 py-3 font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:from-blue-800 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+        className="!mt-5 h-12 w-full rounded-2xl bg-gradient-to-l from-amber-500 to-orange-500 text-sm font-black text-white shadow-[0_10px_24px_rgba(245,158,11,0.32)] transition hover:from-amber-600 hover:to-orange-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
       </button>
