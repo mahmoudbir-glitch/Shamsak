@@ -29,9 +29,9 @@ const sourceStyles = [
     key: "solar",
     name: "الشمس مباشرة",
     short: "شمس",
-    color: "bg-cyan-500",
-    soft: "bg-cyan-50",
-    text: "text-cyan-700",
+    color: "bg-amber-400",
+    soft: "bg-amber-50",
+    text: "text-amber-700",
   },
   {
     key: "battery",
@@ -109,7 +109,6 @@ export default function MoneyDashboard() {
 
   const gridCost = data ? data.totals.gridImportKWh * tariff : 0;
   const savedTone = moneyTone(savedAmount);
-  const costTone = moneyTone(-gridCost);
   const hypotheticalCost = data
     ? (data.sources.solarKWh + data.sources.batteryKWh + data.totals.gridImportKWh) * tariff
     : 0;
@@ -149,12 +148,12 @@ export default function MoneyDashboard() {
   };
 
   const inputClass =
-    "w-full min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-bold text-slate-800 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100";
+    "w-full min-h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-bold text-slate-800 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-100";
   const selectClass = inputClass + " appearance-auto";
 
   return (
     <div className="w-full space-y-3 pb-4 text-right" dir="rtl">
-      <PageHeader icon={Wallet} tone="sky" eyebrow="شمسك • المال" title="التحليل المالي ومصادر الكهرباء" subtitle={data?.periodDays ? `مصادر الكهرباء والوفر خلال آخر ${data.periodDays} يوماً.` : "مصادر الكهرباء والوفر من قراءات منظومتك."} />
+      <PageHeader icon={Wallet} tone="teal" eyebrow="شمسك • المال" title="التحليل المالي ومصادر الكهرباء" subtitle={data?.periodDays ? `مصادر الكهرباء والوفر خلال آخر ${data.periodDays} يوماً.` : "مصادر الكهرباء والوفر من قراءات منظومتك."} />
 
       {loading ? (
         <section className="rounded-[1.5rem] border border-slate-200 bg-white p-6 text-center shadow-sm">
@@ -177,9 +176,9 @@ export default function MoneyDashboard() {
                 {formatNumber(data.totals.homeKWh)} <small className="text-[10px]">ك.و.س</small>
               </strong>
             </div>
-            <div className="rounded-2xl border border-cyan-100 bg-cyan-50/60 p-3 shadow-sm">
-              <span className="text-[10px] font-bold text-cyan-700">من الشمس</span>
-              <strong className="mt-1 block text-lg font-black text-cyan-800">
+            <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-3 shadow-sm">
+              <span className="text-[10px] font-bold text-amber-700">من الشمس</span>
+              <strong className="mt-1 block text-lg font-black text-amber-800">
                 {formatNumber(data.sources.solarKWh)} <small className="text-[10px]">ك.و.س</small>
               </strong>
             </div>
@@ -253,8 +252,8 @@ export default function MoneyDashboard() {
               </div>
 
               <div className="rounded-2xl border border-violet-100 bg-violet-50 p-4">
-                <span className={"text-[11px] font-bold " + semanticText[costTone]}>تكلفة الشبكة الفعلية</span>
-                <strong className={"mt-1 block text-2xl font-black " + semanticText[costTone]}>
+                <span className="text-[11px] font-bold text-violet-700">تكلفة الشبكة الفعلية</span>
+                <strong className="mt-1 block text-2xl font-black text-violet-800">
                   {gridCost.toLocaleString()} {currency}
                 </strong>
                 <span className="mt-1 block text-[10px] font-semibold text-slate-500">
@@ -262,16 +261,16 @@ export default function MoneyDashboard() {
                 </span>
               </div>
 
-              <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
-                <span className="text-[11px] font-bold text-amber-700">تكلفة افتراضية بلا النظام الشمسي</span>
-                <strong className="mt-1 block text-xl font-black text-amber-800">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <span className="text-[11px] font-bold text-slate-600">تكلفة افتراضية بلا النظام الشمسي</span>
+                <strong className="mt-1 block text-xl font-black text-slate-800">
                   {hypotheticalCost.toLocaleString()} {currency}
                 </strong>
               </div>
 
-              <div className="rounded-2xl border border-sky-100 bg-sky-50 p-4">
-                <span className="text-[11px] font-bold text-sky-700">الفائض المصدّر</span>
-                <strong className="mt-1 block text-xl font-black text-sky-800">
+              <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4">
+                <span className="text-[11px] font-bold text-amber-700">الفائض المصدّر</span>
+                <strong className="mt-1 block text-xl font-black text-amber-800">
                   {formatNumber(data.totals.gridExportKWh)} ك.و.س
                 </strong>
               </div>
@@ -290,7 +289,7 @@ export default function MoneyDashboard() {
             <h2 className="text-base font-black text-slate-950">⚙️ التفضيلات المالية</h2>
             <p className="mt-0.5 text-[11px] font-semibold text-slate-500">العملة وتعرفة الشبكة والتصدير</p>
           </div>
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-slate-600 group-open:bg-cyan-50 group-open:text-cyan-700">
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-slate-600 group-open:bg-teal-50 group-open:text-teal-700">
             تعديل
           </span>
         </summary>
@@ -352,7 +351,7 @@ export default function MoneyDashboard() {
         type="button"
         onClick={handleSave}
         disabled={saving}
-        className="sticky bottom-3 z-20 min-h-14 w-full rounded-2xl bg-slate-950 px-5 py-3 text-base font-black text-white shadow-[0_12px_30px_rgba(15,23,42,0.2)] transition active:scale-[0.99] disabled:cursor-wait disabled:opacity-70"
+        className="min-h-12 w-full rounded-2xl bg-teal-600 px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-teal-700 active:scale-[0.99] disabled:cursor-wait disabled:opacity-70"
       >
         {saving ? "جاري الحفظ…" : "حفظ التغييرات"}
       </button>

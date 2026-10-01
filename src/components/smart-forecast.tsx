@@ -72,7 +72,7 @@ function NightCard({
   const confidenceClass = hasEnoughSamples
     ? result.sufficient
       ? "rounded-full bg-emerald-50 p-3 text-emerald-600"
-      : "rounded-full bg-amber-50 p-3 text-amber-600"
+      : "rounded-full bg-indigo-50 p-3 text-indigo-500"
     : "rounded-full bg-slate-100 p-3 text-slate-500";
 
   return (
@@ -95,23 +95,23 @@ function NightCard({
         </div>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <div className="rounded-xl bg-emerald-50 p-3">
+        <div className={"rounded-xl p-3 " + (result.sufficient ? "bg-emerald-50" : result.probability >= 90 ? "bg-amber-50" : "bg-rose-50")}>
           <span className="text-xs font-bold text-slate-500">تغطية الليل</span>
-          <strong className={"mt-1 block font-black " + (hasEnoughSamples ? "text-2xl text-emerald-700" : "text-sm text-slate-500")}>{hasEnoughSamples ? `${result.probability}%` : "غير كافٍ للتقدير بعد"}</strong>
+          <strong className={"mt-1 block font-black " + (hasEnoughSamples ? "text-2xl " + (result.sufficient ? "text-emerald-700" : result.probability >= 90 ? "text-amber-700" : "text-rose-700") : "text-sm text-slate-500")}>{hasEnoughSamples ? `${result.probability}%` : "غير كافٍ للتقدير بعد"}</strong>
         </div>
-        <div className="rounded-xl bg-sky-50 p-3">
+        <div className="rounded-xl bg-indigo-50 p-3">
           <span className="text-xs font-bold text-slate-500">المتوقع عند الشروق</span>
-          <strong className={"mt-1 block font-black " + (hasEnoughSamples ? "text-2xl text-sky-700" : "text-sm text-slate-500")}>{hasEnoughSamples ? `${result.expectedSocAtSunrise}%` : "غير كافٍ للتقدير بعد"}</strong>
+          <strong className={"mt-1 block font-black " + (hasEnoughSamples ? "text-2xl text-indigo-700" : "text-sm text-slate-500")}>{hasEnoughSamples ? `${result.expectedSocAtSunrise}%` : "غير كافٍ للتقدير بعد"}</strong>
         </div>
       </div>
       <div className="mt-3 space-y-2 text-sm font-semibold text-slate-500">
         <p>تغطية تقديرية {result.hoursCovered} ساعة عند متوسط استهلاك ليلي {Math.round(effectiveLoadW).toLocaleString("ar-LB-u-nu-latn")} واط.</p>
         <div className="flex flex-wrap items-center gap-2">
-          <span className={confidence === "عالية" ? "rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700" : confidence === "متوسطة" ? "rounded-full bg-amber-50 px-2.5 py-1 text-xs font-black text-cyan-700" : confidence === "منخفضة" ? "rounded-full bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700" : "rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600"}>ثقة استقرار الاستهلاك: {confidence}</span>
+          <span className={confidence === "عالية" ? "rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700" : confidence === "متوسطة" ? "rounded-full bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-700" : confidence === "منخفضة" ? "rounded-full bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700" : "rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600"}>ثقة استقرار الاستهلاك: {confidence}</span>
           <span className="text-xs">عينات ليلية: {sampleCount}</span>
         </div>
         {!hasEnoughSamples && <p className="text-xs font-bold text-slate-600">يلزم توفر 3 أيام ليلية على الأقل قبل عرض نسبة ثقة رقمية.</p>}
-        {averageNightLoadW === null && <p className="text-xs text-cyan-700">لا توجد بيانات تاريخية ليلية كافية بعد؛ استُخدمت القراءة الحالية مؤقتًا.</p>}
+        {averageNightLoadW === null && <p className="text-xs text-slate-500">لا توجد بيانات تاريخية ليلية كافية بعد؛ استُخدمت القراءة الحالية مؤقتًا.</p>}
       </div>
     </div>
   );
@@ -194,7 +194,8 @@ export function SmartForecast() {
 
       <header className="energy-card p-5">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 ring-1 ring-amber-200/70"><SunMedium className="h-5 w-5" aria-hidden="true" /></div>
+          <div className="min-w-0 flex-1">
             <p className="text-[11px] font-black text-amber-600">شمسك • الطاقة</p>
             <h1 className="mt-0.5 text-xl font-black tracking-tight text-slate-950 sm:text-2xl">توقعات الطاقة</h1>
             <p className="mt-1 text-xs font-semibold text-slate-500">اليوم، الليلة، وأفضل وقت لاستخدام الشمس.</p>
@@ -203,7 +204,7 @@ export function SmartForecast() {
             type="button"
             onClick={() => void handleRefresh()}
             disabled={loading || isRefreshing}
-            className="flex h-11 items-center gap-2 rounded-xl bg-blue-50 px-3 text-sm font-black text-blue-700 disabled:opacity-60"
+            className="flex h-11 items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 text-sm font-black text-amber-700 disabled:opacity-60"
           >
             {loading || isRefreshing ? <Loader2 size={17} className="animate-spin" /> : <RefreshCw size={17} />}
             تحديث
@@ -220,7 +221,7 @@ export function SmartForecast() {
           </div>
         )}
 
-        {error && <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm font-bold text-cyan-800">{error}.</p>}
+        {error && <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm font-bold text-amber-800">{error}.</p>}
       </header>
 
       <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
@@ -232,7 +233,7 @@ export function SmartForecast() {
             className={
               "min-w-[92px] rounded-2xl border px-3 py-3 text-center transition " +
               (selectedIndex === index
-                ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                ? "border-amber-400 bg-amber-50 text-amber-800 shadow-sm"
                 : "border-slate-200 bg-white text-slate-600")
             }
           >
@@ -252,15 +253,15 @@ export function SmartForecast() {
                 <h2 className="mt-1 text-2xl font-black text-slate-950">{weatherIcon(selected.weatherCode)} {weatherLabel(selected.weatherCode)}</h2>
                 <p className="mt-1 text-sm font-semibold text-slate-500">{Math.round(selected.tempMin)}° — {Math.round(selected.tempMax)}°م</p>
               </div>
-              <div className="rounded-2xl bg-cyan-50 p-3 text-cyan-700">
+              <div className="rounded-2xl bg-amber-50 p-3 text-amber-600">
                 <SunMedium size={27} />
               </div>
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl bg-cyan-50 p-4">
+              <div className="rounded-2xl bg-amber-50 p-4">
                 <span className="text-xs font-bold text-slate-500">إنتاج الألواح المتوقع</span>
-                <strong className="mt-1 block text-2xl font-black text-cyan-700">{selected.productionKWh} <small className="text-sm">ك.و.س</small></strong>
+                <strong className="mt-1 block text-2xl font-black text-amber-700">{selected.productionKWh} <small className="text-sm">ك.و.س</small></strong>
               </div>
               <div className="rounded-2xl bg-emerald-50 p-4">
                 <span className="text-xs font-bold text-slate-500">ثقة التوقع الجوي</span>
@@ -308,16 +309,16 @@ export function SmartForecast() {
             </summary>
             <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">تقسيم إنتاج اليوم المتوقع إلى استهلاك مباشر وشحن للبطارية وفائض متبقٍ.</p>
             <div className="mt-4 flex h-5 overflow-hidden rounded-full bg-slate-100" aria-label="توزيع إنتاج الطاقة الشمسية">
-              <div className="bg-blue-500" style={{ width: selected.homePct + "%" }} title={"المنزل " + selected.homePct + "%"} />
+              <div className="bg-sky-500" style={{ width: selected.homePct + "%" }} title={"المنزل " + selected.homePct + "%"} />
               <div className="bg-emerald-500" style={{ width: selected.batteryPct + "%" }} title={"البطارية " + selected.batteryPct + "%"} />
               <div className="bg-amber-400" style={{ width: selected.surplusPct + "%" }} title={"الفائض " + selected.surplusPct + "%"} />
             </div>
             <p className="mt-2 text-xs font-bold text-slate-500">إجمالي الإنتاج الشمسي المتوقع: {selected.productionKWh} ك.و.س</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               {[
-                ["استهلاك المنزل نهارًا", selected.homePct, selected.homeKWh, "text-blue-700", "bg-blue-50"],
+                ["استهلاك المنزل نهارًا", selected.homePct, selected.homeKWh, "text-sky-700", "bg-sky-50"],
                 ["شحن البطارية", selected.batteryPct, selected.batteryKWh, "text-emerald-700", "bg-emerald-50"],
-                ["فائض بلا استخدام", selected.surplusPct, selected.surplusKWh, "text-cyan-700", "bg-amber-50"],
+                ["فائض بلا استخدام", selected.surplusPct, selected.surplusKWh, "text-amber-700", "bg-amber-50"],
               ].map(([label, pct, kwh, textColor, bg]) => (
                 <div key={String(label)} className={String(bg) + " rounded-2xl p-3"}>
                   <span className="block text-xs font-bold text-slate-500">{label}</span>
@@ -357,7 +358,7 @@ export function SmartForecast() {
                     </div>
                     <span className="text-xs font-semibold text-slate-500">إنتاج متوقع {point.solarKWh.toFixed(2)} ك.و.س • مطر {Math.round(point.precipitationProbability)}%</span>
                   </div>
-                  <span className="text-xs font-black text-cyan-700">فائض {point.surplusKWh.toFixed(2)}</span>
+                  <span className="text-xs font-black text-amber-700">فائض {point.surplusKWh.toFixed(2)}</span>
                 </div>
               ))}
             </div>

@@ -5,7 +5,7 @@ import { Home, Loader2, RefreshCw } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
 import { PageHeader } from "@/components/page-header";
 import { LoadChart, type LoadPoint } from "@/components/load-chart";
-import { loadTone, semanticText } from "@/lib/energy";
+import { homeText } from "@/lib/energy";
 
 const REFRESH_MS = 15_000;
 const HISTORY_REFRESH_MS = 5 * 60_000;
@@ -60,8 +60,7 @@ export default function HomeConsumptionPage() {
 
   const homeW = Math.max(0, snapshot?.homePowerW ?? 0);
   const homeKw = homeW / 1000;
-  const tone = loadTone(homeKw);
-  const toneText = semanticText[tone];
+  const toneText = homeText(homeKw);
 
   // من أين يأتي حمل المنزل الآن: الشمس أولاً، ثم البطارية، والباقي من الشبكة.
   const fromSolar = Math.min(homeW, Math.max(0, snapshot?.solarPowerW ?? 0));

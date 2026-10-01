@@ -3,7 +3,7 @@
 import React, { useId, useState } from 'react';
 import { BatteryCharging, Home, RadioTower, Sun, Zap } from 'lucide-react';
 import { InfoTip } from '@/components/info-tip';
-import { batteryTone, loadTone, solarTone, semanticIcon, semanticText } from '@/lib/energy';
+import { batteryText, homeText, solarText } from '@/lib/energy';
 
 interface EnergyFlowProps {
   solarKw: number;
@@ -53,9 +53,9 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   const measuredPowers = [solarKw, homeKw, gridKw, batteryKw];
   const hasNonZeroLiveReading = measuredPowers.every(Number.isFinite) && measuredPowers.some((value) => Math.abs(value) > FLOW_THRESHOLD);
   const liveFlowActive = isLive && hasNonZeroLiveReading;
-  const solarToneClass = semanticText[solarTone(solarKw)];
-  const homeToneClass = semanticText[loadTone(homeKw)];
-  const batteryToneClass = semanticText[batteryTone(batteryPercentage)];
+  const solarToneClass = solarText(solarKw);
+  const homeToneClass = homeText(homeKw);
+  const batteryToneClass = batteryText(batteryPercentage);
 
   const solarActive = liveFlowActive && solarKw > FLOW_THRESHOLD;
   const homeActive = liveFlowActive && homeKw > FLOW_THRESHOLD;
@@ -273,7 +273,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
               )}
               {activeNode === "grid" && (
                 <>
-                  <div className="rounded-xl bg-sky-50 p-3"><div className="font-bold text-slate-500">الحالة</div><div className="mt-1 font-black text-sky-700">{gridConnected ? "متصلة" : "مقطوعة"}</div></div>
+                  <div className="rounded-xl bg-violet-50 p-3"><div className="font-bold text-slate-500">الحالة</div><div className="mt-1 font-black text-violet-700">{gridConnected ? "متصلة" : "مقطوعة"}</div></div>
                   <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">التدفق</div><div className="mt-1 font-black text-slate-800">{gridExporting ? "تصدير" : gridImporting ? "سحب" : "متوازن / لا يوجد تدفق"}</div></div>
                 </>
               )}
@@ -288,8 +288,8 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
       <div className="relative border-t border-slate-100 bg-slate-50/70 px-3 py-4 sm:px-5">
         <div className="grid grid-cols-3 divide-x divide-x-reverse divide-slate-200 text-center">
           <div className="px-2"><div className="text-[11px] font-bold text-slate-500">إنتاج اليوم</div><div className="mt-1 text-base font-black text-amber-600 sm:text-lg">{formatKwh(todayProductionKWh)}</div></div>
-          <div className="px-2"><div className="text-[11px] font-bold text-slate-500">استهلاك اليوم</div><div className="mt-1 text-base font-black text-sky-600 sm:text-lg">{formatKwh(todayHomeUsageKWh)}</div></div>
-          <div className="px-2"><div className="text-[11px] font-bold text-slate-500">وفر اليوم</div><div className="mt-1 text-base font-black text-amber-500 sm:text-lg">{formatSavings(todayGridSavings)}</div></div>
+          <div className="px-2"><div className="text-[11px] font-bold text-slate-500">استهلاك اليوم</div><div className="mt-1 text-base font-black text-sky-700 sm:text-lg">{formatKwh(todayHomeUsageKWh)}</div></div>
+          <div className="px-2"><div className="text-[11px] font-bold text-slate-500">وفر اليوم</div><div className="mt-1 text-base font-black text-emerald-600 sm:text-lg">{formatSavings(todayGridSavings)}</div></div>
         </div>
         {todayProductionKWh === undefined && todayHomeUsageKWh === undefined && <p className="mt-2 text-center text-[10px] font-semibold text-slate-400">تُحسب أرقام اليوم تلقائياً مع تجمّع القراءات.</p>}
       </div>

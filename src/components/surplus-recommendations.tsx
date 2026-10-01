@@ -37,42 +37,19 @@ export function SurplusRecommendations() {
 
   const best = windows.sort((a, b) => b.kwh - a.kwh)[0];
 
-  const recommendations = [
-    {
-      id: 1,
-      title: "تشغيل الغسالة",
-      icon: "🧺",
-      detail: "مناسب خلال ساعات الفائض لتقليل الاعتماد على الشبكة.",
-    },
-    {
-      id: 2,
-      title: "تشغيل مضخة المياه",
-      icon: "💧",
-      detail: "يفضل تشغيلها عندما يكون الإنتاج الشمسي مرتفعاً.",
-    },
-    {
-      id: 3,
-      title: "شحن السيارة الكهربائية",
-      icon: "🚗",
-      detail: "استفد من الطاقة الشمسية المتاحة قبل السحب من الشبكة.",
-    },
-    ...(best && best.kwh >= 1
-      ? [{
-          id: 4,
-          title: "تشغيل المكيف",
-          icon: "❄️",
-          detail: "يفضل تشغيله خلال نافذة الفائض.",
-        }]
-      : []),
-    ...(best && best.kwh >= 1.5
-      ? [{
-          id: 5,
-          title: "تشغيل سخان الماء",
-          icon: "♨️",
-          detail: "يفضل تشغيله خلال نافذة الفائض.",
-        }]
-      : []),
+  // Typical household loads with a rough energy cost, so each tip says
+  // whether today's surplus actually covers it.
+  const surplus = best?.kwh ?? 0;
+  const loads = [
+    { id: 1, title: "تشغيل الغسالة", icon: "🧺", kwh: 0.8, detail: "دورة غسيل كاملة تستهلك نحو 0.8 ك.و.س." },
+    { id: 2, title: "تشغيل مضخة المياه", icon: "💧", kwh: 0.75, detail: "ساعة تشغيل لمضخة منزلية نحو 0.75 ك.و.س." },
+    { id: 3, title: "الكوي", icon: "👕", kwh: 1, detail: "ساعة كوي تستهلك نحو 1 ك.و.س." },
+    { id: 4, title: "تشغيل المكيف", icon: "❄️", kwh: 1.2, detail: "ساعة تبريد لغرفة واحدة نحو 1.2 ك.و.س." },
+    { id: 5, title: "تشغيل سخان الماء", icon: "♨️", kwh: 2, detail: "ساعة تسخين نحو 2 ك.و.س." },
   ];
+  const recommendations = loads
+    .filter((load) => load.kwh <= surplus)
+    .map((load) => ({ id: load.id, title: load.title, icon: load.icon, detail: load.detail + " الفائض المتوقع اليوم يغطيها." }));
 
   return (
     <section dir="rtl" className="energy-card overflow-hidden p-5 sm:p-6">
@@ -90,8 +67,8 @@ export function SurplusRecommendations() {
           </p>
         </div>
         {best && (
-          <div className="hidden shrink-0 rounded-2xl bg-slate-950 px-3 py-2 text-center text-white sm:block">
-            <span className="block text-[10px] font-bold text-slate-300">الفائض المتوقع</span>
+          <div className="hidden shrink-0 rounded-2xl bg-amber-50 px-3 py-2 text-center text-amber-800 ring-1 ring-amber-100 sm:block">
+            <span className="block text-[10px] font-bold text-amber-600">الفائض المتوقع</span>
             <strong className="mt-1 block text-lg font-black">{Math.round(best.kwh * 10) / 10} ك.و.س</strong>
           </div>
         )}
@@ -105,30 +82,27 @@ export function SurplusRecommendations() {
 
       {!loading && best && (
         <>
-          <div className="mt-5 rounded-3xl border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-sky-50 p-5 shadow-sm">
+          <div className="mt-5 rounded-3xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-white p-5 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <span className="text-xs font-extrabold text-slate-500">☀️ أفضل نافذة للاستفادة من الشمس</span>
-                <strong className="mt-2 block text-2xl font-black tracking-tight text-cyan-700 sm:text-3xl">
+                <strong className="mt-2 block text-2xl font-black tracking-tight text-amber-700 sm:text-3xl">
                   {formatHour(best.start)} — {formatHour(addHour(best.end))}
                 </strong>
               </div>
-              <div className="rounded-2xl bg-white/90 px-4 py-3 text-right shadow-sm ring-1 ring-cyan-100">
+              <div className="rounded-2xl bg-white/90 px-4 py-3 text-right shadow-sm ring-1 ring-amber-100">
                 <span className="block text-xs font-bold text-slate-500">قابل للاستخدام</span>
                 <strong className="mt-1 block text-lg font-black text-slate-900">
                   نحو {Math.round(best.kwh * 10) / 10} ك.و.س
                 </strong>
               </div>
             </div>
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/80">
-              <div className="h-full w-3/4 rounded-full bg-cyan-500" aria-hidden="true" />
-            </div>
             <p className="mt-3 text-sm font-semibold text-slate-600">
               هذه الفترة هي الأنسب لتشغيل الأجهزة ذات الاستهلاك المرتفع والاستفادة من التوليد الشمسي مباشرة.
             </p>
           </div>
 
-          <div className="mt-4 rounded-3xl border border-emerald-100 bg-emerald-50/70 p-4 sm:p-5">
+          {recommendations.length > 0 && <div className="mt-4 rounded-3xl border border-emerald-100 bg-emerald-50/70 p-4 sm:p-5">
             <button
               type="button"
               onClick={() => setShowRecommendations((value) => !value)}
@@ -175,7 +149,7 @@ export function SurplusRecommendations() {
                 ))}
               </div>
             )}
-          </div>
+          </div>}
         </>
       )}
 

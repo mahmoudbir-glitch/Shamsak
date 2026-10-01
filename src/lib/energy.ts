@@ -131,8 +131,8 @@ export const semanticBorder: Record<SemanticTone, string> = {
 /** Arabic wording for the inverter's own status texts; unknown texts pass through. */
 export function inverterModeLabel(mode?: string) {
   if (!mode) return "—";
-  if (/off.?grid|battery/i.test(mode)) return "من البطارية (خارج الشبكة)";
-  if (/line|grid|utility|bypass/i.test(mode)) return "من الشبكة";
+  if (/off.?grid|battery|inverter/i.test(mode)) return "من الشمس والبطارية (بدون الشبكة)";
+  if (/mains|line|grid|utility|bypass/i.test(mode)) return "من الشبكة (Mains)";
   if (/standby/i.test(mode)) return "استعداد";
   if (/fault/i.test(mode)) return "عطل";
   return mode;
@@ -152,4 +152,38 @@ export function chargerPriorityLabel(value?: string) {
   if (/pv.*(and|&|\+).*(utility|grid)|solar.*utility|snu/i.test(value)) return "من الشمس والشبكة";
   if (/utility|grid/i.test(value)) return "من الشبكة";
   return value;
+}
+
+/*
+ * Identity colours: every source keeps one colour everywhere in the app, so a
+ * number's colour already says what it is. Warning colours only appear when
+ * something needs attention (low battery, heavy load).
+ *   solar = amber · battery = emerald · home = sky · grid = violet
+ */
+export function solarText(kw: number) {
+  return kw > 0.05 ? "text-amber-600" : "text-slate-500";
+}
+export function homeText(kw: number) {
+  if (kw >= 5) return "text-rose-600";
+  if (kw >= 2) return "text-amber-700";
+  return "text-sky-700";
+}
+export function batteryText(soc: number) {
+  if (!Number.isFinite(soc)) return "text-slate-500";
+  if (soc < 15) return "text-rose-600";
+  if (soc < 30) return "text-amber-600";
+  return "text-emerald-600";
+}
+
+/** Arabic duration with correct plural forms: "3 ساعات و5 دقائق". */
+export function arabicDuration(totalMinutes: number) {
+  const m = Math.max(0, Math.round(totalMinutes));
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  const unit = (n: number, one: string, two: string, few: string, many: string) =>
+    n === 1 ? one : n === 2 ? two : n >= 3 && n <= 10 ? `${n} ${few}` : `${n} ${many}`;
+  const hours = h ? unit(h, "ساعة", "ساعتان", "ساعات", "ساعة") : "";
+  const mins = r ? unit(r, "دقيقة", "دقيقتان", "دقائق", "دقيقة") : "";
+  if (hours && mins) return `${hours} و${mins}`;
+  return hours || mins || "أقل من دقيقة";
 }

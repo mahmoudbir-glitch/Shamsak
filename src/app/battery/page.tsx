@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { BatteryCharging, Clock, Gauge, Loader2, Thermometer, Zap } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
-import { batteryState, batteryStateLabel, batteryTone, semanticText } from "@/lib/energy";
+import { arabicDuration, batteryState, batteryStateLabel, batteryText } from "@/lib/energy";
 import { PageHeader } from "@/components/page-header";
 import { SocChart } from "@/components/soc-chart";
 import type { LoadPoint } from "@/components/load-chart";
@@ -25,7 +25,7 @@ function estimate(soc: number, powerW: number, settings: BatterySettings | null)
   const hours = energyWh / Math.abs(powerW);
   if (!Number.isFinite(hours)) return null;
   const minutes = Math.round(hours * 60);
-  const label = hours > 48 ? "أكثر من 48 ساعة" : minutes < 1 ? "أقل من دقيقة" : `${Math.floor(minutes / 60)} ساعة و${minutes % 60} دقيقة`;
+  const label = hours > 48 ? "أكثر من 48 ساعة" : minutes < 1 ? "أقل من دقيقة" : arabicDuration(minutes);
   return { charging, label };
 }
 
@@ -75,7 +75,7 @@ export default function BatteryPage() {
   const soc = Math.min(100, Math.max(0, snapshot?.batterySoc ?? 0));
   const powerW = snapshot?.batteryPowerW ?? 0;
   const state = batteryState(powerW);
-  const toneText = semanticText[batteryTone(soc)];
+  const toneText = batteryText(soc);
   const eta = snapshot ? estimate(soc, powerW, settings) : null;
 
   return (
