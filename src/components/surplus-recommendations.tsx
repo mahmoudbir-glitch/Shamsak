@@ -18,24 +18,31 @@ function addHour(iso: string) {
 export function SurplusRecommendations() {
   const { forecasts, loading } = useSharedSmartEnergy();
   const [showRecommendations, setShowRecommendations] = useState(false);
-  const points = forecasts[0]?.hourly ?? [];
-  const windows: { start: string; end: string; kwh: number }[] = [];
-  let current: { start: string; end: string; kwh: number } | null = null;
-
-  points.forEach((point) => {
-    if (point.surplusKWh >= 0.3) {
-      if (!current) current = { start: point.time, end: point.time, kwh: 0 };
-      current.end = point.time;
-      current.kwh += point.surplusKWh;
-    } else if (current) {
-      windows.push(current);
-      current = null;
+  type Window = { start: string; end: string; kwh: number };
+  const bestWindow = (dayIndex: number): Window | undefined => {
+    const windows: Window[] = [];
+    let current: Window | null = null;
+    for (const point of forecasts[dayIndex]?.hourly ?? []) {
+      if (point.surplusKWh >= 0.3) {
+        if (!current) current = { start: point.time, end: point.time, kwh: 0 };
+        current.end = point.time;
+        current.kwh += point.surplusKWh;
+      } else if (current) {
+        windows.push(current);
+        current = null;
+      }
     }
-  });
+    if (current) windows.push(current);
+    return windows.sort((a, b) => b.kwh - a.kwh)[0];
+  };
 
-  if (current) windows.push(current);
-
-  const best = windows.sort((a, b) => b.kwh - a.kwh)[0];
+  // Today's remaining hours first; once today has no surplus left (evening,
+  // or the battery still absorbs everything), look ahead to tomorrow.
+  const todayBest = bestWindow(0);
+  const tomorrowBest = todayBest ? undefined : bestWindow(1);
+  const best = todayBest ?? tomorrowBest;
+  const dayWord = todayBest ? "اليوم" : "غدًا";
+  const todayLeftKWh = (forecasts[0]?.hourly ?? []).reduce((sum, point) => sum + point.surplusKWh, 0);
 
   // Typical household loads with a rough energy cost, so each tip says
   // whether today's surplus actually covers it.
@@ -49,7 +56,7 @@ export function SurplusRecommendations() {
   ];
   const recommendations = loads
     .filter((load) => load.kwh <= surplus)
-    .map((load) => ({ id: load.id, title: load.title, icon: load.icon, detail: load.detail + " الفائض المتوقع اليوم يغطيها." }));
+    .map((load) => ({ id: load.id, title: load.title, icon: load.icon, detail: load.detail + ` الفائض المتوقع ${dayWord} يغطيها.` }));
 
   return (
     <section dir="rtl" className="energy-card overflow-hidden p-5 sm:p-6">
@@ -85,7 +92,10 @@ export function SurplusRecommendations() {
           <div className="mt-5 rounded-3xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-white p-5 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <span className="text-xs font-extrabold text-slate-500">☀️ أفضل نافذة للاستفادة من الشمس</span>
+                <span className="inline-flex items-center gap-2 text-xs font-extrabold text-slate-500">
+                  ☀️ أفضل نافذة للاستفادة من الشمس
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-black text-amber-800">{dayWord}</span>
+                </span>
                 <strong className="mt-2 block text-2xl font-black tracking-tight text-amber-700 sm:text-3xl">
                   {formatHour(best.start)} — {formatHour(addHour(best.end))}
                 </strong>
@@ -97,6 +107,11 @@ export function SurplusRecommendations() {
                 </strong>
               </div>
             </div>
+            {!todayBest && (
+              <p className="mt-3 rounded-xl bg-white/80 px-3 py-2 text-xs font-bold leading-5 text-slate-500">
+                لا فائض متبقٍ اليوم{todayLeftKWh < 0.3 ? ": ما تبقّى من الشمس يذهب للمنزل وشحن البطارية" : ""}. هذه نافذة الغد.
+              </p>
+            )}
             <p className="mt-3 text-sm font-semibold text-slate-600">
               هذه الفترة هي الأنسب لتشغيل الأجهزة ذات الاستهلاك المرتفع والاستفادة من التوليد الشمسي مباشرة.
             </p>
@@ -156,7 +171,7 @@ export function SurplusRecommendations() {
       {!loading && !best && (
         <div className="mt-5 flex items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm font-semibold text-slate-600">
           <span className="text-lg">☁️</span>
-          <span>لا توجد نافذة فائض واضحة في التوقع الحالي.</span>
+          <span className="leading-6">لا يُتوقع فائض اليوم ولا غدًا: كل إنتاج الألواح يذهب لاستهلاك المنزل وشحن البطارية. هذا طبيعي في الأيام الغائمة أو عندما يكون الاستهلاك مرتفعًا.</span>
         </div>
       )}
     </section>
