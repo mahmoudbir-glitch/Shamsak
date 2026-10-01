@@ -3,7 +3,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { BatteryCharging, Clock, Gauge, Loader2, Thermometer, Zap } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
-import { arabicDuration, batteryState, batteryStateLabel, batteryText } from "@/lib/energy";
+import { arabicDuration, batteryAmps, batteryState, batteryStateLabel, batteryText } from "@/lib/energy";
+import { AmpPill } from "@/components/amp-pill";
 import { PageHeader } from "@/components/page-header";
 import { SocChart } from "@/components/soc-chart";
 import type { LoadPoint } from "@/components/load-chart";
@@ -100,6 +101,7 @@ export default function BatteryPage() {
               </div>
             </div>
             {snapshot && <p className="mt-3 text-sm font-bold text-slate-500">{Math.abs(powerW).toLocaleString("en-US")} واط</p>}
+            {snapshot && <span className="mt-2"><AmpPill tone="emerald" amps={batteryAmps(snapshot)} muted={Math.abs(powerW) < 50} /></span>}
           </>
         )}
       </section>

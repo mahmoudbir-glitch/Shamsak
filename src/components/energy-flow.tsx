@@ -4,7 +4,8 @@ import React, { useId, useState } from 'react';
 import { BatteryCharging } from 'lucide-react';
 import { GridTowerIcon, HouseIcon, InverterIcon, SolarPanelIcon } from '@/components/node-icons';
 import { InfoTip } from '@/components/info-tip';
-import { batteryText, homeText, solarText } from '@/lib/energy';
+import { acAmps, batteryText, homeText, solarText } from '@/lib/energy';
+import { AmpPill } from '@/components/amp-pill';
 
 interface EnergyFlowProps {
   solarKw: number;
@@ -22,6 +23,8 @@ interface EnergyFlowProps {
   todayGridSavings?: number;
   savingsCurrency?: string;
   isLive?: boolean;
+  /** Battery current in amps (measured when available). */
+  batteryAmps?: number | null;
 }
 
 const FLOW_THRESHOLD = 0.05;
@@ -40,6 +43,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   todayGridSavings,
   savingsCurrency = '$',
   isLive = false,
+  batteryAmps = null,
 }) => {
   const [activeNode, setActiveNode] = useState<'solar' | 'battery' | 'home' | 'grid' | 'inverter' | null>(null);
   const flowId = useId().replace(/:/g, '');
@@ -212,7 +216,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           <div className="pointer-events-none absolute left-1/2 top-full mt-1.5 w-[7.5rem] -translate-x-1/2 text-center">
             <div className="text-xs font-black text-slate-700">الشبكة</div>
             <div className={gridConnected && !inverterOffGrid ? "text-sm font-black text-violet-600" : "text-sm font-black text-slate-500"}>{!gridConnected ? "مقطوعة" : gridImporting ? "تسحب منها" : gridExporting ? "تصدير" : inverterOffGrid ? "غير مستخدمة" : "جهد متوفر"}</div>
-            <div className="text-[10px] font-bold text-slate-500">{!gridConnected ? "لا جهد على المدخل" : inverterOffGrid ? "الإنفرتر يعمل بدونها الآن" : `${gridVoltage ? Math.round(gridVoltage) + " V · " : ""}${gridImporting ? "سحب الطاقة" : gridExporting ? "تصدير الفائض" : "غير مستخدمة الآن"}`}</div>
+            <div className="mt-1"><AmpPill tone="violet" amps={isLive ? acAmps(gridKw * 1000) : null} muted={!gridImporting && !gridExporting} /></div>
           </div>
         </button>
 
@@ -226,7 +230,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           <div className="pointer-events-none absolute left-1/2 top-full mt-1.5 w-[7.5rem] -translate-x-1/2 text-center">
             <div className="text-xs font-black text-slate-700">المنزل</div>
             <div className={"text-sm font-black " + homeToneClass}>{formatKw(homeKw)}</div>
-            <div className="text-[10px] font-bold text-slate-500">{homeActive ? "استهلاك الآن" : "لا توجد قراءة"}</div>
+            <div className="mt-1"><AmpPill tone="sky" amps={isLive ? acAmps(homeKw * 1000) : null} /></div>
           </div>
         </button>
 
@@ -241,9 +245,9 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             </div>
           </div>
           <div className="pointer-events-none absolute left-1/2 top-full mt-1.5 w-[7.5rem] -translate-x-1/2 text-center">
-            <div className="text-xs font-black text-slate-700">البطارية</div>
+            <div className="text-xs font-black text-slate-700">البطارية <span className="font-bold text-slate-400">· {batteryCharging ? "تشحن" : batteryDischarging ? "تفرغ" : "ثابتة"}</span></div>
             <div className={"text-sm font-black " + batteryToneClass}>{formatKw(batteryKw)}</div>
-            <div className="text-[10px] font-bold text-slate-500">{batteryCharging ? "تشحن الآن" : batteryDischarging ? "تفرغ الآن" : "ثابتة"}</div>
+            <div className="mt-1"><AmpPill tone="emerald" amps={isLive ? batteryAmps : null} muted={!batteryCharging && !batteryDischarging} /></div>
           </div>
         </button>
 

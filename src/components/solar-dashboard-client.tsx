@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, Moon } from "lucide-react";
 import { EnergyFlow } from "@/components/energy-flow";
 import type { EnergySnapshot } from "@/lib/energy";
-import { chargerPriorityLabel, inverterModeLabel, outputPriorityLabel } from "@/lib/energy";
+import { chargerPriorityLabel, inverterModeLabel, outputPriorityLabel, batteryAmps } from "@/lib/energy";
 import { startVisiblePolling } from "@/lib/visible-polling";
 
 const REFRESH_MS = 15_000;
@@ -70,6 +70,7 @@ export default function SolarDashboardClient() {
         todayHomeUsageKWh={snapshot?.todayHomeUsageKWh}
         todayGridSavings={snapshot?.todayGridSavings}
         isLive={isLive}
+        batteryAmps={batteryAmps(snapshot)}
         savingsCurrency={snapshot?.currency ? `${snapshot.currency} ` : undefined}
       />
 

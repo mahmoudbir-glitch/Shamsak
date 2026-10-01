@@ -5,7 +5,8 @@ import { Home, Loader2, RefreshCw } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
 import { PageHeader } from "@/components/page-header";
 import { LoadChart, type LoadPoint } from "@/components/load-chart";
-import { homeText } from "@/lib/energy";
+import { homeText, acAmps } from "@/lib/energy";
+import { AmpPill } from "@/components/amp-pill";
 import { startVisiblePolling } from "@/lib/visible-polling";
 
 const REFRESH_MS = 15_000;
@@ -67,9 +68,9 @@ export default function HomeConsumptionPage() {
   const fromGrid = Math.max(0, homeW - fromSolar - fromBattery);
   const share = (w: number) => (homeW > 0 ? Math.round((w / homeW) * 100) : 0);
   const sources = [
-    { label: "الشمس", w: fromSolar, bar: "bg-amber-400", text: "text-amber-700" },
-    { label: "البطارية", w: fromBattery, bar: "bg-emerald-500", text: "text-emerald-700" },
-    { label: "الشبكة", w: fromGrid, bar: "bg-violet-500", text: "text-violet-700" },
+    { label: "الشمس", w: fromSolar, bar: "bg-amber-400", text: "text-amber-700", tone: "amber" as const },
+    { label: "البطارية", w: fromBattery, bar: "bg-emerald-500", text: "text-emerald-700", tone: "emerald" as const },
+    { label: "الشبكة", w: fromGrid, bar: "bg-violet-500", text: "text-violet-700", tone: "violet" as const },
   ];
 
   const timeZone = history?.timezone || "Asia/Beirut";
@@ -106,6 +107,7 @@ export default function HomeConsumptionPage() {
           <>
             <span className={"mt-2 block text-4xl font-black tracking-tight sm:text-5xl " + toneText}>{homeW.toLocaleString("en-US")} واط</span>
             <span className={"mt-1 block text-sm font-bold " + toneText}><bdi dir="ltr">{homeKw.toFixed(2)} kW</bdi></span>
+            <span className="mt-2 block"><AmpPill tone="sky" amps={acAmps(homeW)} /></span>
           </>
         )}
       </section>
@@ -122,6 +124,7 @@ export default function HomeConsumptionPage() {
               <div className="text-[11px] font-bold text-slate-500">{source.label}</div>
               <div className={"text-base font-black " + source.text}>{snapshot ? `${share(source.w)}%` : "—"}</div>
               <div className="text-[11px] font-semibold text-slate-400">{snapshot ? `${Math.round(source.w)} واط` : "—"}</div>
+              <div className="mt-1.5"><AmpPill tone={source.tone} amps={snapshot ? acAmps(source.w) : null} muted={snapshot ? source.w <= 0 : false} /></div>
             </div>
           ))}
         </div>

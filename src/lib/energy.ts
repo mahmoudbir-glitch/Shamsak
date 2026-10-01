@@ -187,3 +187,21 @@ export function arabicDuration(totalMinutes: number) {
   if (hours && mins) return `${hours} و${mins}`;
   return hours || mins || "أقل من دقيقة";
 }
+
+
+/** Nominal AC voltage used to express house/grid power as amps (Lebanon: 230 V). */
+export const AC_VOLTS = 230;
+
+/** AC current for a power on the 230 V side (house, grid, or a share of the house load). */
+export function acAmps(watts: number | null | undefined): number | null {
+  if (typeof watts !== "number" || !Number.isFinite(watts)) return null;
+  return Math.abs(watts) / AC_VOLTS;
+}
+
+/** Battery current: the measured value when the inverter reports it, else power ÷ battery voltage. */
+export function batteryAmps(snapshot: { batteryCurrent?: number; batteryVoltage?: number; batteryPowerW: number } | null | undefined): number | null {
+  if (!snapshot) return null;
+  if (typeof snapshot.batteryCurrent === "number" && Number.isFinite(snapshot.batteryCurrent)) return Math.abs(snapshot.batteryCurrent);
+  const volts = snapshot.batteryVoltage && snapshot.batteryVoltage > 20 ? snapshot.batteryVoltage : 51.2;
+  return Number.isFinite(snapshot.batteryPowerW) ? Math.abs(snapshot.batteryPowerW) / volts : null;
+}
