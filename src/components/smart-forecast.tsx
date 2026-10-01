@@ -364,7 +364,7 @@ export function SmartForecast() {
                     <span className="text-xs font-semibold text-slate-500">إنتاج متوقع {point.solarKWh.toFixed(2)} ك.و.س • مطر {Math.round(point.precipitationProbability)}%</span>
                     {point.solarKWh > 0 && <span className="mt-1 block"><AmpPill tone="amber" amps={acAmps(point.solarKWh * 1000)} /></span>}
                   </div>
-                  <span className="text-xs font-black text-amber-700">فائض {point.surplusKWh.toFixed(2)}</span>
+                  <span className="flex flex-col items-end gap-1 text-xs font-black text-amber-700">فائض {point.surplusKWh.toFixed(2)}{point.surplusKWh > 0 && <AmpPill tone="amber" amps={acAmps(point.surplusKWh * 1000)} />}</span>
                 </div>
               ))}
             </div>

@@ -13,7 +13,8 @@ const TONES = {
  */
 export function AmpPill({ amps, tone, muted = false, className = "", unit = "A" }: { amps: number | null | undefined; tone: keyof typeof TONES; muted?: boolean; className?: string; unit?: "A" | "Ah" }) {
   const value = typeof amps === "number" && Number.isFinite(amps) ? Math.abs(amps) : null;
-  const text = value === null ? "—" : value >= 100 ? Math.round(value).toString() : value.toFixed(1).replace(/\.0$/, "");
+  // One decimal everywhere (3.0, 12.4) so capsules read alike; whole numbers from 100 up, and a plain 0.
+  const text = value === null ? "—" : value >= 100 ? Math.round(value).toString() : value < 0.05 ? "0" : value.toFixed(1);
   return (
     <span
       dir="ltr"

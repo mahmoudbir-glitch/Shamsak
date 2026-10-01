@@ -22,8 +22,15 @@ export function StatTile({ label, value, unit, tone = "slate", big = false, amps
     <div className={`rounded-2xl p-4 ${t.bg}`}>
       <span className="text-xs font-bold text-slate-500">{label}</span>
       <strong className={`mt-1 block whitespace-nowrap font-black ${big ? "text-2xl" : "text-lg"} ${t.text}`}>
-        <bdi dir="ltr">{value}</bdi>
-        {unit && <small className="text-sm"> {unit}</small>}
+        {unit && /^[A-Za-z]/.test(unit) ? (
+          // Latin units (kW) stay after the number: "1.34 kW", not "kW 1.34".
+          <bdi dir="ltr">{value}<small className="text-sm"> {unit}</small></bdi>
+        ) : (
+          <>
+            <bdi dir="ltr">{value}</bdi>
+            {unit && <small className="text-sm"> {unit}</small>}
+          </>
+        )}
       </strong>
       {ampTone && <span className="mt-1.5 block"><AmpPill tone={ampTone} amps={amps} unit={ampUnit} /></span>}
     </div>
