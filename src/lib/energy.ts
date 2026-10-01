@@ -140,8 +140,8 @@ export function inverterModeLabel(mode?: string) {
 
 export function outputPriorityLabel(value?: string) {
   if (!value) return "—";
-  if (/sbu/i.test(value)) return "SBU: شمس ← بطارية ← شبكة";
-  if (/sub|solar/i.test(value)) return "SUB: شمس ← شبكة ← بطارية";
+  if (/sbu/i.test(value)) return "شمس ← بطارية ← شبكة (SBU)";
+  if (/sub|solar/i.test(value)) return "شمس ← شبكة ← بطارية (SUB)";
   if (/uti|utility/i.test(value)) return "الشبكة أولاً";
   return value;
 }
