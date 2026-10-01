@@ -465,14 +465,29 @@ export async function probeFreshness(auth: DessAuth, device: DessDevice, baseUrl
   const base = { pn: device.pn, devcode: device.devcode, devaddr: device.devaddr, sn: device.sn, i18n: "en_US" };
   const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Beirut" }).format(new Date());
   const probes: Array<[string, Record<string, string | number | undefined>]> = [
-    ["queryDeviceDataOneDayPaging", { ...base, date: day, page: 0, pagesize: 3 }],
+    ["queryDeviceDataOneDayPaging", { ...base, source: DEFAULT_SOURCE, date: day, page: 0, pagesize: 3 }],
     ["webQueryDeviceEnergyFlowEs", { ...base, source: DEFAULT_SOURCE }],
-    ["webQueryCollectorsEs", { page: 0, pagesize: 10 }],
+    ["queryDeviceParsEs", { ...base, source: DEFAULT_SOURCE }],
+    ["queryDeviceCtrlField", { ...base, source: DEFAULT_SOURCE }],
   ];
   for (const [action, params] of probes) {
     try {
       const body = await authedCall(auth, action, params, baseUrl, timeoutMs);
       console.info(`[smartess] probe ${action} ${JSON.stringify(body.dat ?? body).slice(0, 1500)}`);
+      if (action === "queryDeviceCtrlField") {
+        // Reading a setting makes the cloud ask the dongle right now: success
+        // means the dongle is reachable even if "last data" is stale.
+        const fields = JSON.stringify(body.dat ?? {}).match(/"id":"([^"]+)"/);
+        if (fields) {
+          const started = Date.now();
+          try {
+            const live = await authedCall(auth, "queryDeviceCtrlValue", { ...base, source: DEFAULT_SOURCE, id: fields[1] }, baseUrl, timeoutMs);
+            console.info(`[smartess] probe queryDeviceCtrlValue id=${fields[1]} ${Date.now() - started}ms ${JSON.stringify(live.dat ?? live).slice(0, 400)}`);
+          } catch (error) {
+            console.info(`[smartess] probe queryDeviceCtrlValue id=${fields[1]} failed after ${Date.now() - started}ms ${error instanceof Error ? error.message.slice(0, 160) : "error"}`);
+          }
+        }
+      }
     } catch (error) {
       console.info(`[smartess] probe ${action} failed ${error instanceof Error ? error.message.slice(0, 160) : "error"}`);
     }

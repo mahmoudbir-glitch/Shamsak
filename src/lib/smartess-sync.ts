@@ -228,7 +228,7 @@ async function run(): Promise<SyncResult> {
     }
 
     const reading = await readLastData(auth, target, cloudUrl, timeout);
-    if (Date.now() - lastProbeAt > 10 * 60_000) {
+    if (Date.now() - lastProbeAt > 3 * 60_000) {
       lastProbeAt = Date.now();
       await probeFreshness(auth, target, cloudUrl, timeout);
     }
