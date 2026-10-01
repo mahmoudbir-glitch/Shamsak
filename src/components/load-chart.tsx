@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { StatTile } from "@/components/stat-tile";
 
 export type LoadPoint = { t: number; loadW: number; solarW: number; soc?: number; batteryW?: number };
 
@@ -70,20 +71,20 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
   const shown = active !== null ? buckets[active] : null;
   const homes = buckets.filter((b) => b.homeW !== null).map((b) => b.homeW as number);
   const peakHomeW = homes.length ? Math.max(...homes) : null;
-
-  const stat = (label: string, value: string, unit: string, color: string) => (
-    <div className="rounded-xl bg-slate-50 px-3 py-2 text-center">
-      <div className="text-[10px] font-bold text-slate-400">{label}</div>
-      <div className="whitespace-nowrap text-base font-black" style={{ color }}>{value} <span className="text-[10px] font-bold text-slate-400">{unit}</span></div>
-    </div>
-  );
+  const solars = buckets.filter((b) => b.solarW !== null).map((b) => b.solarW as number);
+  const peakSolarW = solars.length ? Math.max(...solars) : null;
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-2" dir="rtl">
-        {stat("استهلاك", `${homeKWh.toFixed(1)}`, "ك.و.س", HOME)}
-        {stat("إنتاج", `${solarKWh.toFixed(1)}`, "ك.و.س", SOLAR)}
-        {stat("ذروة المنزل", peakHomeW === null ? "—" : kw(peakHomeW), "kW", "#0369a1")}
+      <div className="space-y-3" dir="rtl">
+        <div className="grid grid-cols-2 gap-3">
+          <StatTile big tone="sky" label="استهلاك المنزل" value={homeKWh.toFixed(1)} unit="ك.و.س" />
+          <StatTile big tone="amber" label="الإنتاج الشمسي" value={solarKWh.toFixed(1)} unit="ك.و.س" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <StatTile label="ذروة المنزل" value={peakHomeW === null ? "—" : kw(peakHomeW)} unit="kW" />
+          <StatTile label="ذروة الإنتاج" value={peakSolarW === null ? "—" : kw(peakSolarW)} unit="kW" />
+        </div>
       </div>
 
       <div className="relative" dir="ltr">

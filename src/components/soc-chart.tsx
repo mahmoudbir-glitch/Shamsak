@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import type { LoadPoint } from "@/components/load-chart";
+import { StatTile, type StatTone } from "@/components/stat-tile";
 
 const HOUR = 3_600_000;
 const W = 640;
@@ -64,19 +65,21 @@ export function SocChart({ points, timeZone, now, reservePct }: { points: LoadPo
   const missing = 24 - known.length;
   const shown = active !== null ? buckets[active] : null;
 
-  const stat = (label: string, value: number | null, color: string) => (
-    <div className="rounded-xl bg-slate-50 px-3 py-2 text-center">
-      <div className="text-[10px] font-bold text-slate-400">{label}</div>
-      <div className="text-base font-black" style={{ color: value === null ? "#94a3b8" : color }}>{value === null ? "—" : `${Math.round(value)}%`}</div>
-    </div>
-  );
+  const toneFor = (soc: number | null): StatTone => (soc === null ? "slate" : soc < reservePct ? "rose" : soc < reservePct + 10 ? "amber" : "emerald");
+  const pct = (v: number | null) => (v === null ? "—" : `${Math.round(v)}%`);
+  const change = known.length >= 2 ? (known.at(-1)!.soc as number) - (known[0].soc as number) : null;
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-2" dir="rtl">
-        {stat("الآن", latest, latest === null ? OK : colorFor(latest))}
-        {stat("أدنى", low, low === null ? OK : colorFor(low))}
-        {stat("أعلى", high, OK)}
+      <div className="space-y-3" dir="rtl">
+        <div className="grid grid-cols-2 gap-3">
+          <StatTile big tone={toneFor(latest)} label="الشحن الآن" value={pct(latest)} />
+          <StatTile big tone={toneFor(low)} label="أدنى نسبة" value={pct(low)} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <StatTile label="أعلى نسبة" value={pct(high)} />
+          <StatTile label="التغيّر خلال 24 ساعة" value={change === null ? "—" : `${change > 0 ? "+" : ""}${Math.round(change)}%`} />
+        </div>
       </div>
 
       <div className="relative" dir="ltr">
@@ -148,7 +151,7 @@ export function SocChart({ points, timeZone, now, reservePct }: { points: LoadPo
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-bold text-slate-500" dir="rtl">
         <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: OK }} />مستوى جيد</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: LOW }} />قريب من الاحتياطي</span>
-        <span className="inline-flex items-center gap-1.5"><span className="w-4 border-t-2 border-dashed" style={{ borderColor: LOW }} />حد الاحتياطي {reservePct}%</span>
+        <span className="inline-flex items-center gap-1.5"><span className="w-4 border-t-2 border-dashed" style={{ borderColor: LOW }} />حد الاحتياطي <bdi dir="ltr">{reservePct}%</bdi></span>
       </div>
 
       <p className="text-[11px] font-semibold text-slate-400">
