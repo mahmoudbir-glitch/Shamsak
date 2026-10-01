@@ -309,7 +309,7 @@ export default function SettingsPage() {
 
   return (
     <div dir="rtl" className="min-h-[100dvh] w-full space-y-3 overflow-x-hidden overscroll-y-auto bg-slate-50/70 p-2 pb-[calc(12rem+env(safe-area-inset-bottom))] scroll-pb-[calc(12rem+env(safe-area-inset-bottom))] sm:space-y-4 sm:p-4 sm:pb-12">
-      <PageHeader icon={SettingsIcon} tone="slate" eyebrow="شمسك • الإعدادات" title="إعدادات المنظومة" subtitle="الاتصال، العتاد، الحماية، التنبيهات والبيانات." />
+      <PageHeader icon={SettingsIcon} tone="fuchsia" eyebrow="شمسك • الإعدادات" title="إعدادات المنظومة" subtitle="الاتصال، العتاد، الحماية، التنبيهات والبيانات." />
 
       {/* بحث سريع: يُصفّي الأقسام حسب العنوان أو أسماء الإعدادات داخلها */}
       <div className="relative">

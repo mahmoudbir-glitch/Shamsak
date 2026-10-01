@@ -8,6 +8,7 @@ const TONES = {
   sky: { box: "bg-sky-50 text-sky-600 ring-sky-200/70", eyebrow: "text-sky-600" },
   teal: { box: "bg-teal-50 text-teal-600 ring-teal-200/70", eyebrow: "text-teal-600" },
   slate: { box: "bg-slate-100 text-slate-600 ring-slate-200/70", eyebrow: "text-slate-500" },
+  fuchsia: { box: "bg-fuchsia-50 text-fuchsia-600 ring-fuchsia-200/70", eyebrow: "text-fuchsia-600" },
 } as const;
 
 /** ترويسة موحّدة لصفحات التطبيق: أيقونة + عنوان صغير + عنوان رئيسي + وصف + عنصر جانبي اختياري. */
