@@ -82,7 +82,7 @@ export default function LoginForm() {
           spellCheck={false}
           required
           disabled={loading}
-          className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-right text-sm font-semibold text-slate-800 outline-none transition placeholder:font-medium placeholder:text-slate-400 focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-100 disabled:opacity-60"
+          className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-right text-sm font-semibold text-slate-800 outline-none transition placeholder:font-medium placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-100 disabled:opacity-60"
         />
       </div>
 
@@ -96,7 +96,7 @@ export default function LoginForm() {
           autoComplete="current-password"
           required
           disabled={loading}
-          className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-right text-sm font-semibold text-slate-800 outline-none transition placeholder:font-medium placeholder:text-slate-400 focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-100 disabled:opacity-60"
+          className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-right text-sm font-semibold text-slate-800 outline-none transition placeholder:font-medium placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-100 disabled:opacity-60"
         />
         <button
           type="button"
@@ -118,7 +118,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="!mt-5 h-12 w-full rounded-2xl bg-gradient-to-l from-amber-500 to-orange-500 text-sm font-black text-white shadow-[0_10px_24px_rgba(245,158,11,0.32)] transition hover:from-amber-600 hover:to-orange-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+        className="!mt-5 h-12 w-full rounded-2xl bg-slate-900 text-sm font-black text-white shadow-[0_8px_20px_rgba(15,23,42,0.18)] transition hover:bg-slate-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
       </button>
