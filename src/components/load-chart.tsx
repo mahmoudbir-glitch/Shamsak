@@ -7,7 +7,7 @@ export type LoadPoint = { t: number; loadW: number; solarW: number; soc?: number
 
 const HOUR = 3_600_000;
 const W = 640;
-const H = 210;
+const H = 200;
 const PAD = { top: 10, right: 6, bottom: 26, left: 36 };
 const SOLAR = "#f59e0b"; // amber: the app's solar colour
 const HOME = "#0ea5e9"; // sky: the app's home colour
@@ -52,7 +52,10 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
   const plotW = W - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
   const slot = plotW / 24;
-  const barW = Math.max(3, Math.min(7, (slot - 9) / 2));
+  // Same cell as the battery chart: one wide rounded cell per hour, split in two.
+  const cellW = Math.max(6, Math.min(16, slot - 7));
+  const barW = cellW / 2;
+  const cellR = Math.min(4, cellW / 2);
   const y = (w: number) => PAD.top + plotH - (w / maxW) * plotH;
   const yTicks = [0, maxW / 2, maxW];
 
@@ -64,8 +67,8 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
   const bar = (x: number, w: number, color: string, key: string) => {
     const h = Math.max(0, (w / maxW) * plotH);
     if (h < 0.5) return null;
-    const r = barW / 2;
-    return <rect key={key} x={x} y={PAD.top + plotH - Math.max(h, r * 2)} width={barW} height={Math.max(h, r * 2)} rx={r} fill={color} />;
+    const r = Math.min(3, barW / 2);
+    return <rect key={key} x={x} y={PAD.top + plotH - Math.max(h, r * 2)} width={barW - 0.5} height={Math.max(h, r * 2)} rx={r} fill={color} />;
   };
 
   const shown = active !== null ? buckets[active] : null;
@@ -114,9 +117,9 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
                   <line x1={center - 3} x2={center + 3} y1={PAD.top + plotH - 2} y2={PAD.top + plotH - 2} stroke="#cbd5e1" strokeWidth={2} strokeLinecap="round" />
                 ) : (
                   <>
-                    <rect x={center - barW - 2.5} y={PAD.top} width={barW * 2 + 5} height={plotH} rx={barW / 2 + 2.5} fill="#f1f5f9" />
-                    {bar(center - barW - 1, b.solarW ?? 0, SOLAR, "s")}
-                    {bar(center + 1, b.homeW, HOME, "h")}
+                    <rect x={center - cellW / 2} y={PAD.top} width={cellW} height={plotH} rx={cellR} fill="#f1f5f9" />
+                    {bar(center - barW, b.solarW ?? 0, SOLAR, "s")}
+                    {bar(center + 0.5, b.homeW, HOME, "h")}
                   </>
                 )}
                 {hour % 6 === 0 && (
@@ -158,8 +161,8 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-bold text-slate-500" dir="rtl">
-        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: HOME }} />استهلاك المنزل</span>
-        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: SOLAR }} />الإنتاج الشمسي</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: HOME }} />استهلاك المنزل</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: SOLAR }} />الإنتاج الشمسي</span>
       </div>
 
       <p className="text-[11px] font-semibold text-slate-400">
