@@ -105,7 +105,7 @@ function NightCard({
         </div>
       </div>
       <div className="mt-3 space-y-2 text-sm font-semibold text-slate-500">
-        <p>تغطية تقديرية {result.hoursCovered} ساعة عند متوسط استهلاك ليلي {Math.round(effectiveLoadW).toLocaleString("ar-LB-u-nu-latn")} واط.</p>
+        <p>تغطية تقديرية {result.hoursCovered} ساعة عند متوسط استهلاك ليلي {Math.round(effectiveLoadW).toLocaleString("en-US")} واط.</p>
         <div className="flex flex-wrap items-center gap-2">
           <span className={confidence === "عالية" ? "rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700" : confidence === "متوسطة" ? "rounded-full bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-700" : confidence === "منخفضة" ? "rounded-full bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700" : "rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600"}>ثقة استقرار الاستهلاك: {confidence}</span>
           <span className="text-xs">عينات ليلية: {sampleCount}</span>

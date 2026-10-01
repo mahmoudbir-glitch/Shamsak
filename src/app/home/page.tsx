@@ -99,7 +99,7 @@ export default function HomeConsumptionPage() {
           <Loader2 className="mx-auto mt-5 h-10 w-10 animate-spin text-sky-500" aria-label="جاري تحميل القراءة" />
         ) : (
           <>
-            <span className={"mt-2 block text-4xl font-black tracking-tight sm:text-5xl " + toneText}>{homeW.toLocaleString("ar-LB-u-nu-latn")} واط</span>
+            <span className={"mt-2 block text-4xl font-black tracking-tight sm:text-5xl " + toneText}>{homeW.toLocaleString("en-US")} واط</span>
             <span className={"mt-1 block text-sm font-bold " + toneText}>{homeKw.toFixed(2)} kW</span>
           </>
         )}

@@ -98,7 +98,7 @@ export default function BatteryPage() {
                 <span className="mt-1 text-xs font-bold text-slate-400">{snapshot ? batteryStateLabel(state) : "لا توجد قراءة"}</span>
               </div>
             </div>
-            {snapshot && <p className="mt-3 text-sm font-bold text-slate-500">{Math.abs(powerW).toLocaleString("ar-LB-u-nu-latn")} واط</p>}
+            {snapshot && <p className="mt-3 text-sm font-bold text-slate-500">{Math.abs(powerW).toLocaleString("en-US")} واط</p>}
           </>
         )}
       </section>
