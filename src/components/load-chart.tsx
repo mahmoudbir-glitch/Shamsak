@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { StatTile } from "@/components/stat-tile";
+import { AC_VOLTS } from "@/lib/energy";
 
 export type LoadPoint = { t: number; loadW: number; solarW: number; soc?: number; batteryW?: number };
 
@@ -100,8 +101,8 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
           <StatTile big tone="amber" label="الإنتاج الشمسي" value={solarKWh.toFixed(1)} unit="ك.و.س" />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <StatTile label="ذروة المنزل" value={peakHomeW === null ? "—" : kw(peakHomeW)} unit="kW" />
-          <StatTile label="ذروة الإنتاج" value={peakSolarW === null ? "—" : kw(peakSolarW)} unit="kW" />
+          <StatTile label="ذروة المنزل" value={peakHomeW === null ? "—" : kw(peakHomeW)} unit="kW" ampTone="sky" amps={peakHomeW === null ? null : peakHomeW / AC_VOLTS} />
+          <StatTile label="ذروة الإنتاج" value={peakSolarW === null ? "—" : kw(peakSolarW)} unit="kW" ampTone="amber" amps={peakSolarW === null ? null : peakSolarW / AC_VOLTS} />
         </div>
       </div>
 

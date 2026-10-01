@@ -202,7 +202,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           <div className="pointer-events-none absolute bottom-full left-1/2 mb-1.5 w-[7.5rem] -translate-x-1/2 text-center">
             <div className="text-xs font-black text-slate-700">الطاقة الشمسية</div>
             <div className={"text-sm font-black " + solarToneClass}>{formatKw(solarKw)}</div>
-            <div className="text-[10px] font-bold text-slate-500">{solarActive ? "إنتاج الآن" : "لا يوجد توليد"}</div>
+            <div className="mt-1"><AmpPill tone="amber" amps={isLive ? acAmps(solarKw * 1000) : null} muted={!solarActive} /></div>
           </div>
         </button>
 
@@ -281,25 +281,25 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
               {activeNode === "solar" && (
                 <>
-                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الإنتاج الآن</div><div className={"mt-1 font-black " + solarToneClass}>{formatKw(solarKw)}</div></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الإنتاج الآن</div><div className={"mt-1 font-black " + solarToneClass}>{formatKw(solarKw)}</div><div className="mt-1.5"><AmpPill tone="amber" amps={isLive ? acAmps(solarKw * 1000) : null} muted={!solarActive} /></div></div>
                   <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الحالة</div><div className="mt-1 font-black text-slate-800">{solarActive ? "يولّد طاقة" : "لا يوجد توليد مؤكد"}</div></div>
                 </>
               )}
               {activeNode === "battery" && (
                 <>
                   <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">حالة الشحن</div><div className={"mt-1 font-black " + batteryToneClass}>{batteryPercentage.toFixed(0)}%</div></div>
-                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">القدرة</div><div className="mt-1 font-black text-slate-800">{formatKw(batteryKw)}</div></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">القدرة</div><div className="mt-1 font-black text-slate-800">{formatKw(batteryKw)}</div><div className="mt-1.5"><AmpPill tone="emerald" amps={isLive ? batteryAmps : null} /></div></div>
                 </>
               )}
               {activeNode === "home" && (
                 <>
-                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الاستهلاك الآن</div><div className={"mt-1 font-black " + homeToneClass}>{formatKw(homeKw)}</div></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الاستهلاك الآن</div><div className={"mt-1 font-black " + homeToneClass}>{formatKw(homeKw)}</div><div className="mt-1.5"><AmpPill tone="sky" amps={isLive ? acAmps(homeKw * 1000) : null} /></div></div>
                   <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">الحمل</div><div className="mt-1 font-black text-slate-800">{homeActive ? "نشط" : "لا توجد قراءة حية مؤكدة"}</div></div>
                 </>
               )}
               {activeNode === "inverter" && (
                 <>
-                  <div className="rounded-xl bg-amber-50 p-3"><div className="font-bold text-slate-500">الطاقة المارّة الآن</div><div className="mt-1 font-black text-amber-700">{formatKw(throughputKw)}</div></div>
+                  <div className="rounded-xl bg-amber-50 p-3"><div className="font-bold text-slate-500">الطاقة المارّة الآن</div><div className="mt-1 font-black text-amber-700">{formatKw(throughputKw)}</div><div className="mt-1.5"><AmpPill tone="amber" amps={isLive ? acAmps(throughputKw * 1000) : null} /></div></div>
                   <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">دوره</div><div className="mt-1 font-black text-slate-800">يوزّع الطاقة بين الشمس والبطارية والشبكة والمنزل</div></div>
                 </>
               )}

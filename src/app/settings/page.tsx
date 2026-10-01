@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/page-header";
+import { AmpPill } from "@/components/amp-pill";
+import { AC_VOLTS } from "@/lib/energy";
 import { AlertCircle, Bell, CheckCircle2, ChevronDown, Cpu, Database, Eye, EyeOff, Plug, Plus, Radio, RotateCcw, Save, Search, Settings as SettingsIcon, ShieldCheck, X, type LucideIcon } from "lucide-react";
 
 type Protocol = "Modbus RTU" | "Modbus TCP" | "MQTT" | "Cloud API" | "Wi-Fi Datalogger";
@@ -95,11 +97,12 @@ function SettingsSection({ icon: Icon, title, subtitle, tone = "sky", summary, k
 }
 
 /** بطاقة صغيرة في «نظرة سريعة» أعلى الصفحة. */
-function GlanceTile({ label, value, dot }: { label: string; value: React.ReactNode; dot: string }) {
+function GlanceTile({ label, value, dot, amps, ampTone }: { label: string; value: React.ReactNode; dot: string; amps?: number | null; ampTone?: "sky" | "amber" | "emerald" | "violet" }) {
   return (
     <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
       <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500"><span className={"h-2 w-2 rounded-full " + dot} />{label}</div>
       <div className="mt-1 truncate text-base font-black text-slate-900">{value}</div>
+      {ampTone && <div className="mt-1.5"><AmpPill tone={ampTone} amps={amps} /></div>}
     </div>
   );
 }
@@ -322,9 +325,9 @@ export default function SettingsPage() {
             dot={draft?.lastStatus === "connected" ? "bg-emerald-500" : draft?.lastStatus === "error" ? "bg-amber-500" : "bg-slate-300"}
             value={draft?.lastStatus === "connected" ? "متصل" : draft?.lastStatus === "error" ? (/لا يرسل قراءات/.test(draft.lastTestReason ?? "") ? "الدنجل متوقف" : "غير متصل") : draft ? "غير معروف" : "لا إنفرتر"}
           />
-          <GlanceTile label="الألواح" dot="bg-amber-400" value={<bdi dir="ltr">{(settings.panelPowerW / 1000).toLocaleString("en-US", { maximumFractionDigits: 2 })} kW</bdi>} />
+          <GlanceTile label="الألواح" dot="bg-amber-400" ampTone="amber" amps={settings.panelPowerW / AC_VOLTS} value={<bdi dir="ltr">{(settings.panelPowerW / 1000).toLocaleString("en-US", { maximumFractionDigits: 2 })} kW</bdi>} />
           <GlanceTile label="البطارية" dot="bg-emerald-400" value={<bdi dir="ltr">{(settings.batteryCapacityWh / 1000).toLocaleString("en-US", { maximumFractionDigits: 1 })} kWh</bdi>} />
-          <GlanceTile label="الإنفرتر" dot="bg-sky-400" value={<bdi dir="ltr">{settings.inverterRatedPowerKw ? `${settings.inverterRatedPowerKw} kW` : "—"}</bdi>} />
+          <GlanceTile label="الإنفرتر" dot="bg-sky-400" ampTone="sky" amps={settings.inverterRatedPowerKw ? (settings.inverterRatedPowerKw * 1000) / AC_VOLTS : null} value={<bdi dir="ltr">{settings.inverterRatedPowerKw ? `${settings.inverterRatedPowerKw} kW` : "—"}</bdi>} />
         </div>
       )}
 

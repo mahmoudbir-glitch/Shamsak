@@ -138,6 +138,7 @@ export default function HomeConsumptionPage() {
         <div className="energy-card p-4">
           <div className="text-[11px] font-bold text-slate-500">أعلى حمل اليوم</div>
           <div className="mt-1 text-xl font-black text-slate-800"><bdi dir="ltr">{history?.peak ? (history.peak.w / 1000).toFixed(2) : "—"} <span className="text-[11px]">kW</span></bdi></div>
+          <div className="mt-1.5"><AmpPill tone="sky" amps={history?.peak ? acAmps(history.peak.w) : null} /></div>
           {history?.peak && <div className="text-[11px] font-semibold text-slate-400">الساعة {peakTime}{peakPct !== null ? ` · ${peakPct}% من قدرة الإنفرتر` : ""}</div>}
         </div>
       </div>
