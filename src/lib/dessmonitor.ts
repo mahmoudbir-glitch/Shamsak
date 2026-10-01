@@ -29,6 +29,8 @@ export type DessAuth = {
   secret: string;
   /** Epoch milliseconds after which the token should be refreshed. */
   expiresAt: number;
+  /** Epoch milliseconds when this login was made. */
+  obtainedAt?: number;
   usr?: string;
 };
 
@@ -163,6 +165,7 @@ async function authenticateExact(config: DessConfig, timeoutMs = 15000): Promise
     token,
     secret,
     expiresAt: Date.now() + Math.max(60, expiresIn - 300) * 1000,
+    obtainedAt: Date.now(),
     usr: typeof dat.usr === "string" ? dat.usr : config.username,
   };
 }

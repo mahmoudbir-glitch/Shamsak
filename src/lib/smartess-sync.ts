@@ -122,7 +122,12 @@ export async function storeReading(reading: DessReading, device?: Record<string,
   return { ok: true, stored: true };
 }
 
-async function run(): Promise<SyncResult> {
+/** After SmartESS rejects the username/password, wait this long before trying again. */
+const AUTH_BACKOFF_MS = 30 * 60_000;
+/** A reused login older than this is dropped after any SmartESS error. */
+const STALE_LOGIN_MS = 60 * 60_000;
+
+async function run(deadline: number): Promise<SyncResult> {
   const row = await prisma.inverterConnection.findFirst({
     where: { protocol: "Wi-Fi Datalogger", enabled: true },
     orderBy: [{ isPrimary: "desc" }, { updatedAt: "desc" }],
@@ -150,6 +155,13 @@ async function run(): Promise<SyncResult> {
     console.warn("[smartess] sync_skipped cloud_credentials_missing");
     return { ok: false, skipped: true, reason: "cloud_credentials_missing" };
   }
+  // Wrong credentials are retried every 30 minutes, not every minute, so the
+  // account is not hammered (and possibly locked). Saving the connection form
+  // rewrites these extras and clears the pause at once.
+  const authFailedAt = Number(extras.authFailedAt ?? 0);
+  if (authFailedAt && Date.now() - authFailedAt < AUTH_BACKOFF_MS) {
+    return { ok: false, skipped: true, reason: "auth_backoff" };
+  }
 
   const cloudUrl = process.env.SHAMSAK_DESSMONITOR_URL || undefined;
   // Kept short: this runs in the background of a dashboard request.
@@ -168,6 +180,8 @@ async function run(): Promise<SyncResult> {
       .catch((error) => console.error("[smartess] persist_auth_failed", error));
   };
 
+  let reusedAuth = false;
+  let authInUse: DessAuth | null = null;
   try {
     const key = `${username}\u0000${password.length}`;
     let auth: DessAuth | null = cachedAuth && cachedAuth.key === key && cachedAuth.auth.expiresAt > Date.now() ? cachedAuth.auth : null;
@@ -177,10 +191,25 @@ async function run(): Promise<SyncResult> {
         auth = saved.auth;
       }
     }
-    if (!auth) {
-      auth = await authenticate({ username, password, baseUrl: cloudUrl }, timeout);
+    if (auth) {
+      reusedAuth = true;
+    } else {
+      try {
+        auth = await authenticate({ username, password, baseUrl: cloudUrl }, timeout);
+      } catch (error) {
+        if (error instanceof DessError && /NOT_FOUND_USR|PASSWORD/i.test(error.message)) {
+          extras = { ...extras, authFailedAt: Date.now() };
+          delete extras.dessAuth;
+          await prisma.inverterConnection
+            .update({ where: { id: row.id }, data: { inverterLinkCode: encryptSecret(JSON.stringify(extras)) } })
+            .catch(() => {});
+        }
+        throw error;
+      }
+      if (extras.authFailedAt) delete extras.authFailedAt;
       await savePersistedAuth(auth);
     }
+    authInUse = auth;
     cachedAuth = { key, auth };
 
     // The connection test stores the device that worked; reuse it so each sync
@@ -233,6 +262,9 @@ async function run(): Promise<SyncResult> {
     }
     // One short line per read, to measure how often the dongle really uploads.
     console.info(`[smartess] sig pvV=${reading.parameters["PV Voltage"]?.value ?? "-"} grid=${reading.gridPowerW ?? "-"} load=${reading.loadPowerW ?? "-"} soc=${reading.batterySoc ?? "-"}`);
+    // The platform may resume this run after the request already answered;
+    // a reading that arrives that late must not be stored as "now".
+    if (Date.now() > deadline) return { ok: false, reason: "transient" };
     if (await isFrozen(reading)) {
       return await fail("الدنجل لا يرسل قراءات جديدة: القيم نفسها منذ 15 دقيقة. تأكد أن الدنجل متصل بالواي فاي.");
     }
@@ -253,7 +285,14 @@ async function run(): Promise<SyncResult> {
     cachedAuth = null;
     // Only a rejected token justifies signing in again; a timeout must not
     // trigger another login, which is what could end the phone app's session.
-    if (extras.dessAuth && error instanceof DessError && /token|sign|expire|auth|secret/i.test(error.message)) {
+    // SmartESS's wording for an expired token varies, so a reused login is also
+    // dropped when it is over an hour old: the next run signs in once instead of
+    // reusing a dead token until its (up to 7-day) expiry.
+    const loginAge = authInUse?.obtainedAt ? Date.now() - authInUse.obtainedAt : Infinity;
+    if (
+      extras.dessAuth &&
+      (/token|sign|expire|auth|secret|login|session/i.test(error.message) || (reusedAuth && loginAge > STALE_LOGIN_MS))
+    ) {
       await savePersistedAuth(null);
     }
     console.error("[smartess] sync_failed", error);
@@ -270,7 +309,8 @@ export async function syncSmartEss(): Promise<SyncResult> {
   // A run cut off by the platform never settles; without this the stale
   // promise would be returned forever and no sync would ever run again.
   if (inFlight && now - inFlightSince < RUN_BUDGET_MS + 15_000) return inFlight;
-  if (now - lastAttemptAt < MIN_GAP_MS) return { ok: false, skipped: true, reason: "throttled" };
+  // A few seconds of slack so a cron that fires slightly early is not throttled.
+  if (now - lastAttemptAt < MIN_GAP_MS - 10_000) return { ok: false, skipped: true, reason: "throttled" };
   lastAttemptAt = now;
   inFlightSince = now;
 
@@ -282,12 +322,14 @@ export async function syncSmartEss(): Promise<SyncResult> {
         orderBy: { timestamp: "desc" },
         select: { timestamp: true },
       });
-      if (latest && now - latest.timestamp.getTime() < MIN_GAP_MS) {
+      // The stored timestamp lags the cron by the read time, so compare with
+      // slack; otherwise every other minute would be skipped.
+      if (latest && now - latest.timestamp.getTime() < MIN_GAP_MS - 15_000) {
         return { ok: false, skipped: true, reason: "recent_sample_exists" };
       }
       // Stay inside the function's time limit; a slow SmartESS is transient.
       const budget = new Promise<SyncResult>((resolve) => setTimeout(() => resolve({ ok: false, reason: "transient" }), RUN_BUDGET_MS));
-      return await Promise.race([run(), budget]);
+      return await Promise.race([run(now + RUN_BUDGET_MS), budget]);
     } catch (error) {
       console.error("[smartess] sync_crashed", error);
       return { ok: false, reason: "sync_crashed" };

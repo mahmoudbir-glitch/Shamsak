@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { EnergySnapshot } from "@/lib/energy";
 import { calculateLoadStability, estimateSolarKWh, weatherConfidence, type DayForecast, type HourlySolarPoint, type LoadStabilityResult } from "@/lib/smart-forecast";
+import { startVisiblePolling } from "@/lib/visible-polling";
 
 type WeatherResponse = {
   hourly?: {
@@ -212,7 +213,8 @@ export function useSmartEnergy() {
 
       const [telemetryResponse, weatherResponse] = await Promise.all([
         telemetryPromise,
-        fetch(weatherUrl.toString(), { cache: "no-store" }),
+        // A hung or failed weather call must not hold back the live reading.
+        fetch(weatherUrl.toString(), { cache: "no-store", signal: typeof AbortSignal.timeout === "function" ? AbortSignal.timeout(12_000) : undefined }).catch(() => null),
       ]);
 
       let nextSnapshot: EnergySnapshot | null = snapshotRef.current;
@@ -221,17 +223,32 @@ export function useSmartEnergy() {
         if (data.source === "live") nextSnapshot = data;
       }
 
-      if (!weatherResponse.ok) throw new Error("weather_unavailable");
+      // Keep the live reading current even when the weather service is down;
+      // the previous forecast stays on screen with an error note.
+      snapshotRef.current = nextSnapshot;
+      setSnapshot(nextSnapshot);
+      const loadStats = updateNightLoadHistory(nextSnapshot);
+      setNightLoadStats(loadStats);
 
-      const nextWeather = (await weatherResponse.json()) as WeatherResponse;
-      const hourly = nextWeather.hourly;
-      const daily = nextWeather.daily;
+      const nextWeather = weatherResponse?.ok ? ((await weatherResponse.json().catch(() => null)) as WeatherResponse | null) : null;
+      const hourly = nextWeather?.hourly;
+      const daily = nextWeather?.daily;
 
-      if (!hourly?.time?.length || !daily?.time?.length) {
-        throw new Error("forecast_empty");
+      if (!nextWeather || !hourly?.time?.length || !daily?.time?.length) {
+        throw new Error("forecast_unavailable");
       }
 
       const currentLoadW = Math.max(0, nextSnapshot?.homePowerW ?? snapshotRef.current?.homePowerW ?? 0);
+      // One instant's load (a kettle, a water heater) must not be assumed for a
+      // whole week: nights use the measured night average, days use today's
+      // average so far, and only fall back to the live load when unknown.
+      const nightLoadW = loadStats.averageW ?? currentLoadW;
+      const localNow = new Intl.DateTimeFormat("en-US", { timeZone: site.timezone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date());
+      const hoursElapsedToday = Number(localNow.slice(0, 2)) + Number(localNow.slice(3, 5)) / 60;
+      const todayHomeKWh = nextSnapshot?.todayHomeUsageKWh;
+      const dayLoadW = typeof todayHomeKWh === "number" && todayHomeKWh > 0 && hoursElapsedToday >= 3
+        ? (todayHomeKWh * 1000) / hoursElapsedToday
+        : currentLoadW;
       const initialSoc = clamp(nextSnapshot?.batterySoc ?? snapshotRef.current?.batterySoc ?? 50, 0, 100);
       let modeledBatteryWh = batteryCapacityWh * initialSoc / 100;
 
@@ -258,6 +275,8 @@ export function useSmartEnergy() {
         let dayStartSoc = modeledBatteryWh / batteryCapacityWh * 100;
         let sunsetSoc = dayStartSoc;
         let sunriseSoc = dayStartSoc;
+        let sunriseSet = false;
+        let sunsetSet = false;
         let fullChargeTime: string | null = null;
         const sunrise = daily.sunrise?.[dayIndex] ?? "";
         const sunset = daily.sunset?.[dayIndex] ?? "";
@@ -275,7 +294,9 @@ export function useSmartEnergy() {
           const share = isNowHour ? Math.max(0, 60 - minuteNow) / 60 : 1;
           const startMinute = isNowHour ? minuteNow : 0;
           const pointSolarKWh = point.solarKWh * share;
-          const homeKWh = (currentLoadW / 1000) * share;
+          const isDaylight = Boolean(sunrise && sunset && point.time >= sunrise.slice(0, 13) && point.time < sunset);
+          const homeKWh = ((isNowHour ? currentLoadW : isDaylight ? dayLoadW : nightLoadW) / 1000) * share;
+          const hourStartWh = modeledBatteryWh;
           const directHome = Math.min(homeKWh, pointSolarKWh);
           const netSolarAfterHome = Math.max(0, pointSolarKWh - directHome);
           const batteryCanTake = Math.max(0, batteryCapacityWh - modeledBatteryWh) / 1000;
@@ -294,13 +315,31 @@ export function useSmartEnergy() {
           }
 
           const beforeChargeWh = modeledBatteryWh;
-          modeledBatteryWh = clamp(modeledBatteryWh + charge * 1000, batteryCapacityWh * site.reservePct / 100, batteryCapacityWh);
+          // Never lift a battery that is already below the reserve up to it.
+          const floorWh = Math.min(modeledBatteryWh, batteryCapacityWh * site.reservePct / 100);
+          modeledBatteryWh = clamp(modeledBatteryWh + charge * 1000, floorWh, batteryCapacityWh);
 
-          if (sunrise && point.time >= sunrise && sunriseSoc === dayStartSoc) {
-            sunriseSoc = modeledBatteryWh / batteryCapacityWh * 100;
+          // Sunrise/sunset fall inside an hour: read the level at that minute
+          // (interpolated through the hour) rather than at the hour's end.
+          const levelAt = (event: string) => {
+            const minute = Number(event.slice(14, 16)) || 0;
+            const from = isNowHour ? startMinute : 0;
+            const f = clamp((minute - from) / Math.max(1, 60 - from), 0, 1);
+            return (hourStartWh + (modeledBatteryWh - hourStartWh) * f) / batteryCapacityWh * 100;
+          };
+          if (sunrise && !sunriseSet && point.time.slice(0, 13) === sunrise.slice(0, 13)) {
+            sunriseSoc = levelAt(sunrise);
+            sunriseSet = true;
+          } else if (sunrise && !sunriseSet && point.time > sunrise) {
+            sunriseSoc = hourStartWh / batteryCapacityWh * 100;
+            sunriseSet = true;
           }
-          if (sunset && point.time <= sunset) {
-            sunsetSoc = modeledBatteryWh / batteryCapacityWh * 100;
+          if (sunset && !sunsetSet && point.time.slice(0, 13) === sunset.slice(0, 13)) {
+            sunsetSoc = levelAt(sunset);
+            sunsetSet = true;
+          } else if (sunset && !sunsetSet && point.time > sunset) {
+            sunsetSoc = hourStartWh / batteryCapacityWh * 100;
+            sunsetSet = true;
           }
           if (!fullChargeTime && modeledBatteryWh >= batteryCapacityWh * 0.995 && point.time <= sunset) {
             // Minute within the hour when the battery tops up, assuming the
@@ -349,11 +388,8 @@ export function useSmartEnergy() {
         };
       });
 
-      snapshotRef.current = nextSnapshot;
       setBatteryCapacityWh(batteryCapacityWh);
       setReservePct(site.reservePct);
-      setSnapshot(nextSnapshot);
-      setNightLoadStats(updateNightLoadHistory(nextSnapshot));
       setWeather(nextWeather);
       setForecasts(nextForecasts);
       setError(null);
@@ -369,8 +405,7 @@ export function useSmartEnergy() {
 
   useEffect(() => {
     void load("initial");
-    const timer = window.setInterval(() => void load("refresh"), 15 * 60 * 1000);
-    return () => window.clearInterval(timer);
+    return startVisiblePolling(() => void load("refresh"), 15 * 60 * 1000);
   }, [load]);
 
   return {

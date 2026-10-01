@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
         await prisma.inverterConnection
           .update({
             where: { id: row.id },
-            data: { inverterLinkCode: encryptSecret(JSON.stringify({ ...extras, cloudUsername: acceptedUser, dessAuth: { username: acceptedUser, auth }, dessDevice: target })) },
+            data: { inverterLinkCode: encryptSecret(JSON.stringify({ ...extras, authFailedAt: undefined, cloudUsername: acceptedUser, dessAuth: { username: acceptedUser, auth }, dessDevice: target })) },
           })
           .catch((error) => console.error("[inverter] remember_device_failed", error));
 

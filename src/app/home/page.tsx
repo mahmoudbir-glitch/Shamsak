@@ -6,6 +6,7 @@ import type { EnergySnapshot } from "@/lib/energy";
 import { PageHeader } from "@/components/page-header";
 import { LoadChart, type LoadPoint } from "@/components/load-chart";
 import { homeText } from "@/lib/energy";
+import { startVisiblePolling } from "@/lib/visible-polling";
 
 const REFRESH_MS = 15_000;
 const HISTORY_REFRESH_MS = 5 * 60_000;
@@ -48,14 +49,12 @@ export default function HomeConsumptionPage() {
 
   useEffect(() => {
     void loadHistory();
-    const timer = window.setInterval(() => void loadHistory(), HISTORY_REFRESH_MS);
-    return () => window.clearInterval(timer);
+    return startVisiblePolling(() => void loadHistory(), HISTORY_REFRESH_MS);
   }, [loadHistory]);
 
   useEffect(() => {
     void load();
-    const timer = window.setInterval(() => void load(), REFRESH_MS);
-    return () => window.clearInterval(timer);
+    return startVisiblePolling(() => void load(), REFRESH_MS);
   }, [load]);
 
   const homeW = Math.max(0, snapshot?.homePowerW ?? 0);
@@ -97,10 +96,16 @@ export default function HomeConsumptionPage() {
         <span className="block text-sm font-semibold text-slate-400">إجمالي سحب المنزل الآن</span>
         {loading && !snapshot ? (
           <Loader2 className="mx-auto mt-5 h-10 w-10 animate-spin text-sky-500" aria-label="جاري تحميل القراءة" />
+        ) : !snapshot ? (
+          // No reading is not "your house uses nothing": say so instead of 0 W.
+          <>
+            <span className="mt-2 block text-4xl font-black tracking-tight text-slate-300">—</span>
+            <span className="mt-2 block text-xs font-bold text-amber-700">لا توجد قراءة حية الآن. تحقق من اتصال الدنجل أو حاول التحديث.</span>
+          </>
         ) : (
           <>
             <span className={"mt-2 block text-4xl font-black tracking-tight sm:text-5xl " + toneText}>{homeW.toLocaleString("en-US")} واط</span>
-            <span className={"mt-1 block text-sm font-bold " + toneText}>{homeKw.toFixed(2)} kW</span>
+            <span className={"mt-1 block text-sm font-bold " + toneText}><bdi dir="ltr">{homeKw.toFixed(2)} kW</bdi></span>
           </>
         )}
       </section>
@@ -115,8 +120,8 @@ export default function HomeConsumptionPage() {
           {sources.map((source) => (
             <div key={source.label}>
               <div className="text-[11px] font-bold text-slate-500">{source.label}</div>
-              <div className={"text-base font-black " + source.text}>{share(source.w)}%</div>
-              <div className="text-[11px] font-semibold text-slate-400">{Math.round(source.w)} واط</div>
+              <div className={"text-base font-black " + source.text}>{snapshot ? `${share(source.w)}%` : "—"}</div>
+              <div className="text-[11px] font-semibold text-slate-400">{snapshot ? `${Math.round(source.w)} واط` : "—"}</div>
             </div>
           ))}
         </div>
@@ -129,7 +134,7 @@ export default function HomeConsumptionPage() {
         </div>
         <div className="energy-card p-4">
           <div className="text-[11px] font-bold text-slate-500">أعلى حمل اليوم</div>
-          <div className="mt-1 text-xl font-black text-slate-800">{history?.peak ? (history.peak.w / 1000).toFixed(2) : "—"} <span className="text-[11px]">kW</span></div>
+          <div className="mt-1 text-xl font-black text-slate-800"><bdi dir="ltr">{history?.peak ? (history.peak.w / 1000).toFixed(2) : "—"} <span className="text-[11px]">kW</span></bdi></div>
           {history?.peak && <div className="text-[11px] font-semibold text-slate-400">الساعة {peakTime}{peakPct !== null ? ` · ${peakPct}% من قدرة الإنفرتر` : ""}</div>}
         </div>
       </div>

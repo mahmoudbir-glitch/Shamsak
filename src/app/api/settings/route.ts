@@ -26,7 +26,22 @@ const settingsSchema = z.object({
   currency: z.string().trim().min(1).max(8).optional(),
   latitude: z.number().finite().min(-90).max(90).optional(),
   longitude: z.number().finite().min(-180).max(180).optional(),
-  timezone: z.string().trim().min(1).max(64).optional(),
+  // A typo ("Beirut") would break every chart and the forecast, so only real
+  // IANA zones ("Asia/Beirut") are accepted.
+  timezone: z
+    .string()
+    .trim()
+    .min(1)
+    .max(64)
+    .refine((zone) => {
+      try {
+        new Intl.DateTimeFormat("en-US", { timeZone: zone });
+        return true;
+      } catch {
+        return false;
+      }
+    }, "المنطقة الزمنية غير صحيحة. اكتبها بالشكل Asia/Beirut.")
+    .optional(),
   panelTilt: z.number().finite().min(0).max(90).nullable().optional(),
   panelAzimuth: z.number().finite().min(0).max(360).nullable().optional(),
   batteryNominalVoltage: z.number().int().refine((v) => [12, 24, 48].includes(v), "جهد البطارية يجب أن يكون 12 أو 24 أو 48 فولت.").optional(),

@@ -6,6 +6,7 @@ import { ChevronLeft, Moon } from "lucide-react";
 import { EnergyFlow } from "@/components/energy-flow";
 import type { EnergySnapshot } from "@/lib/energy";
 import { chargerPriorityLabel, inverterModeLabel, outputPriorityLabel } from "@/lib/energy";
+import { startVisiblePolling } from "@/lib/visible-polling";
 
 const REFRESH_MS = 15_000;
 
@@ -38,8 +39,7 @@ export default function SolarDashboardClient() {
 
   useEffect(() => {
     void loadTelemetry();
-    const timer = window.setInterval(() => void loadTelemetry(), REFRESH_MS);
-    return () => window.clearInterval(timer);
+    return startVisiblePolling(() => void loadTelemetry(), REFRESH_MS);
   }, [loadTelemetry]);
 
   // كم ساعة تكفي البطارية حتى حد الاحتياطي بالحمل الحالي (تقدير بسيط).

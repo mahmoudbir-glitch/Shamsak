@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Eye, EyeOff, Lock, User } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { safeNextPath } from "@/lib/safe-redirect";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -22,10 +23,8 @@ export default function LoginForm() {
     const username = String(form.get("username") ?? "").trim();
     const password = String(form.get("password") ?? "");
     const nextParam = searchParams.get("next");
-    const next =
-      nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
-        ? nextParam
-        : "/";
+    const next = safeNextPath(nextParam);
+    let succeeded = false;
 
     try {
       const response = await fetch("/api/auth/login", {
@@ -58,13 +57,16 @@ export default function LoginForm() {
         return;
       }
 
-      const redirectTo = data.redirectTo || next;
+      const redirectTo = safeNextPath(data.redirectTo || next);
+      // Keep the button busy until the new page takes over, so a second tap
+      // does not post the login again.
+      succeeded = true;
       router.replace(redirectTo);
       router.refresh();
     } catch {
       setError("تعذر الوصول إلى خادم تسجيل الدخول. تحقق من اتصال الإنترنت ثم حاول مجددًا.");
     } finally {
-      setLoading(false);
+      if (!succeeded) setLoading(false);
     }
   }
 

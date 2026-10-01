@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import { startVisiblePolling } from "@/lib/visible-polling";
 
 const REFRESH_MS = 30_000;
 
@@ -26,8 +27,7 @@ export function StatusBar() {
 
   useEffect(() => {
     void load();
-    const timer = window.setInterval(() => void load(), REFRESH_MS);
-    return () => window.clearInterval(timer);
+    return startVisiblePolling(() => void load(), REFRESH_MS);
   }, [load]);
 
   if (status.kind === "loading") return null;

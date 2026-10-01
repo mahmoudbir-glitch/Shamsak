@@ -71,6 +71,10 @@ export default function MoneyDashboard() {
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  // Saving is only allowed once the real tariffs arrived, so the 0 placeholders
+  // can never overwrite them.
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   useEffect(() => {
     const savedNotifySurplus = localStorage.getItem("shamsak_notify_surplus");
@@ -89,6 +93,7 @@ export default function MoneyDashboard() {
           setTariff(Number(settings.gridTariff || 0));
           setExportTariff(Number(settings.exportTariff || 0));
           setCurrency(String(settings.currency || "ل.س"));
+          setSettingsLoaded(true);
         }
 
         if (financeResponse.ok) {
@@ -113,7 +118,7 @@ export default function MoneyDashboard() {
   const gridCost = data ? data.totals.gridImportKWh * tariff : 0;
   const savedTone = moneyTone(savedAmount);
   const hypotheticalCost = data
-    ? (data.sources.solarKWh + data.sources.batteryKWh + data.totals.gridImportKWh) * tariff
+    ? (data.sources.solarKWh + data.sources.batteryKWh + data.sources.gridKWh) * tariff
     : 0;
 
   const sourceRows = data
@@ -129,7 +134,12 @@ export default function MoneyDashboard() {
     : [];
 
   const handleSave = async () => {
+    if (!settingsLoaded) {
+      setSaveError("لم تُحمَّل أسعارك المحفوظة بعد، فأُوقف الحفظ كي لا تُستبدل بأصفار. أعد تحميل الصفحة.");
+      return;
+    }
     setSaving(true);
+    setSaveError("");
     try {
       const response = await fetch("/api/settings", {
         method: "PUT",
@@ -145,6 +155,7 @@ export default function MoneyDashboard() {
       window.setTimeout(() => setSaved(false), 3000);
     } catch {
       setSaved(false);
+      setSaveError("تعذّر حفظ التغييرات. تحقق من الاتصال وحاول مجددًا.");
     } finally {
       setSaving(false);
     }
@@ -350,10 +361,16 @@ export default function MoneyDashboard() {
         </div>
       )}
 
+      {saveError && (
+        <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-center text-xs font-black text-rose-700">
+          {saveError}
+        </div>
+      )}
+
       <button
         type="button"
         onClick={handleSave}
-        disabled={saving}
+        disabled={saving || !settingsLoaded}
         className="min-h-12 w-full rounded-2xl bg-teal-600 px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-teal-700 active:scale-[0.99] disabled:cursor-wait disabled:opacity-70"
       >
         {saving ? "جاري الحفظ…" : "حفظ التغييرات"}

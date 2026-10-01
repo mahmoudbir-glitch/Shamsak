@@ -73,8 +73,9 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   const inverterOffGrid = /off.?grid|battery/i.test(inverterMode ?? "") && !gridImporting && !gridExporting;
 
 
-  const formatKw = (value: number) => Math.abs(value).toFixed(2) + ' kW';
-  const formatKwh = (value?: number) => value === undefined ? '—' : value.toFixed(1) + ' kWh';
+  // <bdi dir="ltr"> keeps "1.23 kW" in that order inside the RTL layout.
+  const formatKw = (value: number) => <bdi dir="ltr">{Math.abs(value).toFixed(2) + ' kW'}</bdi>;
+  const formatKwh = (value?: number) => value === undefined ? '—' : <bdi dir="ltr">{value.toFixed(1) + ' kWh'}</bdi>;
   const formatSavings = (value?: number) => value === undefined ? '—' : savingsCurrency + value.toFixed(2);
 
   const operatingMode = !isLive

@@ -107,9 +107,10 @@ export function calculateAutonomy(
   const requiredWh = safeLoad * Math.max(0, hoursToSunrise);
   const hoursCovered = safeLoad > 0 ? usableWh / safeLoad : hoursToSunrise;
   const margin = requiredWh > 0 ? usableWh / requiredWh : 2;
-  const probability = Math.round(Math.min(100, Math.max(0, margin * 100)));
+  // Floor, not round: 99.5% coverage must not read as 100% next to "on the edge".
+  const probability = Math.floor(Math.min(100, Math.max(0, margin * 100)));
   const expectedSocAtSunrise = safeLoad > 0
-    ? Math.max(safetyReserve, Math.min(100, safeSoc - (requiredWh / safeCapacity) * 100))
+    ? Math.max(Math.min(safetyReserve, safeSoc), Math.min(100, safeSoc - (requiredWh / safeCapacity) * 100))
     : safeSoc;
   return {
     expectedSocAtSunrise: Math.round(expectedSocAtSunrise),

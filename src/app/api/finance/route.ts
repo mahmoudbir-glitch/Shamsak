@@ -27,13 +27,14 @@ export async function GET() {
       { solarKWh: 0, homeKWh: 0, batteryChargeKWh: 0, batteryDischargeKWh: 0, gridImportKWh: 0, gridExportKWh: 0 },
     );
 
-    const directSolarKWh = Math.max(
-      0,
-      // Solar used directly = produced minus what went into the battery or out to the grid.
-      Math.min(totals.homeKWh, totals.solarKWh - totals.batteryChargeKWh - totals.gridExportKWh),
-    );
-    const batteryKWh = Math.min(totals.homeKWh - directSolarKWh, totals.batteryDischargeKWh);
-    const gridKWh = totals.gridImportKWh;
+    // Split what the house used by where it came from, each kWh counted once:
+    // grid first (it is measured or derived as the shortfall), then battery
+    // discharge, and the rest came straight from the panels. Grid energy that
+    // went into the battery is not house use, so it is not counted here again.
+    const home = Math.max(0, totals.homeKWh);
+    const gridKWh = Math.min(home, Math.max(0, totals.gridImportKWh));
+    const batteryKWh = Math.min(home - gridKWh, Math.max(0, totals.batteryDischargeKWh));
+    const directSolarKWh = Math.max(0, home - gridKWh - batteryKWh);
     const served = Math.max(0.001, directSolarKWh + batteryKWh + gridKWh);
 
     return NextResponse.json(

@@ -4,6 +4,8 @@ import { verifyPassword } from "@/lib/auth-password";
 import { clearLogoutMarkerCookie, createSessionToken, sessionCookie } from "@/lib/auth-session";
 import { getAuthConfig } from "@/lib/auth-config";
 import { MONITORING_ACTIONS, recordMonitoringEvent } from "@/lib/monitoring";
+import { safeNextPath } from "@/lib/safe-redirect";
+import { isCrossSiteRequest } from "@/lib/same-origin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +21,7 @@ function safeEqual(a: string, b: string) {
 }
 
 export async function POST(request: NextRequest) {
+  if (isCrossSiteRequest(request)) return NextResponse.json({ error: "cross_site_request" }, { status: 403 });
   let body: unknown;
 
   try {
@@ -30,10 +33,7 @@ export async function POST(request: NextRequest) {
   const input = body as { username?: unknown; password?: unknown; next?: unknown };
   const username = typeof input.username === "string" ? input.username.trim() : "";
   const password = typeof input.password === "string" ? input.password : "";
-  const next =
-    typeof input.next === "string" && input.next.startsWith("/") && !input.next.startsWith("//")
-      ? input.next
-      : "/";
+  const next = safeNextPath(input.next);
 
   if (!username || !password) {
     return NextResponse.json({ error: "missing_credentials" }, { status: 400 });

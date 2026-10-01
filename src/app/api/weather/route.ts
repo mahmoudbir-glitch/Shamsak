@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   url.searchParams.set("hourly", "temperature_2m,precipitation_probability,precipitation,cloud_cover,weather_code,shortwave_radiation,direct_radiation,diffuse_radiation");
 
   try {
-    const response = await fetch(url, { next: { revalidate: 1800 } });
+    const response = await fetch(url, { next: { revalidate: 1800 }, signal: AbortSignal.timeout(8_000) });
     if (!response.ok) return NextResponse.json({ error: "weather_unavailable" }, { status: 502 });
     const data = await response.json();
     return NextResponse.json({ ...data, source: "Open-Meteo" }, {

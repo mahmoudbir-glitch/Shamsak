@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSmartEnergy } from "@/hooks/use-smart-energy";
+import { useSharedSmartEnergy } from "@/components/smart-energy-provider";
 
 function formatHour(iso: string) {
   return new Intl.DateTimeFormat("ar-LB-u-nu-latn", {
@@ -16,7 +16,7 @@ function addHour(iso: string) {
 }
 
 export function SurplusRecommendations() {
-  const { forecasts, loading } = useSmartEnergy();
+  const { forecasts, loading } = useSharedSmartEnergy();
   const [showRecommendations, setShowRecommendations] = useState(false);
   const points = forecasts[0]?.hourly ?? [];
   const windows: { start: string; end: string; kwh: number }[] = [];

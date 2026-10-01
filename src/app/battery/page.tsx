@@ -7,6 +7,7 @@ import { arabicDuration, batteryState, batteryStateLabel, batteryText } from "@/
 import { PageHeader } from "@/components/page-header";
 import { SocChart } from "@/components/soc-chart";
 import type { LoadPoint } from "@/components/load-chart";
+import { startVisiblePolling } from "@/lib/visible-polling";
 
 const REFRESH_MS = 15_000;
 const RADIUS = 54;
@@ -64,11 +65,11 @@ export default function BatteryPage() {
     void fetch("/api/settings", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d?.batteryCapacityWh) setSettings({ batteryCapacityWh: d.batteryCapacityWh, batteryMinReservePct: d.batteryMinReservePct ?? 20, batteryChemistry: d.batteryChemistry, batteryNominalVoltage: d.batteryNominalVoltage }); }).catch(() => {});
     const loadHistory = () => void fetch("/api/telemetry/history", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) setHistory(d as History); }).catch(() => {});
     loadHistory();
-    const historyTimer = window.setInterval(loadHistory, 5 * 60_000);
-    const timer = window.setInterval(() => void load(), REFRESH_MS);
+    const stopHistory = startVisiblePolling(loadHistory, 5 * 60_000);
+    const stopLive = startVisiblePolling(() => void load(), REFRESH_MS);
     return () => {
-      window.clearInterval(timer);
-      window.clearInterval(historyTimer);
+      stopLive();
+      stopHistory();
     };
   }, [load]);
 

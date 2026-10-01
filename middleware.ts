@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, LOGOUT_MARKER_COOKIE, verifySessionToken } from "@/lib/auth-session";
+import { isCrossSiteRequest } from "@/lib/same-origin";
 
 const PUBLIC_PATHS = new Set(["/login"]);
 
@@ -13,6 +14,11 @@ function redirectToLogin(request: NextRequest) {
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  // CSRF: no other website may change anything here through the user's cookie.
+  if (pathname.startsWith("/api/") && !["GET", "HEAD", "OPTIONS"].includes(request.method) && isCrossSiteRequest(request)) {
+    return NextResponse.json({ error: "cross_site_request" }, { status: 403 });
+  }
 
   // The login page must always be reachable, even if Vercel environment
   // variables are temporarily missing. The API will report a clear error
@@ -48,6 +54,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api/auth/|api/telemetry(?:/|$)|_next/static|_next/image|favicon.ico|manifest.webmanifest|robots.txt).*)",
+    "/((?!api/auth/|api/telemetry(?:/|$)|_next/static|_next/image|favicon.ico|icon|apple-icon|manifest.webmanifest|robots.txt).*)",
   ],
 };

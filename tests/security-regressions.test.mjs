@@ -333,8 +333,14 @@ test("SmartESS login is reused so the owner's phone app is not signed out repeat
   const sync = read("src/lib/smartess-sync.ts");
   assert.match(sync, /savePersistedAuth\(auth\)/);
   assert.match(sync, /extras\.dessAuth/);
-  // A timeout is not evidence of a bad token, so it must not force a new login.
-  assert.match(sync, /error instanceof DessError && \/token\|sign\|expire\|auth\|secret\/i/);
+  // A timeout is not evidence of a bad token, so it must not force a new login:
+  // non-SmartESS errors return before the saved login is touched.
+  const catchBlock = sync.slice(sync.indexOf("if (!(error instanceof DessError)) {"));
+  assert.ok(catchBlock.indexOf('return { ok: false, reason: "transient" }') < catchBlock.indexOf("savePersistedAuth(null)"));
+  // An unrecognised expiry message cannot keep a dead login for days.
+  assert.match(sync, /reusedAuth && loginAge > STALE_LOGIN_MS/);
+  // Wrong credentials back off instead of retrying every minute.
+  assert.match(sync, /reason: "auth_backoff"/);
 });
 
 test("the reader prefers an online device over the first PN match", () => {
@@ -388,14 +394,19 @@ test("a read that only timed out is transient, not a broken connection", () => {
 test("a sync cut off by the platform cannot block every later sync", () => {
   const sync = read("src/lib/smartess-sync.ts");
   assert.match(sync, /if \(inFlight && now - inFlightSince < RUN_BUDGET_MS \+ 15_000\) return inFlight;/);
-  assert.match(sync, /Promise\.race\(\[run\(\), budget\]\)/);
+  assert.match(sync, /Promise\.race\(\[run\(now \+ RUN_BUDGET_MS\), budget\]\)/);
+  // A run resumed after its deadline must not store a stale reading.
+  assert.match(sync, /if \(Date\.now\(\) > deadline\) return/);
   assert.match(sync, /dessDevice: target \};/);
 });
 
 test("QA fixes: today totals, finance split, blank values, gateway token", () => {
   const telemetry = read("src/app/api/telemetry/route.ts");
   assert.match(telemetry, /todayProductionKWh: today \?/);
-  assert.match(read("src/app/api/finance/route.ts"), /totals\.solarKWh - totals\.batteryChargeKWh - totals\.gridExportKWh/);
+  // Each kWh of house use is counted once: grid, then battery, rest solar.
+  const finance = read("src/app/api/finance/route.ts");
+  assert.match(finance, /const gridKWh = Math\.min\(home, Math\.max\(0, totals\.gridImportKWh\)\)/);
+  assert.match(finance, /const directSolarKWh = Math\.max\(0, home - gridKWh - batteryKWh\)/);
   assert.match(read("src/lib/dessmonitor.ts"), /if \(!\/\\d\/\.test\(cleaned\)\) return undefined;/);
   assert.match(read("src/lib/telemetry-store.ts"), /if \(hours <= 0 \|\| hours > 0\.25\) return;/);
   assert.match(read("src/app/api/inverter/connection/route.ts"), /gatewayTokenHash: null, gatewayTokenCipher: null/);
@@ -466,4 +477,29 @@ test("settings page cannot save placeholder defaults before real settings load",
   assert.match(source, /disabled=\{saving \|\| !settingsLoaded\}/);
   assert.match(source, /currency: "USD"/);
   assert.match(source, /lowDcCutoffVoltage: 44\.0, backToGridVoltage: 52\.0/);
+});
+
+test("browser cross-site requests cannot change state or redirect off-site after login", () => {
+  const middleware = read("middleware.ts");
+  assert.match(middleware, /isCrossSiteRequest\(request\)/);
+  assert.match(read("src/app/api/auth/logout/route.ts"), /isCrossSiteRequest\(request\)/);
+  const redirect = read("src/lib/safe-redirect.ts");
+  assert.match(redirect, /url\.origin !== base/);
+  assert.match(read("src/components/login-form.tsx"), /safeNextPath\(/);
+  assert.match(read("src/app/api/auth/login/route.ts"), /safeNextPath\(input\.next\)/);
+});
+
+test("energy ingestion is serialised and does not cancel charge against discharge", () => {
+  const store = read("src/lib/telemetry-store.ts");
+  assert.match(store, /pg_advisory_xact_lock/);
+  assert.match(store, /const batteryChargeKWh = pos\(/);
+  assert.match(store, /const batteryDischargeKWh = neg\(/);
+  assert.match(store, /export function effectiveGridW/);
+});
+
+test("polling pauses while the app is hidden", () => {
+  for (const file of ["src/components/status-bar.tsx", "src/components/solar-dashboard-client.tsx", "src/app/home/page.tsx", "src/app/battery/page.tsx", "src/hooks/use-smart-energy.ts"]) {
+    assert.match(read(file), /startVisiblePolling\(/, file);
+    assert.doesNotMatch(read(file), /window\.setInterval\(/, file);
+  }
 });

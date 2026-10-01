@@ -59,9 +59,21 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
   const y = (w: number) => PAD.top + plotH - (w / maxW) * plotH;
   const yTicks = [0, maxW / 2, maxW];
 
-  // Energy actually recorded (average W over an hour = Wh), shown as a summary.
-  const homeKWh = buckets.reduce((s, b) => s + (b.homeW ?? 0), 0) / 1000;
-  const solarKWh = buckets.reduce((s, b) => s + (b.solarW ?? 0), 0) / 1000;
+  // Energy actually recorded: integrate between consecutive readings (as the
+  // daily totals do) and skip gaps over 15 minutes instead of inventing energy.
+  const { homeKWh, solarKWh } = useMemo(() => {
+    const from = now - 24 * HOUR;
+    const sorted = points.filter((p) => p.t >= from && p.t <= now).sort((a, b) => a.t - b.t);
+    let home = 0;
+    let solar = 0;
+    for (let i = 1; i < sorted.length; i++) {
+      const hours = (sorted[i].t - sorted[i - 1].t) / HOUR;
+      if (hours <= 0 || hours > 0.25) continue;
+      home += ((Math.max(0, sorted[i].loadW) + Math.max(0, sorted[i - 1].loadW)) / 2) * hours;
+      solar += ((Math.max(0, sorted[i].solarW) + Math.max(0, sorted[i - 1].solarW)) / 2) * hours;
+    }
+    return { homeKWh: home / 1000, solarKWh: solar / 1000 };
+  }, [points, now]);
   const missing = buckets.filter((b) => b.homeW === null).length;
 
   const bar = (x: number, w: number, color: string, key: string, front: boolean) => {

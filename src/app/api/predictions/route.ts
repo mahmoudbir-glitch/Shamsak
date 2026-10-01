@@ -41,7 +41,7 @@ export async function GET() {
     weatherUrl.searchParams.set("hourly", "shortwave_radiation,temperature_2m,cloud_cover");
     weatherUrl.searchParams.set("daily", "sunrise,sunset");
 
-    const weatherResponse = await fetch(weatherUrl, { next: { revalidate: 1800 } });
+    const weatherResponse = await fetch(weatherUrl, { next: { revalidate: 1800 }, signal: AbortSignal.timeout(8_000) });
     if (!weatherResponse.ok) {
       return NextResponse.json({ error: "forecast_unavailable" }, { status: 502 });
     }

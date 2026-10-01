@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, CloudSun, Loader2, MoonStar, RefreshCw, SunMedium } from "lucide-react";
-import { useSmartEnergy } from "@/hooks/use-smart-energy";
+import { useSharedSmartEnergy } from "@/components/smart-energy-provider";
 import { calculateAutonomy, weatherIcon, weatherLabel, type DayForecast, type LoadStability } from "@/lib/smart-forecast";
 import { InfoTip } from "@/components/info-tip";
 
@@ -68,7 +68,8 @@ function NightCard({
 }) {
   const effectiveLoadW = averageNightLoadW ?? loadW;
   const result = calculateAutonomy(startSoc, capacityWh, effectiveLoadW, hours, reservePct);
-  const hasEnoughSamples = sampleCount >= 3;
+  // Needs a real spread of night readings, not three taken a minute apart.
+  const hasEnoughSamples = sampleCount >= 8;
   const confidenceClass = hasEnoughSamples
     ? result.sufficient
       ? "rounded-full bg-emerald-50 p-3 text-emerald-600"
@@ -118,7 +119,7 @@ function NightCard({
 }
 
 export function SmartForecast() {
-  const { forecasts, weather, snapshot, loading, isRefreshing, error, nightLoadStats, batteryCapacityWh, reservePct, refresh } = useSmartEnergy();
+  const { forecasts, weather, snapshot, loading, isRefreshing, error, nightLoadStats, batteryCapacityWh, reservePct, refresh } = useSharedSmartEnergy();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showHourlyDetails, setShowHourlyDetails] = useState(false);
   const [toast, setToast] = useState<string | null>(null);

@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const response = await fetch(url, { next: { revalidate: 1800 } });
+    const response = await fetch(url, { next: { revalidate: 1800 }, signal: AbortSignal.timeout(8_000) });
     if (!response.ok) {
       return NextResponse.json({ error: "solar_forecast_unavailable" }, { status: 502 });
     }
