@@ -52,9 +52,9 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
   const plotW = W - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
   const slot = plotW / 24;
-  // Same cell as the battery chart: one wide rounded cell per hour, split in two.
+  // Same cell as the battery chart: one wide rounded cell per hour. Both series
+  // use the full cell width; the taller one sits behind, the shorter in front.
   const cellW = Math.max(6, Math.min(16, slot - 7));
-  const barW = cellW / 2;
   const cellR = Math.min(4, cellW / 2);
   const y = (w: number) => PAD.top + plotH - (w / maxW) * plotH;
   const yTicks = [0, maxW / 2, maxW];
@@ -64,11 +64,14 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
   const solarKWh = buckets.reduce((s, b) => s + (b.solarW ?? 0), 0) / 1000;
   const missing = buckets.filter((b) => b.homeW === null).length;
 
-  const bar = (x: number, w: number, color: string, key: string) => {
+  const bar = (x: number, w: number, color: string, key: string, front: boolean) => {
     const h = Math.max(0, (w / maxW) * plotH);
     if (h < 0.5) return null;
-    const r = Math.min(3, barW / 2);
-    return <rect key={key} x={x} y={PAD.top + plotH - Math.max(h, r * 2)} width={barW - 0.5} height={Math.max(h, r * 2)} rx={r} fill={color} />;
+    const hh = Math.max(h, cellR * 2);
+    return (
+      <rect key={key} x={x} y={PAD.top + plotH - hh} width={cellW} height={hh} rx={cellR} fill={color}
+        stroke={front ? "#ffffff" : "none"} strokeWidth={front ? 1.5 : 0} paintOrder="stroke" />
+    );
   };
 
   const shown = active !== null ? buckets[active] : null;
@@ -118,8 +121,17 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
                 ) : (
                   <>
                     <rect x={center - cellW / 2} y={PAD.top} width={cellW} height={plotH} rx={cellR} fill="#f1f5f9" />
-                    {bar(center - barW, b.solarW ?? 0, SOLAR, "s")}
-                    {bar(center + 0.5, b.homeW, HOME, "h")}
+                    {(b.solarW ?? 0) >= b.homeW ? (
+                      <>
+                        {bar(center - cellW / 2, b.solarW ?? 0, SOLAR, "s", false)}
+                        {bar(center - cellW / 2, b.homeW, HOME, "h", true)}
+                      </>
+                    ) : (
+                      <>
+                        {bar(center - cellW / 2, b.homeW, HOME, "h", false)}
+                        {bar(center - cellW / 2, b.solarW ?? 0, SOLAR, "s", true)}
+                      </>
+                    )}
                   </>
                 )}
                 {hour % 6 === 0 && (
@@ -166,7 +178,7 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
       </div>
 
       <p className="text-[11px] font-semibold text-slate-400">
-        متوسط القدرة لكل ساعة (kW). {missing > 0 ? `الشرطة الرمادية = ساعة بلا قراءات (${missing} من 24).` : "اضغط على أي ساعة لعرض أرقامها."}
+        متوسط القدرة لكل ساعة (kW)، العمود الأقصر بالأمام. {missing > 0 ? `الشرطة الرمادية = ساعة بلا قراءات (${missing} من 24).` : "اضغط على أي ساعة لعرض أرقامها."}
       </p>
     </div>
   );
