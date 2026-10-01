@@ -494,6 +494,35 @@ export async function probeFreshness(auth: DessAuth, device: DessDevice, baseUrl
   }
 }
 
+/**
+ * Diagnostic: the SmartESS phone app can show fresh numbers while
+ * api.dessmonitor.com still serves an old copy. Log in to the other public
+ * hosts of the same platform and log what each one says right now.
+ */
+export async function probeHosts(username: string, password: string, device: DessDevice, timeoutMs = 12000) {
+  const hosts = [
+    "https://web.dessmonitor.com/public/",
+    "https://app.dessmonitor.com/public/",
+    "https://ios.shinemonitor.com/public/",
+    "https://android.shinemonitor.com/public/",
+    "https://web.shinemonitor.com/public/",
+  ];
+  const base = { pn: device.pn, devcode: device.devcode, devaddr: device.devaddr, sn: device.sn, i18n: "en_US", source: DEFAULT_SOURCE };
+  for (const host of hosts) {
+    const started = Date.now();
+    try {
+      const auth = await authenticateExact({ username, password, baseUrl: host }, timeoutMs);
+      const flow = await authedCall(auth, "webQueryDeviceEnergyFlowEs", base, host, timeoutMs);
+      const text = JSON.stringify(flow.dat ?? {});
+      const soc = text.match(/bt_battery_capacity","val":"([^"]+)/)?.[1];
+      const pv = text.match(/pv_output_power","val":"([^"]+)/)?.[1];
+      console.info(`[smartess] host ${host} ok ${Date.now() - started}ms soc=${soc} pv=${pv}`);
+    } catch (error) {
+      console.info(`[smartess] host ${host} failed ${Date.now() - started}ms ${error instanceof Error ? `${error.name} ${error.message}`.slice(0, 140) : "error"}`);
+    }
+  }
+}
+
 /** Logs when SmartESS says the reading was taken, to tell fresh data from a cached copy. */
 function logDataTime(action: string, dat: unknown) {
   if (!dat || typeof dat !== "object") return;
