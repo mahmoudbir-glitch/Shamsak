@@ -4,107 +4,163 @@ import React, { useMemo, useState } from "react";
 
 export type LoadPoint = { t: number; loadW: number; solarW: number; soc?: number; batteryW?: number };
 
+const HOUR = 3_600_000;
 const W = 640;
-const H = 220;
-const PAD = { top: 12, right: 12, bottom: 26, left: 40 };
-const GAP_MS = 25 * 60_000; // أكثر من هذا بين نقطتين = فجوة لا نصل عبرها الخط
+const H = 210;
+const PAD = { top: 10, right: 6, bottom: 26, left: 36 };
+const SOLAR = "#f59e0b"; // amber: the app's solar colour
+const HOME = "#0ea5e9"; // sky: the app's home colour
 
-function niceMax(value: number) {
-  const kw = Math.max(0.5, value / 1000);
+type Bucket = { start: number; homeW: number | null; solarW: number | null; samples: number };
+
+/** Average power per clock hour for the last 24 hours (null = no readings that hour). */
+function hourly(points: LoadPoint[], now: number): Bucket[] {
+  const last = Math.floor(now / HOUR) * HOUR;
+  const buckets: Bucket[] = Array.from({ length: 24 }, (_, i) => ({ start: last - (23 - i) * HOUR, homeW: null, solarW: null, samples: 0 }));
+  const sums = buckets.map(() => ({ home: 0, solar: 0, n: 0 }));
+  for (const p of points) {
+    const index = 23 - Math.floor((last - Math.floor(p.t / HOUR) * HOUR) / HOUR);
+    if (index < 0 || index > 23) continue;
+    sums[index].home += Math.max(0, p.loadW);
+    sums[index].solar += Math.max(0, p.solarW);
+    sums[index].n += 1;
+  }
+  return buckets.map((b, i) => (sums[i].n ? { ...b, homeW: sums[i].home / sums[i].n, solarW: sums[i].solar / sums[i].n, samples: sums[i].n } : b));
+}
+
+function niceMax(w: number) {
+  const kw = Math.max(0.5, w / 1000);
   const step = kw <= 1 ? 0.25 : kw <= 3 ? 0.5 : kw <= 6 ? 1 : 2;
   return Math.ceil(kw / step) * step * 1000;
 }
 
-/** يقسّم النقاط إلى مقاطع متصلة حتى تظهر فترات الانقطاع فجوات. */
-function segments(points: LoadPoint[]) {
-  const out: LoadPoint[][] = [];
-  for (const point of points) {
-    const last = out[out.length - 1];
-    if (last && point.t - last[last.length - 1].t <= GAP_MS) last.push(point);
-    else out.push([point]);
-  }
-  return out;
-}
+const kw = (w: number) => (w / 1000).toFixed(w >= 10_000 ? 0 : 2);
 
-/** منحنى آخر 24 ساعة: خط الاستهلاك ومساحة الإنتاج الشمسي، مع مؤشر عند المرور. */
+/**
+ * Last 24 hours as one column pair per hour: solar production (amber) beside
+ * home consumption (sky). Hours without readings show a faint dash instead of
+ * a broken line, and tapping a column shows that hour's numbers.
+ */
 export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; timeZone: string; now: number }) {
-  const [hover, setHover] = useState<LoadPoint | null>(null);
-  const start = now - 24 * 3_600_000;
-  const maxW = niceMax(Math.max(1, ...points.map((p) => Math.max(p.loadW, p.solarW))));
+  const [active, setActive] = useState<number | null>(null);
+  const buckets = useMemo(() => hourly(points, now), [points, now]);
+  const maxW = niceMax(Math.max(1, ...buckets.map((b) => Math.max(b.homeW ?? 0, b.solarW ?? 0))));
+  const hourFmt = useMemo(() => new Intl.DateTimeFormat("en-US", { timeZone, hour: "2-digit", hourCycle: "h23" }), [timeZone]);
+  const labelFmt = useMemo(() => new Intl.DateTimeFormat("ar-LB-u-nu-latn", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }), [timeZone]);
 
-  const x = (t: number) => PAD.left + ((t - start) / (now - start)) * (W - PAD.left - PAD.right);
-  const y = (w: number) => PAD.top + (1 - w / maxW) * (H - PAD.top - PAD.bottom);
-  const hourLabel = useMemo(
-    () => new Intl.DateTimeFormat("ar-LB-u-nu-latn", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }),
-    [timeZone],
-  );
-
-  // تسميات المحور الأفقي كل 6 ساعات على رأس الساعة.
-  const ticks: number[] = [];
-  const firstHour = Math.ceil(start / 3_600_000) * 3_600_000;
-  for (let t = firstHour; t <= now; t += 3_600_000) {
-    const hour = Number(new Intl.DateTimeFormat("en-US", { timeZone, hour: "2-digit", hourCycle: "h23" }).format(t));
-    if (hour % 6 === 0) ticks.push(t);
-  }
+  const plotW = W - PAD.left - PAD.right;
+  const plotH = H - PAD.top - PAD.bottom;
+  const slot = plotW / 24;
+  const barW = Math.max(3, Math.min(9, (slot - 4) / 2));
+  const y = (w: number) => PAD.top + plotH - (w / maxW) * plotH;
   const yTicks = [0, maxW / 2, maxW];
 
-  const parts = segments(points);
-  const linePath = parts.map((seg) => seg.map((p, i) => `${i ? "L" : "M"}${x(p.t).toFixed(1)},${y(p.loadW).toFixed(1)}`).join("")).join("");
-  const areaPath = parts
-    .map((seg) => `M${x(seg[0].t).toFixed(1)},${y(0)}` + seg.map((p) => `L${x(p.t).toFixed(1)},${y(p.solarW).toFixed(1)}`).join("") + `L${x(seg[seg.length - 1].t).toFixed(1)},${y(0)}Z`)
-    .join("");
+  // Energy actually recorded (average W over an hour = Wh), shown as a summary.
+  const homeKWh = buckets.reduce((s, b) => s + (b.homeW ?? 0), 0) / 1000;
+  const solarKWh = buckets.reduce((s, b) => s + (b.solarW ?? 0), 0) / 1000;
+  const missing = buckets.filter((b) => b.homeW === null).length;
 
-  const onMove = (event: React.PointerEvent<SVGSVGElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const px = ((event.clientX - rect.left) / rect.width) * W;
-    let best: LoadPoint | null = null;
-    for (const p of points) if (!best || Math.abs(x(p.t) - px) < Math.abs(x(best.t) - px)) best = p;
-    setHover(best && Math.abs(x(best.t) - px) < 30 ? best : null);
+  const bar = (x: number, w: number, color: string, key: string) => {
+    const h = Math.max(0, (w / maxW) * plotH);
+    if (h < 0.5) return null;
+    const r = Math.min(barW / 2, 3, h);
+    const top = PAD.top + plotH - h;
+    // Rounded top, square base anchored to the baseline.
+    return (
+      <path
+        key={key}
+        d={`M${x},${PAD.top + plotH} V${top + r} Q${x},${top} ${x + r},${top} H${x + barW - r} Q${x + barW},${top} ${x + barW},${top + r} V${PAD.top + plotH} Z`}
+        fill={color}
+      />
+    );
   };
 
-  const kw = (w: number) => (w / 1000).toFixed(w >= 10_000 ? 0 : 2);
+  const shown = active !== null ? buckets[active] : null;
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-4 text-[11px] font-bold text-slate-500">
-        <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-4 rounded bg-sky-500" />استهلاك المنزل</span>
-        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-sm bg-amber-300/70" />الإنتاج الشمسي</span>
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-4 text-[11px] font-bold text-slate-500">
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: HOME }} />استهلاك المنزل</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: SOLAR }} />الإنتاج الشمسي</span>
+        </div>
+        <div className="text-[11px] font-bold text-slate-500" dir="rtl">
+          {homeKWh.toFixed(1)} ك.و.س استهلاك · {solarKWh.toFixed(1)} ك.و.س إنتاج
+        </div>
       </div>
+
       <div className="relative" dir="ltr">
-        <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full touch-none select-none" role="img" aria-label="استهلاك المنزل والإنتاج الشمسي خلال آخر 24 ساعة" onPointerMove={onMove} onPointerLeave={() => setHover(null)}>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="h-auto w-full touch-none select-none"
+          role="img"
+          aria-label="استهلاك المنزل والإنتاج الشمسي لكل ساعة خلال آخر 24 ساعة"
+          onPointerLeave={() => setActive(null)}
+        >
           {yTicks.map((v) => (
             <g key={v}>
-              <line x1={PAD.left} x2={W - PAD.right} y1={y(v)} y2={y(v)} stroke="#e2e8f0" strokeWidth={1} />
+              <line x1={PAD.left} x2={W - PAD.right} y1={y(v)} y2={y(v)} stroke="#eef2f6" strokeWidth={1} />
               <text x={PAD.left - 6} y={y(v) + 4} textAnchor="end" fontSize={11} fill="#94a3b8">{kw(v)}</text>
             </g>
           ))}
-          <text x={PAD.left - 6} y={PAD.top - 2} textAnchor="end" fontSize={10} fill="#94a3b8">kW</text>
-          {ticks.map((t) => (
-            <text key={t} x={x(t)} y={H - 8} textAnchor="middle" fontSize={11} fill="#94a3b8">{hourLabel.format(t)}</text>
-          ))}
-          <path d={areaPath} fill="#fcd34d" fillOpacity={0.45} />
-          <path d={linePath} fill="none" stroke="#0ea5e9" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-          {hover && (
-            <g>
-              <line x1={x(hover.t)} x2={x(hover.t)} y1={PAD.top} y2={H - PAD.bottom} stroke="#94a3b8" strokeDasharray="3 3" />
-              <circle cx={x(hover.t)} cy={y(hover.loadW)} r={4.5} fill="#0ea5e9" stroke="#ffffff" strokeWidth={2} />
-            </g>
-          )}
-          {/* مساحة لمس أكبر من الخطوط نفسها */}
-          <rect x={PAD.left} y={PAD.top} width={W - PAD.left - PAD.right} height={H - PAD.top - PAD.bottom} fill="transparent" />
+
+          {buckets.map((b, i) => {
+            const x0 = PAD.left + i * slot;
+            const center = x0 + slot / 2;
+            const hour = Number(hourFmt.format(b.start));
+            const isActive = active === i;
+            return (
+              <g key={b.start}>
+                {isActive && <rect x={x0 + 1} y={PAD.top} width={slot - 2} height={plotH} rx={4} fill="#f1f5f9" />}
+                {b.homeW === null ? (
+                  <line x1={center - 3} x2={center + 3} y1={PAD.top + plotH - 2} y2={PAD.top + plotH - 2} stroke="#cbd5e1" strokeWidth={2} strokeLinecap="round" />
+                ) : (
+                  <>
+                    {bar(center - barW - 1, b.solarW ?? 0, SOLAR, "s")}
+                    {bar(center + 1, b.homeW, HOME, "h")}
+                  </>
+                )}
+                {hour % 6 === 0 && (
+                  <text x={center} y={H - 8} textAnchor="middle" fontSize={11} fill="#94a3b8">{String(hour).padStart(2, "0")}:00</text>
+                )}
+                {/* Hit target bigger than the bars */}
+                <rect
+                  x={x0}
+                  y={PAD.top}
+                  width={slot}
+                  height={plotH + PAD.bottom}
+                  fill="transparent"
+                  onPointerEnter={() => setActive(i)}
+                  onPointerDown={() => setActive(i)}
+                />
+              </g>
+            );
+          })}
+          <line x1={PAD.left} x2={W - PAD.right} y1={PAD.top + plotH} y2={PAD.top + plotH} stroke="#e2e8f0" strokeWidth={1} />
         </svg>
-        {hover && (
+
+        {shown && active !== null && (
           <div
-            className="pointer-events-none absolute top-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-700 shadow-md"
-            style={{ left: `${Math.min(70, Math.max(2, (x(hover.t) / W) * 100 - 15))}%` }}
+            className="pointer-events-none absolute top-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-700 shadow-md"
+            style={{ left: `${Math.min(68, Math.max(2, ((PAD.left + active * slot) / W) * 100 - 14))}%` }}
             dir="rtl"
           >
-            <div className="text-slate-400">{hourLabel.format(hover.t)}</div>
-            <div>المنزل: {kw(hover.loadW)} kW</div>
-            <div>الشمس: {kw(hover.solarW)} kW</div>
+            <div className="text-slate-400">{labelFmt.format(shown.start)} – {labelFmt.format(shown.start + HOUR)}</div>
+            {shown.homeW === null ? (
+              <div>لا توجد قراءات</div>
+            ) : (
+              <>
+                <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: HOME }} />المنزل: {kw(shown.homeW)} kW</div>
+                <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: SOLAR }} />الشمس: {kw(shown.solarW ?? 0)} kW</div>
+              </>
+            )}
           </div>
         )}
       </div>
+
+      <p className="text-[11px] font-semibold text-slate-400">
+        متوسط القدرة لكل ساعة (kW). {missing > 0 ? `الشرطة الرمادية = ساعة بلا قراءات (${missing} من 24).` : "اضغط على أي ساعة لعرض أرقامها."}
+      </p>
     </div>
   );
 }
