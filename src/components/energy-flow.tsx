@@ -15,6 +15,8 @@ interface EnergyFlowProps {
   gridConnected?: boolean;
   /** Voltage the inverter measures on its grid input. */
   gridVoltage?: number;
+  /** Inverter operating mode as reported (e.g. "Off-Grid Mode", "Mains Mode"). */
+  operatingMode?: string;
   todayProductionKWh?: number;
   todayHomeUsageKWh?: number;
   todayGridSavings?: number;
@@ -32,6 +34,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   batteryPercentage,
   gridConnected = true,
   gridVoltage,
+  operatingMode,
   todayProductionKWh,
   todayHomeUsageKWh,
   todayGridSavings,
@@ -64,6 +67,10 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   const batteryDischarging = liveFlowActive && batteryKw < -FLOW_THRESHOLD;
   const gridImporting = liveFlowActive && gridConnected && gridKw > FLOW_THRESHOLD;
   const gridExporting = liveFlowActive && gridConnected && gridKw < -FLOW_THRESHOLD;
+  // In off-grid (battery) mode this inverter still reports ~230 V on "Grid
+  // Voltage" even with the mains cut (its own screen shows 0 V), so that
+  // number cannot prove the grid is there: say it is unused, show no voltage.
+  const inverterOffGrid = /off.?grid|battery/i.test(operatingMode ?? "") && !gridImporting && !gridExporting;
 
 
   const formatKw = (value: number) => Math.abs(value).toFixed(2) + ' kW';
@@ -203,8 +210,8 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           </div>
           <div className="pointer-events-none absolute left-1/2 top-full mt-1.5 w-[7.5rem] -translate-x-1/2 text-center">
             <div className="text-xs font-black text-slate-700">الشبكة</div>
-            <div className={gridConnected ? "text-sm font-black text-violet-600" : "text-sm font-black text-slate-500"}>{!gridConnected ? "مقطوعة" : gridImporting ? "تسحب منها" : gridExporting ? "تصدير" : "جهد متوفر"}</div>
-            <div className="text-[10px] font-bold text-slate-500">{gridConnected ? `${gridVoltage ? Math.round(gridVoltage) + " V · " : ""}${gridImporting ? "سحب الطاقة" : gridExporting ? "تصدير الفائض" : "غير مستخدمة الآن"}` : "لا جهد على المدخل"}</div>
+            <div className={gridConnected && !inverterOffGrid ? "text-sm font-black text-violet-600" : "text-sm font-black text-slate-500"}>{!gridConnected ? "مقطوعة" : gridImporting ? "تسحب منها" : gridExporting ? "تصدير" : inverterOffGrid ? "غير مستخدمة" : "جهد متوفر"}</div>
+            <div className="text-[10px] font-bold text-slate-500">{!gridConnected ? "لا جهد على المدخل" : inverterOffGrid ? "الإنفرتر يعمل بدونها الآن" : `${gridVoltage ? Math.round(gridVoltage) + " V · " : ""}${gridImporting ? "سحب الطاقة" : gridExporting ? "تصدير الفائض" : "غير مستخدمة الآن"}`}</div>
           </div>
         </button>
 

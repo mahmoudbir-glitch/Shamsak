@@ -65,6 +65,7 @@ export default function SolarDashboardClient() {
         batteryPercentage={snapshot?.batterySoc ?? 0}
         gridConnected={snapshot?.gridConnected ?? false}
         gridVoltage={snapshot?.gridVoltage}
+        operatingMode={snapshot?.operatingMode}
         todayProductionKWh={snapshot?.todayProductionKWh}
         todayHomeUsageKWh={snapshot?.todayHomeUsageKWh}
         todayGridSavings={snapshot?.todayGridSavings}
@@ -92,7 +93,7 @@ export default function SolarDashboardClient() {
             <dt className="text-slate-500">شحن البطارية</dt><dd className="font-black text-slate-800">{chargerPriorityLabel(snapshot.chargerPriority)}</dd>
             <dt className="text-slate-500">الحمل من قدرته</dt><dd className="font-black text-slate-800">{snapshot.loadPercent !== undefined ? `${Math.round(snapshot.loadPercent)}%` : "—"}</dd>
             <dt className="text-slate-500">حرارة الإنفرتر</dt><dd className={"font-black " + ((snapshot.inverterTemperature ?? 0) >= 60 ? "text-rose-600" : "text-slate-800")}>{snapshot.inverterTemperature !== undefined ? `${Math.round(snapshot.inverterTemperature)}°م` : "—"}</dd>
-            <dt className="text-slate-500">جهد مدخل الشبكة</dt><dd className="font-black text-slate-800">{snapshot.gridVoltage !== undefined ? `${Math.round(snapshot.gridVoltage)} V` : "—"}</dd>
+            <dt className="text-slate-500">جهد مدخل الشبكة</dt><dd className="font-black text-slate-800">{/off.?grid|battery/i.test(snapshot.operatingMode ?? "") ? "غير مُقاس (منفصل)" : snapshot.gridVoltage !== undefined ? `${Math.round(snapshot.gridVoltage)} V` : "—"}</dd>
           </dl>
         </section>
       )}
