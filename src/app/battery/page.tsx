@@ -126,7 +126,7 @@ export default function BatteryPage() {
           tone="emerald"
           label="التيار"
           value={snapshot?.batteryCurrent != null ? Math.abs(snapshot.batteryCurrent).toFixed(1) + " A" : "—"}
-          hint={snapshot?.batteryCurrent != null && Math.abs(snapshot.batteryCurrent) >= 0.5 ? (snapshot.batteryCurrent > 0 ? "شحن" : "تفريغ") : undefined}
+          hint={snapshot?.batteryCurrent != null && Math.abs(snapshot.batteryCurrent) >= 0.5 ? `${snapshot.batteryCurrent > 0 ? "شحن" : "تفريغ"} · ${(Math.abs(powerW) / 1000).toFixed(2)} kW` : undefined}
         />
         <Metric icon={Thermometer} tone="rose" label="حرارة البطارية" value={snapshot?.batteryTemperature != null ? snapshot.batteryTemperature.toFixed(1) + " °C" : "غير متاحة"} />
         <Metric icon={Clock} tone="sky" label={eta ? (eta.charging ? "اكتمال الشحن بعد" : "الوقت المتبقي") : "الوقت المتوقع"} value={eta ? eta.label : "—"} hint={eta ? "تقديري" : undefined} />
