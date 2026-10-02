@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { LayoutDashboard, House, BatteryCharging, Sun, WalletCards, Settings } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
-/* Each tab carries the colour of what it is about (the same colours its page
+/* Idle tabs are a calm slate grey; the open tab lights up in the colour of what it is about (the same colours its page
  * header and numbers use): overview indigo, home sky, battery emerald, solar
  * energy amber, money teal, settings rose. Full class strings for Tailwind. */
 type NavTone = { icon: string; active: string; desktop: string };
@@ -59,7 +59,7 @@ export function DesktopNav() {
                   : 'text-slate-500 hover:bg-white hover:text-slate-800')
               }
             >
-              <Icon size={21} strokeWidth={active ? 2.7 : 2.2} aria-hidden="true" className={active ? undefined : t.icon} />
+              <Icon size={21} strokeWidth={active ? 2.7 : 2.2} aria-hidden="true" className={active ? undefined : 'text-slate-400'} />
               <span>{label}</span>
             </Link>
           );
@@ -95,7 +95,7 @@ export function BottomNav() {
               }
             >
               <span className="flex h-9 w-10 items-center justify-center rounded-xl">
-                <Icon size={23} strokeWidth={active ? 2.7 : 2.2} aria-hidden="true" className={active ? undefined : t.icon} />
+                <Icon size={23} strokeWidth={active ? 2.7 : 2.2} aria-hidden="true" className={active ? undefined : 'text-slate-400'} />
               </span>
               <span className="leading-none">{label}</span>
             </Link>
