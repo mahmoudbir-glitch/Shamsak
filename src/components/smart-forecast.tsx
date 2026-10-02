@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, CloudSun, Loader2, MoonStar, RefreshCw, SunMedium } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { ChevronDown, Loader2, MoonStar, RefreshCw, SunMedium } from "lucide-react";
 import { useSharedSmartEnergy } from "@/components/smart-energy-provider";
 import { calculateAutonomy, weatherIcon, weatherLabel, type DayForecast, type LoadStability } from "@/lib/smart-forecast";
 import { InfoTip } from "@/components/info-tip";
@@ -121,7 +121,7 @@ function NightCard({
   );
 }
 
-export function SmartForecast() {
+export function SmartForecast({ afterDay }: { afterDay?: React.ReactNode } = {}) {
   const { forecasts, weather, snapshot, loading, isRefreshing, error, nightLoadStats, batteryCapacityWh, reservePct, refresh } = useSharedSmartEnergy();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showHourlyDetails, setShowHourlyDetails] = useState(false);
@@ -202,7 +202,7 @@ export function SmartForecast() {
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-black text-amber-600">شمسك • الطاقة</p>
             <h1 className="mt-0.5 text-xl font-black tracking-tight text-slate-950 sm:text-2xl">توقعات الطاقة</h1>
-            <p className="mt-1 text-xs font-semibold text-slate-500">اليوم، الليلة، وأفضل وقت لاستخدام الشمس.</p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">الأيام القادمة، البطارية والليل.</p>
           </div>
           <button
             type="button"
@@ -216,20 +216,19 @@ export function SmartForecast() {
         </div>
 
         {current && (
-          <div className="mt-4 flex items-center gap-3 rounded-2xl bg-slate-50 p-3">
-            <span className="text-2xl">{weatherIcon(current.weather_code ?? 0)}</span>
-            <div>
-              <strong className="block text-sm font-black text-slate-800">{weatherLabel(current.weather_code ?? 0)} • <bdi dir="ltr">{Math.round(current.temperature_2m ?? 0)}°</bdi></strong>
-              <span className="text-xs font-semibold text-slate-500">توقع جوي من Open-Meteo، وليس قياساً من الإنفرتر</span>
-            </div>
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 ring-1 ring-slate-200/70" title="توقع جوي من Open-Meteo، وليس قياساً من الإنفرتر">
+            <span className="text-base leading-none">{weatherIcon(current.weather_code ?? 0)}</span>
+            <span className="text-xs font-black text-slate-700">الآن: {weatherLabel(current.weather_code ?? 0)} · <bdi dir="ltr">{Math.round(current.temperature_2m ?? 0)}°</bdi></span>
           </div>
         )}
 
         {error && <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm font-bold text-amber-800">{error}.</p>}
       </header>
 
-      {/* Four day tabs fit the phone width; more days scroll sideways. */}
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+      {/* The day buttons sit on top of the day they open, in one card. */}
+      {forecasts.length > 0 && (
+        <section className="energy-card space-y-4 p-4 sm:p-5">
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 pt-0.5 [scrollbar-width:none]">
         {forecasts.map((day, index) => (
           <button
             key={day.date}
@@ -251,6 +250,46 @@ export function SmartForecast() {
           </button>
         ))}
       </div>
+          {selected && (
+            <div className="border-t border-slate-100 pt-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-500">{selected.label} • {formatDate(selected.date)}</p>
+                <h2 className="mt-0.5 text-xl font-black text-slate-950">{weatherIcon(selected.weatherCode)} {weatherLabel(selected.weatherCode)}</h2>
+              </div>
+              <span className="shrink-0 rounded-full bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-600 ring-1 ring-slate-200/70">
+                <bdi dir="ltr">{Math.round(selected.tempMin)}°</bdi> – <bdi dir="ltr">{Math.round(selected.tempMax)}°</bdi>
+              </span>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-2xl bg-amber-50 p-4">
+                <span className="text-xs font-bold text-slate-500">إنتاج الألواح المتوقع</span>
+                <strong className="mt-1 block text-2xl font-black text-amber-700"><bdi dir="ltr">{selected.productionKWh}<small className="text-sm"> kWh</small></bdi></strong>
+                <span className="mt-1.5 block"><AmpPill tone="amber" unit="Ah" amps={acAmpHours(selected.productionKWh)} /></span>
+              </div>
+              <div className="rounded-2xl bg-emerald-50 p-4">
+                <span className="text-xs font-bold text-slate-500">ثقة التوقع الجوي</span>
+                <strong className="mt-1 block text-2xl font-black text-emerald-700">{selected.confidence}</strong>
+              </div>
+            </div>
+            {/* Battery levels for each day are in their own cards; here only the sun times. */}
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="rounded-2xl bg-indigo-50/70 p-4">
+                <span className="text-xs font-bold text-slate-500">🌅 الشروق</span>
+                <strong className="mt-1 block text-lg font-black text-slate-900">{formatHour(selected.sunrise)}</strong>
+              </div>
+              <div className="rounded-2xl bg-orange-50/70 p-4">
+                <span className="text-xs font-bold text-slate-500">🌇 الغروب</span>
+                <strong className="mt-1 block text-lg font-black text-slate-900">{formatHour(selected.sunset)}</strong>
+              </div>
+            </div>
+          </div>
+          )}
+        </section>
+      )}
+
+      {afterDay}
 
       {forecasts.length > 0 && (
         <section className="energy-card p-4">
@@ -264,43 +303,6 @@ export function SmartForecast() {
 
       {selected && (
         <>
-          <section className="energy-card p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold text-slate-500">{selected.label} • {formatDate(selected.date)}</p>
-                <h2 className="mt-1 text-2xl font-black text-slate-950">{weatherIcon(selected.weatherCode)} {weatherLabel(selected.weatherCode)}</h2>
-                <p className="mt-1 text-sm font-semibold text-slate-500"><bdi dir="ltr">{Math.round(selected.tempMin)}°</bdi> — <bdi dir="ltr">{Math.round(selected.tempMax)}°</bdi></p>
-              </div>
-              <div className="rounded-2xl bg-amber-50 p-3 text-amber-600">
-                <SunMedium size={27} />
-              </div>
-            </div>
-
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl bg-amber-50 p-4">
-                <span className="text-xs font-bold text-slate-500">إنتاج الألواح المتوقع</span>
-                <strong className="mt-1 block text-2xl font-black text-amber-700"><bdi dir="ltr">{selected.productionKWh}<small className="text-sm"> kWh</small></bdi></strong>
-                <span className="mt-1.5 block"><AmpPill tone="amber" unit="Ah" amps={acAmpHours(selected.productionKWh)} /></span>
-              </div>
-              <div className="rounded-2xl bg-emerald-50 p-4">
-                <span className="text-xs font-bold text-slate-500">ثقة التوقع الجوي</span>
-                <strong className="mt-1 block text-2xl font-black text-emerald-700">{selected.confidence}</strong>
-              </div>
-            </div>
-            {/* Battery levels for each day are in the cards above; here only the sun times. */}
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl bg-indigo-50/70 p-4">
-                <span className="text-xs font-bold text-slate-500">🌅 الشروق</span>
-                <strong className="mt-1 block text-lg font-black text-slate-900">{formatHour(selected.sunrise)}</strong>
-              </div>
-              <div className="rounded-2xl bg-orange-50/70 p-4">
-                <span className="text-xs font-bold text-slate-500">🌇 الغروب</span>
-                <strong className="mt-1 block text-lg font-black text-slate-900">{formatHour(selected.sunset)}</strong>
-              </div>
-            </div>
-          </section>
-
-
           <section id="night" className="energy-card scroll-mt-40 p-5">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-black text-slate-900">🌙 كفاية الليل</h2>
@@ -350,14 +352,8 @@ export function SmartForecast() {
               aria-expanded={showHourlyDetails}
               aria-controls="hourly-details-content"
             >
-              <div className="flex items-center gap-2">
-                <CloudSun size={20} className="text-slate-400" />
-                <div>
-                  <h2 className="text-lg font-black text-slate-900">تفصيل الساعات</h2>
-                  <p className="text-xs font-semibold text-slate-500">اضغط لعرض التوقعات ساعة بساعة</p>
-                </div>
-              </div>
-              <span className="text-slate-500 text-lg font-black">{showHourlyDetails ? "⌃" : "⌄"}</span>
+              <h2 className="text-lg font-black text-slate-900">تفصيل الساعات</h2>
+              <ChevronDown size={20} className={"text-slate-400 transition-transform " + (showHourlyDetails ? "rotate-180" : "")} />
             </button>
             {showHourlyDetails && (
             <div id="hourly-details-content" className="mt-4 space-y-2">

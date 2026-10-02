@@ -61,19 +61,14 @@ export function SurplusRecommendations() {
     .map((load) => ({ id: load.id, kwh: load.kwh, title: load.title, icon: load.icon, detail: load.detail + ` الفائض المتوقع ${dayWord} يغطيها.` }));
 
   return (
-    <section dir="rtl" className="energy-card overflow-hidden p-5 sm:p-6">
+    <section dir="rtl" className="energy-card overflow-hidden p-4 sm:p-5">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-extrabold text-amber-700">
-            <span>⚡</span>
-            <span>إدارة الطاقة</span>
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-xl ring-1 ring-amber-200/70" aria-hidden="true">⚡</span>
+          <div className="min-w-0">
+            <h2 className="text-lg font-black tracking-tight text-slate-950">أفضل وقت لاستخدام الشمس</h2>
+            <p className="text-xs font-semibold text-slate-500">ساعات الفائض وما يمكن تشغيله فيها.</p>
           </div>
-          <h2 className="mt-3 text-xl font-black tracking-tight text-slate-950">
-            إدارة الفائض والتوصيات الذكية
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
-            نحدد الساعات التي تتجاوز فيها الطاقة الشمسية الاستهلاك المتوقع، ثم نقترح أفضل استخدام للفائض.
-          </p>
         </div>
         {best && (
           <div className="hidden shrink-0 rounded-2xl bg-amber-50 px-3 py-2 text-center text-amber-800 ring-1 ring-amber-100 sm:block">
@@ -85,18 +80,18 @@ export function SurplusRecommendations() {
       </div>
 
       {loading && (
-        <div className="mt-5 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-base font-bold text-slate-500">
+        <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-base font-bold text-slate-500">
           جاري تحليل ساعات الفائض…
         </div>
       )}
 
       {!loading && best && (
         <>
-          <div className="mt-5 rounded-3xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-white p-5 shadow-sm">
+          <div className="mt-4 rounded-3xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-white p-4 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <span className="inline-flex items-center gap-2 text-xs font-extrabold text-slate-500">
-                  ☀️ أفضل نافذة للاستفادة من الشمس
+                  ☀️ النافذة الأفضل
                   <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-black text-amber-800">{dayWord}</span>
                 </span>
                 <strong className="mt-2 block text-2xl font-black tracking-tight text-amber-700 sm:text-3xl">
@@ -116,9 +111,6 @@ export function SurplusRecommendations() {
                 لا فائض متبقٍ اليوم{todayLeftKWh < 0.3 ? ": ما تبقّى من الشمس يذهب للمنزل وشحن البطارية" : ""}. هذه نافذة الغد.
               </p>
             )}
-            <p className="mt-3 text-sm font-semibold text-slate-600">
-              هذه الفترة هي الأنسب لتشغيل الأجهزة ذات الاستهلاك المرتفع والاستفادة من التوليد الشمسي مباشرة.
-            </p>
           </div>
 
           {recommendations.length > 0 && <div className="mt-4 rounded-3xl border border-emerald-100 bg-emerald-50/70 p-4 sm:p-5">
@@ -174,7 +166,7 @@ export function SurplusRecommendations() {
       )}
 
       {!loading && !best && (
-        <div className="mt-5 flex items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm font-semibold text-slate-600">
+        <div className="mt-4 flex items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm font-semibold text-slate-600">
           <span className="text-lg">☁️</span>
           <span className="leading-6">لا يُتوقع فائض اليوم ولا غدًا: كل إنتاج الألواح يذهب لاستهلاك المنزل وشحن البطارية. هذا طبيعي في الأيام الغائمة أو عندما يكون الاستهلاك مرتفعًا.</span>
         </div>
