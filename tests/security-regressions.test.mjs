@@ -515,3 +515,9 @@ test("panel power uses the largest PV figure (Mains mode reports it only as PV C
   assert.match(source, /pvMax = Math\.max\(pvMax \?\? 0, watts\)/);
   assert.match(source, /reading\.solarPowerW = Math\.max\(reading\.solarPowerW \?\? 0, pvMax\)/);
 });
+
+test("forecast uses Open-Meteo radiation for the hour it actually covers (value at the hour's end)", () => {
+  const source = read("src/hooks/use-smart-energy.ts");
+  assert.match(source, /const j = i \+ 1;/);
+  assert.match(source, /shortwave_radiation\?\.\[j\]/);
+});

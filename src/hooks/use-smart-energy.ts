@@ -255,7 +255,12 @@ export function useSmartEnergy() {
       const nextForecasts = daily.time.slice(0, 7).map((date, dayIndex) => {
         const indexes = hourly.time!.map((time, i) => ({ time, i })).filter(({ time }) => time.startsWith(date));
         const points: HourlySolarPoint[] = indexes.map(({ time, i }) => {
-          const irradiance = (useTilted ? hourly.global_tilted_irradiance?.[i] : undefined) ?? hourly.shortwave_radiation?.[i] ?? 0;
+          // Open-Meteo radiation is the mean over the hour BEFORE its timestamp
+          // (the 11:00 value covers 10:00–11:00). Our points are the hour that
+          // starts at `time`, so they take the next entry; using the same index
+          // shifted the whole solar day one hour late.
+          const j = i + 1;
+          const irradiance = (useTilted ? hourly.global_tilted_irradiance?.[j] : undefined) ?? hourly.shortwave_radiation?.[j] ?? 0;
           const solarKWh = estimateSolarKWh(irradiance, panelCapacityKw);
           return {
             time,
@@ -264,8 +269,8 @@ export function useSmartEnergy() {
             precipitationProbability: hourly.precipitation_probability?.[i] ?? 0,
             solarKWh,
             surplusKWh: 0,
-            directRadiationWm2: hourly.direct_radiation?.[i] ?? 0,
-            diffuseRadiationWm2: hourly.diffuse_radiation?.[i] ?? 0,
+            directRadiationWm2: hourly.direct_radiation?.[j] ?? 0,
+            diffuseRadiationWm2: hourly.diffuse_radiation?.[j] ?? 0,
           };
         });
 
