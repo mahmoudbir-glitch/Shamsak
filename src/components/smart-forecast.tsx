@@ -266,9 +266,10 @@ export function SmartForecast({ afterDay }: { afterDay?: React.ReactNode } = {})
                 <strong className="mt-1 block text-2xl font-black text-amber-700"><bdi dir="ltr">{selected.productionKWh}<small className="text-sm"> kWh</small></bdi></strong>
                 <span className="mt-1.5 block"><AmpPill tone="amber" unit="Ah" amps={acAmpHours(selected.productionKWh)} /></span>
               </div>
-              <div className="rounded-2xl bg-emerald-50 p-4">
+              {/* Tile colour follows the confidence: green high, amber medium, rose low. */}
+              <div className={`rounded-2xl p-4 ${selected.confidence === "عالية" ? "bg-emerald-50" : selected.confidence === "متوسطة" ? "bg-amber-50" : "bg-rose-50"}`}>
                 <span className="text-xs font-bold text-slate-500">ثقة التوقع الجوي</span>
-                <strong className="mt-1 block text-2xl font-black text-emerald-700">{selected.confidence}</strong>
+                <strong className={`mt-1 block text-2xl font-black ${selected.confidence === "عالية" ? "text-emerald-700" : selected.confidence === "متوسطة" ? "text-amber-700" : "text-rose-700"}`}>{selected.confidence}</strong>
               </div>
             </div>
             {/* The selected day's battery in one line: level at sunrise/now → sunset, and when it fills. */}
