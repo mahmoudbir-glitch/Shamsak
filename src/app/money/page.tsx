@@ -285,7 +285,7 @@ export default function MoneyDashboard() {
         </>
       )}
 
-      <details onToggle={(e) => setPrefsOpen((v) => ({ ...v, money: e.currentTarget.open }))} className="group rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+      <details onToggle={(e) => { const open = e.currentTarget.open; setPrefsOpen((v) => ({ ...v, money: open })); }} className="group rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 [&::-webkit-details-marker]:hidden">
           <div>
             <h2 className="text-base font-black text-slate-950">⚙️ التفضيلات المالية</h2>
@@ -320,7 +320,7 @@ export default function MoneyDashboard() {
         </div>
       </details>
 
-      <details onToggle={(e) => setPrefsOpen((v) => ({ ...v, alerts: e.currentTarget.open }))} className="group rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+      <details onToggle={(e) => { const open = e.currentTarget.open; setPrefsOpen((v) => ({ ...v, alerts: open })); }} className="group rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 [&::-webkit-details-marker]:hidden">
           <div>
             <h2 className="text-base font-black text-slate-950">🔔 التنبيهات المالية والطاقة</h2>

@@ -521,3 +521,9 @@ test("forecast uses Open-Meteo radiation for the hour it actually covers (value 
   assert.match(source, /const j = i \+ 1;/);
   assert.match(source, /shortwave_radiation\?\.\[j\]/);
 });
+
+test("details onToggle reads the open state before the state updater runs", () => {
+  const source = read("src/app/money/page.tsx");
+  assert.doesNotMatch(source, /setPrefsOpen\(\(v\) => \(\{ \.\.\.v, \w+: e\.currentTarget\.open/);
+  assert.match(source, /const open = e\.currentTarget\.open;/);
+});
