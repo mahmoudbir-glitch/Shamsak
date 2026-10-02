@@ -279,12 +279,6 @@ export default function SettingsPage() {
     catch (e) { setError(e instanceof Error ? e.message : "تعذر تعيين الإنفرتر الأساسي."); }
   };
 
-  const deleteInverter = async () => {
-    if (!draft?.id || !window.confirm("هل تريد حذف هذا الإنفرتر؟")) return;
-    try { await action({ action: "delete", id: draft.id }); setMessage("تم حذف الإنفرتر."); await load(); }
-    catch (e) { setError(e instanceof Error ? e.message : "تعذر حذف الإنفرتر."); }
-  };
-
   const rotateToken = async () => {
     if (!draft?.id) return;
     try { const data = await action({ action: "rotateGatewayToken", id: draft.id }); setNewToken(data.token || ""); }
@@ -425,9 +419,7 @@ export default function SettingsPage() {
           {draft.lastStatus === "error" && draft.lastTestReason && !/لا يرسل قراءات/.test(draft.lastTestReason) && <p className="rounded-xl bg-rose-50 p-3 text-xs font-bold leading-5 text-rose-700">سبب عدم الاتصال: {draft.lastTestReason}</p>}
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => void testConnection()} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-700"><Plug className="h-4 w-4" aria-hidden="true" />اختبار الاتصال</button>
-            <button type="button" onClick={addInverter} className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-200"><Plus className="h-4 w-4" aria-hidden="true" />إضافة إنفرتر</button>
             {draft.id && !draft.isPrimary && <button type="button" onClick={() => void setPrimary()} className="rounded-xl bg-violet-100 px-4 py-3 text-sm font-black text-violet-700">تعيين كأساسي</button>}
-            {draft.id && <button type="button" onClick={() => void deleteInverter()} className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-black text-rose-700">حذف</button>}
           </div>
         </div>}
       </SettingsSection>
