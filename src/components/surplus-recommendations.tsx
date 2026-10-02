@@ -58,7 +58,7 @@ export function SurplusRecommendations() {
   ];
   const recommendations = loads
     .filter((load) => load.kwh <= surplus)
-    .map((load) => ({ id: load.id, title: load.title, icon: load.icon, detail: load.detail + ` الفائض المتوقع ${dayWord} يغطيها.` }));
+    .map((load) => ({ id: load.id, kwh: load.kwh, title: load.title, icon: load.icon, detail: load.detail + ` الفائض المتوقع ${dayWord} يغطيها.` }));
 
   return (
     <section dir="rtl" className="energy-card overflow-hidden p-5 sm:p-6">
@@ -162,6 +162,7 @@ export function SurplusRecommendations() {
                         <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
                           {item.detail}
                         </p>
+                        <span className="mt-2 block"><AmpPill tone="emerald" unit="Ah" amps={acAmpHours(item.kwh)} /></span>
                       </div>
                     </div>
                   </div>

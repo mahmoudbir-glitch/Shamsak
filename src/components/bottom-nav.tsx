@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 
 /* Each tab carries the colour of what it is about (the same colours its page
  * header and numbers use): overview indigo, home sky, battery emerald, solar
- * energy amber, money teal, settings fuchsia. Full class strings for Tailwind. */
+ * energy amber, money teal, settings rose. Full class strings for Tailwind. */
 type NavTone = { icon: string; active: string; desktop: string };
 const TONES: Record<string, NavTone> = {
   indigo: { icon: 'text-indigo-500', active: 'bg-indigo-50 text-indigo-700 ring-indigo-200/80', desktop: 'text-indigo-700 ring-indigo-200/80' },
@@ -14,7 +14,7 @@ const TONES: Record<string, NavTone> = {
   emerald: { icon: 'text-emerald-500', active: 'bg-emerald-50 text-emerald-700 ring-emerald-200/80', desktop: 'text-emerald-700 ring-emerald-200/80' },
   amber: { icon: 'text-amber-500', active: 'bg-amber-50 text-amber-700 ring-amber-200/80', desktop: 'text-amber-700 ring-amber-200/80' },
   teal: { icon: 'text-teal-500', active: 'bg-teal-50 text-teal-700 ring-teal-200/80', desktop: 'text-teal-700 ring-teal-200/80' },
-  fuchsia: { icon: 'text-fuchsia-500', active: 'bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200/80', desktop: 'text-fuchsia-700 ring-fuchsia-200/80' },
+  rose: { icon: 'text-rose-500', active: 'bg-rose-50 text-rose-600 ring-rose-200/80', desktop: 'text-rose-600 ring-rose-200/80' },
 };
 
 export const navItems: { href: string; label: string; Icon: typeof LayoutDashboard; tone: keyof typeof TONES }[] = [
@@ -23,7 +23,7 @@ export const navItems: { href: string; label: string; Icon: typeof LayoutDashboa
   { href: '/battery', label: 'البطارية', Icon: BatteryCharging, tone: 'emerald' },
   { href: '/energy', label: 'الطاقة', Icon: Sun, tone: 'amber' },
   { href: '/money', label: 'المال', Icon: WalletCards, tone: 'teal' },
-  { href: '/settings', label: 'الإعدادات', Icon: Settings, tone: 'fuchsia' },
+  { href: '/settings', label: 'الإعدادات', Icon: Settings, tone: 'rose' },
 ];
 
 export function isNavActive(path: string, href: string) {
