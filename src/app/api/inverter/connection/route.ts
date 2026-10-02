@@ -165,7 +165,7 @@ export async function GET(request: NextRequest) {
           systemName: "منظومة شمسك",
           inverterModel: "NEXT - Victor Max 8.2KW",
           manufacturer: "Next Power",
-          dataloggerPn: "Q0031255230580",
+          dataloggerPn: "Q0045395318912",
           dataloggerType: "Wi-Fi Plug Pro RTU",
           dataloggerUpdateIntervalSec: 300,
           dataloggerCloud: "SmartESS / DESSMonitor",
