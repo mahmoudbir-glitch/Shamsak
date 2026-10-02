@@ -542,8 +542,8 @@ test("panel calibration ignores throttled hours and waits for enough data", { sk
   const { calibrationFactor } = await import("../src/lib/solar-core.ts");
   const expected = new Map();
   const rows = [];
-  for (const day of ["2026-10-01", "2026-10-02"]) {
-    for (const h of [9, 10, 11, 12, 13]) {
+  for (const day of ["2026-09-27", "2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02"]) {
+    for (const h of [10, 11]) {
       const hour = `${day}T${String(h).padStart(2, "0")}:00`;
       expected.set(hour, 1.0);
       rows.push({ hour, pvW: 800, socMax: 70, batteryW: 900, samples: 12 });
@@ -555,7 +555,8 @@ test("panel calibration ignores throttled hours and waits for enough data", { sk
   const result = calibrationFactor(rows, expected, "2026-10-02T20:00");
   assert.equal(result.status, "calibrated");
   assert.equal(result.factor, 0.8);
-  assert.equal(result.hours, 8);
+  assert.equal(result.hours, 10);
+  // Two days are not enough, however many hours they have.
   const early = calibrationFactor(rows.slice(0, 4), expected, "2026-10-02T20:00");
   assert.equal(early.status, "learning");
   assert.equal(early.factor, 1);
@@ -567,6 +568,9 @@ test("panel calibration ignores throttled hours and waits for enough data", { sk
   assert.equal(weak.status, "suspect");
   assert.equal(weak.factor, 1);
   assert.equal(weak.ratio, 0.45);
+  // Zero PV in good light is a missing reading, not a weak panel.
+  const missing = calibrationFactor([...rows, { hour: "2026-10-02T12:00", pvW: 0, socMax: 30, batteryW: 0, samples: 20 }], new Map([...expected, ["2026-10-02T12:00", 1.9]]), "2026-10-02T20:00");
+  assert.equal(missing.factor, 0.8);
 });
 
 test("forecast applies the learned calibration and the night check never breaks the sync", () => {

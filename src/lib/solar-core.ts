@@ -52,7 +52,8 @@ export type Calibration = {
 };
 
 export const CALIBRATION_MIN_HOURS = 8;
-export const CALIBRATION_MIN_DAYS = 2;
+/** Enough days that one stormy day cannot drag the factor down on its own. */
+export const CALIBRATION_MIN_DAYS = 5;
 /** Below this the result is reported but not applied (see "suspect"). */
 export const CALIBRATION_PLAUSIBLE_MIN = 0.65;
 /** LiFePO4 starts tapering its charge current around here, throttling the panels. */
@@ -67,7 +68,13 @@ const TAPER_SOC = 90;
  * hours would make good panels look weak.
  */
 export function calibrationFactor(readings: HourReadings[], expectedKWhByHour: Map<string, number>, currentHour: string): Calibration {
-  const candidates = readings.filter((row) => row.hour < currentHour && row.samples >= 6 && (expectedKWhByHour.get(row.hour) ?? 0) >= 0.3);
+  const candidates = readings.filter((row) => {
+    const expected = expectedKWhByHour.get(row.hour) ?? 0;
+    // Zero from the panels in good light is a missing reading or a mode where
+    // the inverter reports no PV, not a measurement of the panels.
+    const noReading = row.pvW < 50 && expected >= 0.5;
+    return row.hour < currentHour && row.samples >= 6 && expected >= 0.3 && !noReading;
+  });
   const peakChargeW = Math.max(0, ...candidates.map((row) => row.batteryW));
   const chargeCapW = peakChargeW > 300 ? peakChargeW * 0.9 : Infinity;
   const usable = candidates.filter((row) => row.socMax < TAPER_SOC && row.batteryW < chargeCapW);
