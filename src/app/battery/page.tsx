@@ -40,14 +40,15 @@ const METRIC_TONES = {
 } as const;
 
 /** بطاقة قياس: أيقونة ملوّنة واسم القياس في الأعلى، ثم القيمة وتحتها ملاحظة صغيرة. كل البطاقات بنفس الارتفاع. */
-function Metric({ icon: Icon, label, value, hint, tone = "slate" }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; hint?: string; tone?: keyof typeof METRIC_TONES }) {
+function Metric({ icon: Icon, label, value, unit, hint, tone = "slate", valueClass = "text-slate-900", pill }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; unit?: string; hint?: string; tone?: keyof typeof METRIC_TONES; valueClass?: string; pill?: React.ReactNode }) {
   return (
     <div className="energy-card flex h-full flex-col p-4">
       <div className="flex items-center gap-2">
         <span className={"flex h-8 w-8 shrink-0 items-center justify-center rounded-xl " + METRIC_TONES[tone]}><Icon className="h-4 w-4" /></span>
         <span className="min-w-0 text-[11px] font-bold leading-tight text-slate-500">{label}</span>
       </div>
-      <div className="mt-2.5 text-lg font-black leading-snug text-slate-900"><bdi>{value}</bdi></div>
+      <div className={"mt-2.5 text-lg font-black leading-snug " + valueClass}>{unit ? <bdi dir="ltr">{value}<small className="text-sm"> {unit}</small></bdi> : <bdi>{value}</bdi>}</div>
+      {pill && <div className="mt-1.5">{pill}</div>}
       {hint && <div className="mt-0.5 text-[10px] font-bold text-slate-400">{hint}</div>}
     </div>
   );
@@ -125,8 +126,11 @@ export default function BatteryPage() {
           icon={Gauge}
           tone="emerald"
           label="القدرة والتيار"
-          value={snapshot ? (Math.abs(powerW) / 1000).toFixed(2) + " kW" : "—"}
-          hint={snapshot?.batteryCurrent != null ? `${Math.abs(snapshot.batteryCurrent) >= 0.5 ? (snapshot.batteryCurrent > 0 ? "شحن" : "تفريغ") + " · " : ""}${Math.abs(snapshot.batteryCurrent).toFixed(1)} A` : undefined}
+          value={snapshot ? (Math.abs(powerW) / 1000).toFixed(2) : "—"}
+          unit={snapshot ? "kW" : undefined}
+          valueClass="text-emerald-700"
+          pill={snapshot ? <AmpPill tone="emerald" amps={batteryAmps(snapshot)} muted={Math.abs(powerW) < 50} /> : undefined}
+          hint={snapshot?.batteryCurrent != null && Math.abs(snapshot.batteryCurrent) >= 0.5 ? (snapshot.batteryCurrent > 0 ? "شحن" : "تفريغ") : undefined}
         />
         <Metric icon={Thermometer} tone="rose" label="حرارة البطارية" value={snapshot?.batteryTemperature != null ? snapshot.batteryTemperature.toFixed(1) + " °C" : "غير متاحة"} />
         <Metric icon={Clock} tone="sky" label={eta ? (eta.charging ? "اكتمال الشحن بعد" : "الوقت المتبقي") : "الوقت المتوقع"} value={eta ? eta.label : "—"} hint={eta ? "تقديري" : undefined} />
