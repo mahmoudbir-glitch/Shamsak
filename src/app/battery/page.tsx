@@ -31,12 +31,24 @@ function estimate(soc: number, powerW: number, settings: BatterySettings | null)
   return { charging, label };
 }
 
-/** بطاقة قياس صغيرة: أيقونة + قيمة + اسم القياس. */
-function Metric({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
+const METRIC_TONES = {
+  amber: "bg-amber-50 text-amber-600",
+  emerald: "bg-emerald-50 text-emerald-600",
+  rose: "bg-rose-50 text-rose-500",
+  sky: "bg-sky-50 text-sky-600",
+  slate: "bg-slate-100 text-slate-500",
+} as const;
+
+/** بطاقة قياس: أيقونة ملوّنة واسم القياس في الأعلى، ثم القيمة وتحتها ملاحظة صغيرة. كل البطاقات بنفس الارتفاع. */
+function Metric({ icon: Icon, label, value, hint, tone = "slate" }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; hint?: string; tone?: keyof typeof METRIC_TONES }) {
   return (
-    <div className="energy-card flex items-center gap-3 p-4">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500"><Icon className="h-5 w-5" /></span>
-      <div className="min-w-0"><div className="text-[11px] font-bold text-slate-400">{label}</div><div className="text-lg font-black leading-snug text-slate-900">{value}</div></div>
+    <div className="energy-card flex h-full flex-col p-4">
+      <div className="flex items-center gap-2">
+        <span className={"flex h-8 w-8 shrink-0 items-center justify-center rounded-xl " + METRIC_TONES[tone]}><Icon className="h-4 w-4" /></span>
+        <span className="min-w-0 text-[11px] font-bold leading-tight text-slate-500">{label}</span>
+      </div>
+      <div className="mt-2.5 text-lg font-black leading-snug text-slate-900"><bdi>{value}</bdi></div>
+      {hint && <div className="mt-0.5 text-[10px] font-bold text-slate-400">{hint}</div>}
     </div>
   );
 }
@@ -108,12 +120,18 @@ export default function BatteryPage() {
 
       {/* بطاقات القياسات */}
       <div className="grid grid-cols-2 gap-3">
-        <Metric icon={Zap} label="الجهد" value={snapshot?.batteryVoltage != null ? snapshot.batteryVoltage.toFixed(1) + " فولت" : "—"} />
-        <Metric icon={Gauge} label="التيار" value={snapshot?.batteryCurrent != null ? snapshot.batteryCurrent.toFixed(1) + " أمبير" : "—"} />
-        <Metric icon={Thermometer} label="الحرارة" value={snapshot?.batteryTemperature != null ? snapshot.batteryTemperature.toFixed(1) + "°م" : "غير متاحة"} />
-        <Metric icon={Clock} label={eta ? (eta.charging ? "اكتمال الشحن بعد" : "الوقت المتبقي") : "الوقت المتوقع"} value={eta ? eta.label : "—"} />
-        <Metric icon={Thermometer} label="حرارة الإنفرتر" value={snapshot?.inverterTemperature != null ? Math.round(snapshot.inverterTemperature) + "°م" : "—"} />
-        <Metric icon={Gauge} label="الحمل من قدرة الإنفرتر" value={snapshot?.loadPercent != null ? Math.round(snapshot.loadPercent) + "%" : "—"} />
+        <Metric icon={Zap} tone="amber" label="الجهد" value={snapshot?.batteryVoltage != null ? snapshot.batteryVoltage.toFixed(1) + " V" : "—"} />
+        <Metric
+          icon={Gauge}
+          tone="emerald"
+          label="التيار"
+          value={snapshot?.batteryCurrent != null ? Math.abs(snapshot.batteryCurrent).toFixed(1) + " A" : "—"}
+          hint={snapshot?.batteryCurrent != null && Math.abs(snapshot.batteryCurrent) >= 0.5 ? (snapshot.batteryCurrent > 0 ? "شحن" : "تفريغ") : undefined}
+        />
+        <Metric icon={Thermometer} tone="rose" label="حرارة البطارية" value={snapshot?.batteryTemperature != null ? snapshot.batteryTemperature.toFixed(1) + " °C" : "غير متاحة"} />
+        <Metric icon={Clock} tone="sky" label={eta ? (eta.charging ? "اكتمال الشحن بعد" : "الوقت المتبقي") : "الوقت المتوقع"} value={eta ? eta.label : "—"} hint={eta ? "تقديري" : undefined} />
+        <Metric icon={Thermometer} label="حرارة الإنفرتر" value={snapshot?.inverterTemperature != null ? Math.round(snapshot.inverterTemperature) + " °C" : "—"} />
+        <Metric icon={Gauge} label="حمل الإنفرتر" value={snapshot?.loadPercent != null ? Math.round(snapshot.loadPercent) + "%" : "—"} hint="من قدرته القصوى" />
       </div>
       {eta && <p className="px-1 text-[11px] font-semibold text-slate-400">التقدير تقريبي: يُحسب من السعة المحفوظة في الإعدادات والقدرة الحالية، ويتغير مع تغيّر الحمل.</p>}
       {snapshot && snapshot.batteryTemperature == null && (
@@ -124,9 +142,9 @@ export default function BatteryPage() {
       <section className="energy-card p-4">
         <h2 className="text-sm font-black text-slate-900">البطارية اليوم</h2>
         <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-          <div><div className="text-[11px] font-bold text-slate-500">شحن</div><div className="text-base font-black text-emerald-600">{history?.batteryToday ? history.batteryToday.chargeKWh.toFixed(1) : "—"} <span className="text-[10px]">ك.و.س</span></div><div className="mt-1.5"><AmpPill tone="emerald" unit="Ah" amps={history?.batteryToday ? batteryAmpHours(history.batteryToday.chargeKWh, settings?.batteryNominalVoltage) : null} /></div></div>
-          <div><div className="text-[11px] font-bold text-slate-500">تفريغ</div><div className="text-base font-black text-amber-600">{history?.batteryToday ? history.batteryToday.dischargeKWh.toFixed(1) : "—"} <span className="text-[10px]">ك.و.س</span></div><div className="mt-1.5"><AmpPill tone="amber" unit="Ah" amps={history?.batteryToday ? batteryAmpHours(history.batteryToday.dischargeKWh, settings?.batteryNominalVoltage) : null} /></div></div>
-          <div><div className="text-[11px] font-bold text-slate-500">أدنى / أعلى</div><div className="text-base font-black text-slate-800">{history?.socToday ? `${Math.round(history.socToday.min)}–${Math.round(history.socToday.max)}%` : "—"}</div></div>
+          <div><div className="text-[11px] font-bold text-slate-500">شحن</div><div className="text-base font-black text-emerald-600"><bdi dir="ltr">{history?.batteryToday ? history.batteryToday.chargeKWh.toFixed(1) : "—"}<span className="text-[10px]"> kWh</span></bdi></div><div className="mt-1.5"><AmpPill tone="emerald" unit="Ah" amps={history?.batteryToday ? batteryAmpHours(history.batteryToday.chargeKWh, settings?.batteryNominalVoltage) : null} /></div></div>
+          <div><div className="text-[11px] font-bold text-slate-500">تفريغ</div><div className="text-base font-black text-amber-600"><bdi dir="ltr">{history?.batteryToday ? history.batteryToday.dischargeKWh.toFixed(1) : "—"}<span className="text-[10px]"> kWh</span></bdi></div><div className="mt-1.5"><AmpPill tone="amber" unit="Ah" amps={history?.batteryToday ? batteryAmpHours(history.batteryToday.dischargeKWh, settings?.batteryNominalVoltage) : null} /></div></div>
+          <div><div className="text-[11px] font-bold text-slate-500">أدنى / أعلى</div><div className="text-base font-black text-slate-800"><bdi dir="ltr">{history?.socToday ? `${Math.round(history.socToday.min)}–${Math.round(history.socToday.max)}%` : "—"}</bdi></div></div>
         </div>
       </section>
 

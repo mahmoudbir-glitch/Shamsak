@@ -50,11 +50,11 @@ export function SurplusRecommendations() {
   // whether today's surplus actually covers it.
   const surplus = best?.kwh ?? 0;
   const loads = [
-    { id: 1, title: "تشغيل الغسالة", icon: "🧺", kwh: 0.8, detail: "دورة غسيل كاملة تستهلك نحو 0.8 ك.و.س." },
-    { id: 2, title: "تشغيل مضخة المياه", icon: "💧", kwh: 0.75, detail: "ساعة تشغيل لمضخة منزلية نحو 0.75 ك.و.س." },
-    { id: 3, title: "الكوي", icon: "👕", kwh: 1, detail: "ساعة كوي تستهلك نحو 1 ك.و.س." },
-    { id: 4, title: "تشغيل المكيف", icon: "❄️", kwh: 1.2, detail: "ساعة تبريد لغرفة واحدة نحو 1.2 ك.و.س." },
-    { id: 5, title: "تشغيل سخان الماء", icon: "♨️", kwh: 2, detail: "ساعة تسخين نحو 2 ك.و.س." },
+    { id: 1, title: "تشغيل الغسالة", icon: "🧺", kwh: 0.8, detail: "دورة غسيل كاملة تستهلك نحو 0.8 kWh." },
+    { id: 2, title: "تشغيل مضخة المياه", icon: "💧", kwh: 0.75, detail: "ساعة تشغيل لمضخة منزلية نحو 0.75 kWh." },
+    { id: 3, title: "الكوي", icon: "👕", kwh: 1, detail: "ساعة كوي تستهلك نحو 1 kWh." },
+    { id: 4, title: "تشغيل المكيف", icon: "❄️", kwh: 1.2, detail: "ساعة تبريد لغرفة واحدة نحو 1.2 kWh." },
+    { id: 5, title: "تشغيل سخان الماء", icon: "♨️", kwh: 2, detail: "ساعة تسخين نحو 2 kWh." },
   ];
   const recommendations = loads
     .filter((load) => load.kwh <= surplus)
@@ -78,7 +78,7 @@ export function SurplusRecommendations() {
         {best && (
           <div className="hidden shrink-0 rounded-2xl bg-amber-50 px-3 py-2 text-center text-amber-800 ring-1 ring-amber-100 sm:block">
             <span className="block text-[10px] font-bold text-amber-600">الفائض المتوقع</span>
-            <strong className="mt-1 block text-lg font-black">{Math.round(best.kwh * 10) / 10} ك.و.س</strong>
+            <strong className="mt-1 block text-lg font-black"><bdi dir="ltr">{Math.round(best.kwh * 10) / 10} kWh</bdi></strong>
             <span className="mt-1.5 block"><AmpPill tone="amber" unit="Ah" amps={acAmpHours(best.kwh)} /></span>
           </div>
         )}
@@ -106,7 +106,7 @@ export function SurplusRecommendations() {
               <div className="rounded-2xl bg-white/90 px-4 py-3 text-right shadow-sm ring-1 ring-amber-100">
                 <span className="block text-xs font-bold text-slate-500">قابل للاستخدام</span>
                 <strong className="mt-1 block text-lg font-black text-slate-900">
-                  نحو {Math.round(best.kwh * 10) / 10} ك.و.س
+                  نحو <bdi dir="ltr">{Math.round(best.kwh * 10) / 10} kWh</bdi>
                 </strong>
                 <span className="mt-1.5 block"><AmpPill tone="amber" unit="Ah" amps={acAmpHours(best.kwh)} /></span>
               </div>

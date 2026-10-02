@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Home, Loader2, RefreshCw } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
 import { PageHeader } from "@/components/page-header";
+import { StatTile } from "@/components/stat-tile";
 import { LoadChart, type LoadPoint } from "@/components/load-chart";
 import { homeText, acAmps, acAmpHours } from "@/lib/energy";
 import { AmpPill } from "@/components/amp-pill";
@@ -131,17 +132,16 @@ export default function HomeConsumptionPage() {
       </section>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="energy-card p-4">
-          <div className="text-[11px] font-bold text-slate-500">استهلاك اليوم</div>
-          <div className="mt-1 text-xl font-black text-sky-600">{snapshot?.todayHomeUsageKWh !== undefined ? snapshot.todayHomeUsageKWh.toFixed(1) : "—"} <span className="text-[11px]">ك.و.س</span></div>
-          <div className="mt-1.5"><AmpPill tone="sky" unit="Ah" amps={acAmpHours(snapshot?.todayHomeUsageKWh)} /></div>
-        </div>
-        <div className="energy-card p-4">
-          <div className="text-[11px] font-bold text-slate-500">أعلى حمل اليوم</div>
-          <div className="mt-1 text-xl font-black text-slate-800"><bdi dir="ltr">{history?.peak ? (history.peak.w / 1000).toFixed(2) : "—"} <span className="text-[11px]">kW</span></bdi></div>
-          <div className="mt-1.5"><AmpPill tone="sky" amps={history?.peak ? acAmps(history.peak.w) : null} /></div>
-          {history?.peak && <div className="text-[11px] font-semibold text-slate-400">الساعة {peakTime}{peakPct !== null ? ` · ${peakPct}% من قدرة الإنفرتر` : ""}</div>}
-        </div>
+        <StatTile card tone="sky" label="استهلاك اليوم" value={snapshot?.todayHomeUsageKWh !== undefined ? snapshot.todayHomeUsageKWh.toFixed(1) : "—"} unit="kWh" ampTone="sky" ampUnit="Ah" amps={acAmpHours(snapshot?.todayHomeUsageKWh)} />
+        <StatTile
+          card
+          label="أعلى حمل اليوم"
+          value={history?.peak ? (history.peak.w / 1000).toFixed(2) : "—"}
+          unit="kW"
+          ampTone="sky"
+          amps={history?.peak ? acAmps(history.peak.w) : null}
+          hint={history?.peak ? <>{peakTime}{peakPct !== null && <> · <bdi dir="ltr">{peakPct}%</bdi> من الإنفرتر</>}</> : undefined}
+        />
       </div>
 
       {/* منحنى آخر 24 ساعة */}

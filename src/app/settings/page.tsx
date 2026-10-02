@@ -99,12 +99,13 @@ function SettingsSection({ icon: Icon, title, subtitle, tone = "sky", summary, k
 /** بطاقة صغيرة في «نظرة سريعة» أعلى الصفحة. */
 function GlanceTile({ label, kind, value, dot, amps, ampTone, ampUnit = "A" }: { label: string; kind?: string | null; value: React.ReactNode; dot: string; amps?: number | null; ampTone?: "sky" | "amber" | "emerald" | "violet"; ampUnit?: "A" | "Ah" }) {
   return (
-    <div className="min-w-0 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
+    <div className="h-full min-w-0 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
       <div className="flex min-w-0 items-center gap-1.5 text-[11px] font-bold text-slate-500">
         <span className={"h-2 w-2 shrink-0 rounded-full " + dot} />
         <span className="shrink-0">{label}</span>
-        {kind && <span className="min-w-0 truncate font-black text-slate-700" dir="ltr" title={kind}>· {kind}</span>}
       </div>
+      {/* the make/type on its own line, so it is never cut off beside the label */}
+      {kind && <div className="mt-0.5 truncate text-[11px] font-black text-slate-700" title={kind}><bdi dir="ltr">{kind}</bdi></div>}
       <div className="mt-1 truncate text-base font-black text-slate-900">{value}</div>
       {ampTone && <div className="mt-1.5"><AmpPill tone={ampTone} amps={amps} unit={ampUnit} /></div>}
     </div>
@@ -312,7 +313,7 @@ export default function SettingsPage() {
   if (loading) return <div dir="rtl" className="p-6 text-center font-black text-slate-600">جاري تحميل الإعدادات…</div>;
 
   return (
-    <div dir="rtl" className="min-h-[100dvh] w-full space-y-3 overflow-x-hidden overscroll-y-auto bg-slate-50/70 p-2 pb-[calc(12rem+env(safe-area-inset-bottom))] scroll-pb-[calc(12rem+env(safe-area-inset-bottom))] sm:space-y-4 sm:p-4 sm:pb-12">
+    <div dir="rtl" className="w-full space-y-3 overflow-x-hidden pb-4 text-right">
       <PageHeader icon={SettingsIcon} tone="rose" eyebrow="شمسك • الإعدادات" title="إعدادات المنظومة" subtitle="الاتصال، العتاد، الحماية، التنبيهات والبيانات." />
 
       {/* نظرة سريعة على المنظومة */}
@@ -320,6 +321,7 @@ export default function SettingsPage() {
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <GlanceTile
             label="الاتصال"
+            kind={draft?.dataloggerCloud ? draft.dataloggerCloud.split("/")[0].trim() : null}
             dot={draft?.lastStatus === "connected" ? "bg-emerald-500" : draft?.lastStatus === "error" ? "bg-amber-500" : "bg-slate-300"}
             value={draft?.lastStatus === "connected" ? "متصل" : draft?.lastStatus === "error" ? (/لا يرسل قراءات/.test(draft.lastTestReason ?? "") ? "الدنجل متوقف" : "غير متصل") : draft ? "غير معروف" : "لا إنفرتر"}
           />
@@ -536,12 +538,11 @@ export default function SettingsPage() {
             <span className={"h-2 w-2 rounded-full " + (dirty ? "animate-pulse bg-amber-500" : "bg-emerald-500")} aria-hidden="true" />
             {dirty ? "لديك تغييرات غير محفوظة" : "كل التغييرات محفوظة"}
           </span>
-          <button type="button" disabled={saving || !settingsLoaded} onClick={() => void saveAll()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-black text-white shadow-[0_8px_20px_rgba(15,23,42,0.18)] transition hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-50">
+          <button type="button" disabled={saving || !settingsLoaded} onClick={() => void saveAll()} className={"inline-flex min-h-11 items-center gap-2 rounded-xl px-5 text-sm font-black transition focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-50 " + (dirty ? "bg-slate-900 text-white shadow-[0_8px_20px_rgba(15,23,42,0.18)] hover:bg-slate-800" : "bg-slate-100 text-slate-500 hover:bg-slate-200")}>
             <Save className="h-4 w-4" aria-hidden="true" />{saving ? "جاري الحفظ…" : "حفظ التغييرات"}
           </button>
         </div>
       </div>
-      <div aria-hidden="true" className="h-16" />
     </div>
   );
 }

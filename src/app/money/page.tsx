@@ -5,6 +5,7 @@ import { Wallet } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { moneyTone, semanticBg, semanticBorder, semanticText } from "@/lib/energy";
 import { AmpPill } from "@/components/amp-pill";
+import { StatTile } from "@/components/stat-tile";
 import { acAmpHours } from "@/lib/energy";
 
 type FinanceData = {
@@ -53,7 +54,7 @@ const sourceStyles = [
   },
 ] as const;
 
-function formatNumber(value: number, digits = 1) {
+function formatNumber(value: number, digits = Math.abs(value) >= 100 ? 0 : 1) {
   return value.toLocaleString("ar-u-nu-latn", {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
@@ -67,6 +68,7 @@ export default function MoneyDashboard() {
   const [data, setData] = useState<FinanceData | null>(null);
   const [tariff, setTariff] = useState(0);
   const [exportTariff, setExportTariff] = useState(0);
+  const [prefsOpen, setPrefsOpen] = useState({ money: false, alerts: false });
   const [currency, setCurrency] = useState("ل.س");
   const [notifySurplus, setNotifySurplus] = useState(true);
   const [notifyLowBattery, setNotifyLowBattery] = useState(true);
@@ -185,35 +187,10 @@ export default function MoneyDashboard() {
         </section>
       ) : (
         <>
-          <section className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-              <span className="text-[10px] font-bold text-slate-500">استهلاك المنزل</span>
-              <strong className="mt-1 block text-lg font-black text-slate-950">
-                {formatNumber(data.totals.homeKWh)} <small className="text-[10px]">ك.و.س</small>
-              </strong>
-              <span className="mt-1.5 block"><AmpPill tone="sky" unit="Ah" amps={acAmpHours(data.totals.homeKWh)} /></span>
-            </div>
-            <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-3 shadow-sm">
-              <span className="text-[10px] font-bold text-amber-700">من الشمس</span>
-              <strong className="mt-1 block text-lg font-black text-amber-800">
-                {formatNumber(data.sources.solarKWh)} <small className="text-[10px]">ك.و.س</small>
-              </strong>
-              <span className="mt-1.5 block"><AmpPill tone="amber" unit="Ah" amps={acAmpHours(data.sources.solarKWh)} /></span>
-            </div>
-            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3 shadow-sm">
-              <span className="text-[10px] font-bold text-emerald-700">من البطارية</span>
-              <strong className="mt-1 block text-lg font-black text-emerald-800">
-                {formatNumber(data.sources.batteryKWh)} <small className="text-[10px]">ك.و.س</small>
-              </strong>
-              <span className="mt-1.5 block"><AmpPill tone="emerald" unit="Ah" amps={acAmpHours(data.sources.batteryKWh)} /></span>
-            </div>
-            <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-3 shadow-sm">
-              <span className="text-[10px] font-bold text-violet-700">من الشبكة</span>
-              <strong className="mt-1 block text-lg font-black text-violet-800">
-                {formatNumber(data.sources.gridKWh)} <small className="text-[10px]">ك.و.س</small>
-              </strong>
-              <span className="mt-1.5 block"><AmpPill tone="violet" unit="Ah" amps={acAmpHours(data.sources.gridKWh)} /></span>
-            </div>
+          {/* Totals for the period; how the house was covered is in the sources card below. */}
+          <section className="grid grid-cols-2 gap-3">
+            <StatTile card big tone="amber" label="إنتاج الألواح" value={formatNumber(data.totals.solarKWh)} unit="kWh" ampTone="amber" ampUnit="Ah" amps={acAmpHours(data.totals.solarKWh)} />
+            <StatTile card big tone="sky" label="استهلاك المنزل" value={formatNumber(data.totals.homeKWh)} unit="kWh" ampTone="sky" ampUnit="Ah" amps={acAmpHours(data.totals.homeKWh)} />
           </section>
 
           <section className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -248,7 +225,7 @@ export default function MoneyDashboard() {
                     </div>
                     <strong className="text-sm font-black text-slate-900">{row.pct}%</strong>
                   </div>
-                  <div className="mt-1 flex items-center gap-2 text-[11px] font-bold text-slate-500">{formatNumber(row.kwh)} ك.و.س <AmpPill tone={row.key === "solar" ? "amber" : row.key === "battery" ? "emerald" : "violet"} unit="Ah" amps={acAmpHours(row.kwh)} /></div>
+                  <div className="mt-1 flex items-center gap-2 text-[11px] font-bold text-slate-500"><bdi dir="ltr">{formatNumber(row.kwh)} kWh</bdi> <AmpPill tone={row.key === "solar" ? "amber" : row.key === "battery" ? "emerald" : "violet"} unit="Ah" amps={acAmpHours(row.kwh)} /></div>
                 </div>
               ))}
             </div>
@@ -262,40 +239,43 @@ export default function MoneyDashboard() {
               </div>
             </div>
 
-            <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
-              <div className={"rounded-2xl border p-4 " + semanticBorder[savedTone] + " " + semanticBg[savedTone]}>
+            <div className="mt-4 grid grid-cols-2 gap-2.5">
+              <div className={"col-span-2 rounded-2xl border p-4 " + semanticBorder[savedTone] + " " + semanticBg[savedTone]}>
                 <span className={"text-[11px] font-bold " + semanticText[savedTone]}>الوفر التقديري</span>
-                <strong className={"mt-1 block text-2xl font-black " + semanticText[savedTone]}>
-                  {money(savedAmount)} {currency}
+                <strong className={"mt-1 block text-3xl font-black " + semanticText[savedTone]}>
+                  <bdi dir="ltr">{currency} {money(savedAmount)}</bdi>
                 </strong>
                 <span className="mt-1 block text-[10px] font-semibold opacity-75">من الشمس والبطارية والتصدير</span>
               </div>
 
-              <div className="rounded-2xl border border-violet-100 bg-violet-50 p-4">
+              <div className="rounded-2xl border border-violet-100 bg-violet-50 p-3.5">
                 <span className="text-[11px] font-bold text-violet-700">تكلفة الشبكة الفعلية</span>
-                <strong className="mt-1 block text-2xl font-black text-violet-800">
-                  {money(gridCost)} {currency}
+                <strong className="mt-1 block text-lg font-black text-violet-800">
+                  <bdi dir="ltr">{currency} {money(gridCost)}</bdi>
                 </strong>
-                <span className="mt-1 block text-[10px] font-semibold text-slate-500">
-                  {formatNumber(data.totals.gridImportKWh)} ك.و.س مشتراة
+                <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold text-slate-500">
+                  <bdi dir="ltr">{formatNumber(data.totals.gridImportKWh)} kWh</bdi>
+                  <AmpPill tone="violet" unit="Ah" amps={acAmpHours(data.totals.gridImportKWh)} />
                 </span>
-                <span className="mt-1.5 block"><AmpPill tone="violet" unit="Ah" amps={acAmpHours(data.totals.gridImportKWh)} /></span>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <span className="text-[11px] font-bold text-slate-600">تكلفة افتراضية بلا النظام الشمسي</span>
-                <strong className="mt-1 block text-xl font-black text-slate-800">
-                  {money(hypotheticalCost)} {currency}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5">
+                <span className="text-[11px] font-bold text-slate-600">بلا النظام الشمسي</span>
+                <strong className="mt-1 block text-lg font-black text-slate-800">
+                  <bdi dir="ltr">{currency} {money(hypotheticalCost)}</bdi>
                 </strong>
+                <span className="mt-1.5 block text-[10px] font-semibold text-slate-500">تكلفة افتراضية من الشبكة</span>
               </div>
 
-              <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4">
-                <span className="text-[11px] font-bold text-amber-700">الفائض المصدّر</span>
-                <strong className="mt-1 block text-xl font-black text-amber-800">
-                  {formatNumber(data.totals.gridExportKWh)} ك.و.س
-                </strong>
-                <span className="mt-1.5 block"><AmpPill tone="amber" unit="Ah" amps={acAmpHours(data.totals.gridExportKWh)} /></span>
-              </div>
+              {data.totals.gridExportKWh > 0 && (
+                <div className="col-span-2 rounded-2xl border border-amber-100 bg-amber-50/60 p-3.5">
+                  <span className="text-[11px] font-bold text-amber-700">الفائض المصدّر</span>
+                  <strong className="mt-1 flex flex-wrap items-center gap-2 text-lg font-black text-amber-800">
+                    <bdi dir="ltr">{formatNumber(data.totals.gridExportKWh)} kWh</bdi>
+                    <AmpPill tone="amber" unit="Ah" amps={acAmpHours(data.totals.gridExportKWh)} />
+                  </strong>
+                </div>
+              )}
             </div>
 
             <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-[10px] font-semibold leading-5 text-slate-500">
@@ -305,7 +285,7 @@ export default function MoneyDashboard() {
         </>
       )}
 
-      <details className="group rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+      <details onToggle={(e) => setPrefsOpen((v) => ({ ...v, money: e.currentTarget.open }))} className="group rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 [&::-webkit-details-marker]:hidden">
           <div>
             <h2 className="text-base font-black text-slate-950">⚙️ التفضيلات المالية</h2>
@@ -328,19 +308,19 @@ export default function MoneyDashboard() {
             </label>
 
             <label className="space-y-1.5">
-              <span className="text-[11px] font-black text-slate-700">شراء الشبكة / ك.و.س</span>
+              <span className="text-[11px] font-black text-slate-700">سعر شراء الشبكة / kWh</span>
               <input type="number" min="0" value={tariff} onChange={(e) => setTariff(Number(e.target.value))} className={inputClass} />
             </label>
 
             <label className="space-y-1.5">
-              <span className="text-[11px] font-black text-slate-700">تصدير الفائض / ك.و.س</span>
+              <span className="text-[11px] font-black text-slate-700">سعر تصدير الفائض / kWh</span>
               <input type="number" min="0" value={exportTariff} onChange={(e) => setExportTariff(Number(e.target.value))} className={inputClass} />
             </label>
           </div>
         </div>
       </details>
 
-      <details className="group rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+      <details onToggle={(e) => setPrefsOpen((v) => ({ ...v, alerts: e.currentTarget.open }))} className="group rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 [&::-webkit-details-marker]:hidden">
           <div>
             <h2 className="text-base font-black text-slate-950">🔔 التنبيهات المالية والطاقة</h2>
@@ -375,14 +355,15 @@ export default function MoneyDashboard() {
         </div>
       )}
 
-      <button
+      {/* The save button is only needed while a preferences panel is open. */}
+      {(prefsOpen.money || prefsOpen.alerts || saving) && <button
         type="button"
         onClick={handleSave}
         disabled={saving || !settingsLoaded}
         className="min-h-12 w-full rounded-2xl bg-teal-600 px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-teal-700 active:scale-[0.99] disabled:cursor-wait disabled:opacity-70"
       >
         {saving ? "جاري الحفظ…" : "حفظ التغييرات"}
-      </button>
+      </button>}
     </div>
   );
 }

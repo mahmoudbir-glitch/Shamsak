@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Moon } from "lucide-react";
+import { ChevronLeft, Cpu, Moon } from "lucide-react";
 import { EnergyFlow } from "@/components/energy-flow";
 import type { EnergySnapshot } from "@/lib/energy";
 import { chargerPriorityLabel, inverterModeLabel, outputPriorityLabel, batteryAmps, AC_VOLTS } from "@/lib/energy";
@@ -87,14 +87,39 @@ export default function SolarDashboardClient() {
       {/* حالة الإنفرتر كما يرسلها بنفسه */}
       {snapshot && (snapshot.operatingMode || snapshot.inverterTemperature !== undefined) && (
         <section className="energy-card p-4">
-          <h2 className="text-sm font-black text-slate-900">حالة الإنفرتر</h2>
-          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <dt className="text-slate-500">التشغيل الآن</dt><dd className="font-black text-slate-800">{inverterModeLabel(snapshot.operatingMode)}</dd>
-            <dt className="text-slate-500">أولوية المصدر</dt><dd className="font-black text-slate-800">{outputPriorityLabel(snapshot.outputPriority)}</dd>
-            <dt className="text-slate-500">شحن البطارية</dt><dd className="font-black text-slate-800">{chargerPriorityLabel(snapshot.chargerPriority)}</dd>
-            <dt className="text-slate-500">الحمل من قدرته</dt><dd className="font-black text-slate-800">{snapshot.loadPercent !== undefined ? `${Math.round(snapshot.loadPercent)}%` : "—"}</dd>
-            <dt className="text-slate-500">حرارة الإنفرتر</dt><dd className={"font-black " + ((snapshot.inverterTemperature ?? 0) >= 60 ? "text-rose-600" : "text-slate-800")}>{snapshot.inverterTemperature !== undefined ? `${Math.round(snapshot.inverterTemperature)}°م` : "—"}</dd>
-            <dt className="text-slate-500">جهد مدخل الشبكة</dt><dd className="font-black text-slate-800">{/off.?grid|battery/i.test(snapshot.operatingMode ?? "") ? "غير مُقاس (منفصل)" : snapshot.gridVoltage !== undefined ? `${Math.round(snapshot.gridVoltage)} V` : "—"}</dd>
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 ring-1 ring-sky-100"><Cpu className="h-5 w-5" aria-hidden="true" /></span>
+            <div className="min-w-0">
+              <h2 className="text-sm font-black text-slate-900">حالة الإنفرتر</h2>
+              <p className="truncate text-[11px] font-bold text-slate-500">{inverterModeLabel(snapshot.operatingMode)}</p>
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2.5">
+            <div className="rounded-2xl bg-slate-50 p-3">
+              <span className="text-[11px] font-bold text-slate-500">الحمل من قدرته</span>
+              <strong className="mt-0.5 block text-lg font-black text-slate-900"><bdi dir="ltr">{snapshot.loadPercent !== undefined ? `${Math.round(snapshot.loadPercent)}%` : "—"}</bdi></strong>
+              {snapshot.loadPercent !== undefined && (
+                <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-slate-200"><span className="block h-full rounded-full bg-sky-500" style={{ width: `${Math.min(100, Math.max(2, snapshot.loadPercent))}%` }} /></span>
+              )}
+            </div>
+            <div className={"rounded-2xl p-3 " + ((snapshot.inverterTemperature ?? 0) >= 60 ? "bg-rose-50" : "bg-slate-50")}>
+              <span className="text-[11px] font-bold text-slate-500">الحرارة</span>
+              <strong className={"mt-0.5 block text-lg font-black " + ((snapshot.inverterTemperature ?? 0) >= 60 ? "text-rose-600" : "text-slate-900")}><bdi dir="ltr">{snapshot.inverterTemperature !== undefined ? `${Math.round(snapshot.inverterTemperature)} °C` : "—"}</bdi></strong>
+            </div>
+          </div>
+
+          <dl className="mt-3 divide-y divide-slate-100 text-[13px]">
+            {[
+              ["أولوية المصدر", outputPriorityLabel(snapshot.outputPriority)],
+              ["شحن البطارية", chargerPriorityLabel(snapshot.chargerPriority)],
+              ["جهد مدخل الشبكة", /off.?grid|battery/i.test(snapshot.operatingMode ?? "") ? "غير مُقاس (منفصل)" : snapshot.gridVoltage !== undefined ? `${Math.round(snapshot.gridVoltage)} V` : "—"],
+            ].map(([label, value]) => (
+              <div key={label} className="flex items-start justify-between gap-3 py-2">
+                <dt className="shrink-0 font-bold text-slate-500">{label}</dt>
+                <dd className="text-left font-black text-slate-800">{value}</dd>
+              </div>
+            ))}
           </dl>
         </section>
       )}

@@ -10,7 +10,7 @@ export type LoadPoint = { t: number; loadW: number; solarW: number; soc?: number
 const HOUR = 3_600_000;
 const W = 640;
 const H = 200;
-const PAD = { top: 10, right: 6, bottom: 26, left: 36 };
+const PAD = { top: 10, right: 6, bottom: 26, left: 46 };
 const SOLAR = "#f59e0b"; // amber: the app's solar colour
 const HOME = "#0ea5e9"; // sky: the app's home colour
 
@@ -98,8 +98,8 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
     <div className="space-y-3">
       <div className="space-y-3" dir="rtl">
         <div className="grid grid-cols-2 gap-3">
-          <StatTile big tone="sky" label="استهلاك المنزل" value={homeKWh.toFixed(1)} unit="ك.و.س" ampTone="sky" ampUnit="Ah" amps={(homeKWh * 1000) / AC_VOLTS} />
-          <StatTile big tone="amber" label="الإنتاج الشمسي" value={solarKWh.toFixed(1)} unit="ك.و.س" ampTone="amber" ampUnit="Ah" amps={(solarKWh * 1000) / AC_VOLTS} />
+          <StatTile big tone="sky" label="استهلاك المنزل" value={homeKWh.toFixed(1)} unit="kWh" ampTone="sky" ampUnit="Ah" amps={(homeKWh * 1000) / AC_VOLTS} />
+          <StatTile big tone="amber" label="الإنتاج الشمسي" value={solarKWh.toFixed(1)} unit="kWh" ampTone="amber" ampUnit="Ah" amps={(solarKWh * 1000) / AC_VOLTS} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <StatTile label="ذروة المنزل" value={peakHomeW === null ? "—" : kw(peakHomeW)} unit="kW" ampTone="sky" amps={peakHomeW === null ? null : peakHomeW / AC_VOLTS} />
@@ -118,7 +118,7 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
           {yTicks.map((v) => (
             <g key={v}>
               <line x1={PAD.left} x2={W - PAD.right} y1={y(v)} y2={y(v)} stroke="#eef2f6" strokeWidth={1} />
-              <text x={PAD.left - 6} y={y(v) + 4} textAnchor="end" fontSize={11} fill="#94a3b8">{kw(v)}</text>
+              <text x={PAD.left - 6} y={y(v) + 4} textAnchor="end" fontSize={11} fill="#94a3b8">{v === 0 ? "0" : `${+(v / 1000).toFixed(1)} kW`}</text>
             </g>
           ))}
 
