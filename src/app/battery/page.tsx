@@ -130,8 +130,6 @@ export default function BatteryPage() {
         />
         <Metric icon={Thermometer} tone="rose" label="حرارة البطارية" value={snapshot?.batteryTemperature != null ? snapshot.batteryTemperature.toFixed(1) + " °C" : "غير متاحة"} />
         <Metric icon={Clock} tone="sky" label={eta ? (eta.charging ? "اكتمال الشحن بعد" : "الوقت المتبقي") : "الوقت المتوقع"} value={eta ? eta.label : "—"} hint={eta ? "تقديري" : undefined} />
-        <Metric icon={Thermometer} label="حرارة الإنفرتر" value={snapshot?.inverterTemperature != null ? Math.round(snapshot.inverterTemperature) + " °C" : "—"} />
-        <Metric icon={Gauge} label="حمل الإنفرتر" value={snapshot?.loadPercent != null ? Math.round(snapshot.loadPercent) + "%" : "—"} hint="من قدرته القصوى" />
       </div>
       {eta && <p className="px-1 text-[11px] font-semibold text-slate-400">التقدير تقريبي: يُحسب من السعة المحفوظة في الإعدادات والقدرة الحالية، ويتغير مع تغيّر الحمل.</p>}
       {snapshot && snapshot.batteryTemperature == null && (

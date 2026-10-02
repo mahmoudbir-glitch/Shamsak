@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ChevronDown, Loader2, MoonStar, RefreshCw, SunMedium } from "lucide-react";
 import { useSharedSmartEnergy } from "@/components/smart-energy-provider";
-import { calculateAutonomy, weatherIcon, weatherLabel, type DayForecast, type LoadStability } from "@/lib/smart-forecast";
+import { calculateAutonomy, weatherIcon, weatherLabel, type LoadStability } from "@/lib/smart-forecast";
 import { InfoTip } from "@/components/info-tip";
 import { AmpPill } from "@/components/amp-pill";
 import { acAmpHours, acAmps } from "@/lib/energy";
@@ -24,27 +24,6 @@ function formatDate(iso: string) {
     day: "numeric",
     month: "short",
   }).format(new Date(iso + "T12:00:00"));
-}
-
-function addHour(iso: string) {
-  return new Date(new Date(iso).getTime() + 60 * 60 * 1000).toISOString();
-}
-
-function findSurplusWindow(day?: DayForecast) {
-  if (!day) return null;
-  const points = day.hourly.filter((point) => point.surplusKWh >= 0.3);
-  if (!points.length) return null;
-  const durationHours = points.length;
-  const totalKWh = points.reduce((sum, point) => sum + point.surplusKWh, 0);
-  const peakKw = Math.max(...points.map((point) => point.surplusKWh));
-  return {
-    start: points[0].time,
-    end: addHour(points[points.length - 1].time),
-    kwh: Math.round(totalKWh * 10) / 10,
-    averageKw: Math.round((totalKWh / Math.max(1, durationHours)) * 10) / 10,
-    peakKw: Math.round(peakKw * 10) / 10,
-    durationHours,
-  };
 }
 
 function NightCard({
@@ -113,7 +92,7 @@ function NightCard({
           <span className={confidence === "عالية" ? "rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700" : confidence === "متوسطة" ? "rounded-full bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-700" : confidence === "منخفضة" ? "rounded-full bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700" : "rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600"}>ثقة استقرار الاستهلاك: {confidence}</span>
           <span className="text-xs">عينات ليلية: {sampleCount}</span>
         </div>
-        {!hasEnoughSamples && <p className="text-xs font-bold text-slate-600">يلزم توفر 3 أيام ليلية على الأقل قبل عرض نسبة ثقة رقمية.</p>}
+        {!hasEnoughSamples && <p className="text-xs font-bold text-slate-600">تظهر النسبة بعد تجمّع قراءات ليلية كافية.</p>}
         {averageNightLoadW === null && <p className="text-xs text-slate-500">لا توجد بيانات تاريخية ليلية كافية بعد؛ استُخدمت القراءة الحالية مؤقتًا.</p>}
       </div>
     </div>
@@ -133,7 +112,6 @@ export function SmartForecast({ afterDay }: { afterDay?: React.ReactNode } = {})
 
   const selected = forecasts[selectedIndex];
   const current = weather?.current;
-  const surplus = useMemo(() => findSurplusWindow(selected), [selected]);
 
   // Arriving from the home card ("/energy#night"): the section only exists
   // after the forecast loads, so scroll once it is rendered.

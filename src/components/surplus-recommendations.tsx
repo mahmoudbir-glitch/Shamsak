@@ -67,13 +67,6 @@ export function SurplusRecommendations() {
             <p className="text-xs font-semibold text-slate-500">ساعات الفائض وما يمكن تشغيله فيها.</p>
           </div>
         </div>
-        {best && (
-          <div className="hidden shrink-0 rounded-2xl bg-amber-50 px-3 py-2 text-center text-amber-800 ring-1 ring-amber-100 sm:block">
-            <span className="block text-[10px] font-bold text-amber-600">الفائض المتوقع</span>
-            <strong className="mt-1 block text-lg font-black"><bdi dir="ltr">{Math.round(best.kwh * 10) / 10} kWh</bdi></strong>
-            <span className="mt-1.5 block"><AmpPill tone="amber" unit="Ah" amps={acAmpHours(best.kwh)} /></span>
-          </div>
-        )}
       </div>
 
       {loading && (

@@ -153,8 +153,6 @@ export default function HomeConsumptionPage() {
           <p className="py-6 text-center text-xs font-semibold text-slate-400">يظهر المنحنى بعد تجمّع قراءات كافية (نحو ساعة من الاستخدام).</p>
         )}
       </section>
-
-      <p className="px-1 text-[11px] font-semibold leading-5 text-slate-400">تفصيل كل غرفة أو جهاز يحتاج حساسات أحمال مستقلة، ولا نعرض أرقاماً مختلقة.</p>
     </div>
   );
 }

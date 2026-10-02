@@ -68,10 +68,8 @@ export default function MoneyDashboard() {
   const [data, setData] = useState<FinanceData | null>(null);
   const [tariff, setTariff] = useState(0);
   const [exportTariff, setExportTariff] = useState(0);
-  const [prefsOpen, setPrefsOpen] = useState({ money: false, alerts: false });
-  const [currency, setCurrency] = useState("ل.س");
-  const [notifySurplus, setNotifySurplus] = useState(true);
-  const [notifyLowBattery, setNotifyLowBattery] = useState(true);
+  const [prefsOpen, setPrefsOpen] = useState(false);
+  const [currency, setCurrency] = useState("USD");
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -81,12 +79,6 @@ export default function MoneyDashboard() {
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   useEffect(() => {
-    const savedNotifySurplus = localStorage.getItem("shamsak_notify_surplus");
-    const savedNotifyLowBattery = localStorage.getItem("shamsak_notify_low_battery");
-
-    if (savedNotifySurplus !== null) setNotifySurplus(savedNotifySurplus !== "false");
-    if (savedNotifyLowBattery !== null) setNotifyLowBattery(savedNotifyLowBattery !== "false");
-
     Promise.all([
       fetch("/api/settings", { cache: "no-store" }),
       fetch("/api/finance", { cache: "no-store" }),
@@ -96,7 +88,7 @@ export default function MoneyDashboard() {
           const settings = await settingsResponse.json();
           setTariff(Number(settings.gridTariff || 0));
           setExportTariff(Number(settings.exportTariff || 0));
-          setCurrency(String(settings.currency || "ل.س"));
+          setCurrency(String(settings.currency || "USD"));
           setSettingsLoaded(true);
         }
 
@@ -153,8 +145,6 @@ export default function MoneyDashboard() {
 
       if (!response.ok) throw new Error("settings_save_failed");
 
-      localStorage.setItem("shamsak_notify_surplus", String(notifySurplus));
-      localStorage.setItem("shamsak_notify_low_battery", String(notifyLowBattery));
       setSaved(true);
       window.setTimeout(() => setSaved(false), 3000);
     } catch {
@@ -285,7 +275,7 @@ export default function MoneyDashboard() {
         </>
       )}
 
-      <details onToggle={(e) => { const open = e.currentTarget.open; setPrefsOpen((v) => ({ ...v, money: open })); }} className="group rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+      <details onToggle={(e) => { const open = e.currentTarget.open; setPrefsOpen(open); }} className="group rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 [&::-webkit-details-marker]:hidden">
           <div>
             <h2 className="text-base font-black text-slate-950">⚙️ التفضيلات المالية</h2>
@@ -301,45 +291,22 @@ export default function MoneyDashboard() {
             <label className="space-y-1.5">
               <span className="text-[11px] font-black text-slate-700">العملة</span>
               <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={selectClass}>
-                <option value="ل.س">ليرة سورية (ل.س)</option>
                 <option value="USD">دولار أمريكي ($)</option>
-                <option value="LBP">ليرة لبنانية (L.B.P)</option>
+                <option value="LBP">ليرة لبنانية (LBP)</option>
+                <option value="SYP">ليرة سورية (SYP)</option>
               </select>
             </label>
 
             <label className="space-y-1.5">
               <span className="text-[11px] font-black text-slate-700">سعر شراء الشبكة / kWh</span>
-              <input type="number" min="0" value={tariff} onChange={(e) => setTariff(Number(e.target.value))} className={inputClass} />
+              <input type="number" inputMode="decimal" min="0" step="0.01" value={tariff} onChange={(e) => setTariff(Number(e.target.value))} className={inputClass} />
             </label>
 
             <label className="space-y-1.5">
               <span className="text-[11px] font-black text-slate-700">سعر تصدير الفائض / kWh</span>
-              <input type="number" min="0" value={exportTariff} onChange={(e) => setExportTariff(Number(e.target.value))} className={inputClass} />
+              <input type="number" inputMode="decimal" min="0" step="0.01" value={exportTariff} onChange={(e) => setExportTariff(Number(e.target.value))} className={inputClass} />
             </label>
           </div>
-        </div>
-      </details>
-
-      <details onToggle={(e) => { const open = e.currentTarget.open; setPrefsOpen((v) => ({ ...v, alerts: open })); }} className="group rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 [&::-webkit-details-marker]:hidden">
-          <div>
-            <h2 className="text-base font-black text-slate-950">🔔 التنبيهات المالية والطاقة</h2>
-            <p className="mt-0.5 text-[11px] font-semibold text-slate-500">اختر التنبيهات التي تريدها</p>
-          </div>
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-slate-600 group-open:bg-amber-50 group-open:text-amber-700">
-            إعداد
-          </span>
-        </summary>
-
-        <div className="space-y-2 border-t border-slate-100 p-4">
-          <label className="flex min-h-14 cursor-pointer items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-700">
-            <span>تنبيهي عند وجود فائض طاقة غير مستغل</span>
-            <input type="checkbox" checked={notifySurplus} onChange={(e) => setNotifySurplus(e.target.checked)} className="h-5 w-5 shrink-0 accent-amber-500" />
-          </label>
-          <label className="flex min-h-14 cursor-pointer items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-700">
-            <span>تنبيهي عند اقتراب البطارية من حد الأمان (10%)</span>
-            <input type="checkbox" checked={notifyLowBattery} onChange={(e) => setNotifyLowBattery(e.target.checked)} className="h-5 w-5 shrink-0 accent-emerald-500" />
-          </label>
         </div>
       </details>
 
@@ -356,7 +323,7 @@ export default function MoneyDashboard() {
       )}
 
       {/* The save button is only needed while a preferences panel is open. */}
-      {(prefsOpen.money || prefsOpen.alerts || saving) && <button
+      {(prefsOpen || saving) && <button
         type="button"
         onClick={handleSave}
         disabled={saving || !settingsLoaded}
