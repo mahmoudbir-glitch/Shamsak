@@ -100,7 +100,7 @@ function NightCard({
 }
 
 export function SmartForecast({ afterDay }: { afterDay?: React.ReactNode } = {}) {
-  const { forecasts, weather, snapshot, loading, isRefreshing, error, nightLoadStats, batteryCapacityWh, reservePct, refresh } = useSharedSmartEnergy();
+  const { forecasts, weather, snapshot, loading, isRefreshing, error, nightLoadStats, calibration, batteryCapacityWh, reservePct, refresh } = useSharedSmartEnergy();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -196,6 +196,15 @@ export function SmartForecast({ afterDay }: { afterDay?: React.ReactNode } = {})
             <span className="text-base leading-none">{weatherIcon(current.weather_code ?? 0)}</span>
             <span className="text-xs font-black text-slate-700">الآن: {weatherLabel(current.weather_code ?? 0)} · <bdi dir="ltr">{Math.round(current.temperature_2m ?? 0)}°</bdi></span>
           </div>
+        )}
+
+        {/* The forecast is scaled to what these panels really delivered on recent days. */}
+        {calibration && (
+          <p className="mt-2 text-[11px] font-bold leading-5 text-slate-500" title={`مقارنة ${calibration.hours} ساعة شمس: أنتجت الألواح ${calibration.measuredKWh} kWh مقابل ${calibration.expectedKWh} kWh في التقدير النظري`}>
+            {calibration.status === "calibrated"
+              ? <>🎯 التوقع معايَر على إنتاج ألواحك الفعلي في آخر {calibration.days} أيام: تعطي ألواحك <bdi dir="ltr">{Math.round(calibration.factor * 100)}%</bdi> من التقدير النظري.</>
+              : <>⏳ التوقع يتعلّم من إنتاج ألواحك الفعلي، ويصبح أدق بعد يومين مشمسين تقريباً.</>}
+          </p>
         )}
 
         {error && <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm font-bold text-amber-800">{error}.</p>}

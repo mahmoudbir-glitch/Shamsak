@@ -4,6 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { EnergySnapshot } from "@/lib/energy";
 import { calculateLoadStability, estimateSolarKWh, weatherConfidence, type DayForecast, type HourlySolarPoint, type LoadStabilityResult } from "@/lib/smart-forecast";
 import { startVisiblePolling } from "@/lib/visible-polling";
+import type { Calibration } from "@/lib/solar-core";
+
+/** Learned from the owner's own stored readings (see /api/forecast/calibration). */
+type LearnedProfile = { calibration: Calibration; night: LoadStabilityResult };
 
 type WeatherResponse = {
   hourly?: {
@@ -175,6 +179,7 @@ export function useSmartEnergy() {
   const [batteryCapacityWh, setBatteryCapacityWh] = useState(4800);
   const [reservePct, setReservePct] = useState(SAFETY_RESERVE);
   const [nightLoadStats, setNightLoadStats] = useState<LoadStabilityResult>({ averageW: null, coefficientOfVariation: null, confidence: "غير كافية", sampleCount: 0 });
+  const [calibration, setCalibration] = useState<Calibration | null>(null);
 
   const load = useCallback(async (mode: "initial" | "refresh" = "refresh"): Promise<boolean> => {
     if (mode === "initial") setLoading(true);
@@ -187,6 +192,10 @@ export function useSmartEnergy() {
 
       // A failed live reading must not block the weather forecast.
       const telemetryPromise = fetch("/api/telemetry", { cache: "no-store" }).catch(() => null);
+      // Optional: without it the forecast runs on the plain weather estimate.
+      const learnedPromise = fetch("/api/forecast/calibration", { cache: "no-store" })
+        .then((response) => (response.ok ? (response.json() as Promise<LearnedProfile>) : null))
+        .catch(() => null);
       const weatherUrl = new URL("https://api.open-meteo.com/v1/forecast");
       weatherUrl.searchParams.set("latitude", String(latitude));
       weatherUrl.searchParams.set("longitude", String(longitude));
@@ -211,11 +220,14 @@ export function useSmartEnergy() {
         weatherUrl.searchParams.set("azimuth", String(clamp(((site.panelAzimuth! % 360) + 360) % 360 - 180, -180, 180)));
       }
 
-      const [telemetryResponse, weatherResponse] = await Promise.all([
+      const [telemetryResponse, weatherResponse, learned] = await Promise.all([
         telemetryPromise,
         // A hung or failed weather call must not hold back the live reading.
         fetch(weatherUrl.toString(), { cache: "no-store", signal: typeof AbortSignal.timeout === "function" ? AbortSignal.timeout(12_000) : undefined }).catch(() => null),
+        learnedPromise,
       ]);
+      const solarFactor = learned?.calibration?.status === "calibrated" && Number.isFinite(learned.calibration.factor) ? learned.calibration.factor : 1;
+      setCalibration(learned?.calibration ?? null);
 
       let nextSnapshot: EnergySnapshot | null = snapshotRef.current;
       if (telemetryResponse?.ok) {
@@ -227,7 +239,9 @@ export function useSmartEnergy() {
       // the previous forecast stays on screen with an error note.
       snapshotRef.current = nextSnapshot;
       setSnapshot(nextSnapshot);
-      const loadStats = updateNightLoadHistory(nextSnapshot);
+      // Stored readings know every night, not only the nights the app was open.
+      const browserStats = updateNightLoadHistory(nextSnapshot);
+      const loadStats = learned?.night && learned.night.sampleCount >= 8 ? learned.night : browserStats;
       setNightLoadStats(loadStats);
 
       const nextWeather = weatherResponse?.ok ? ((await weatherResponse.json().catch(() => null)) as WeatherResponse | null) : null;
@@ -261,7 +275,7 @@ export function useSmartEnergy() {
           // shifted the whole solar day one hour late.
           const j = i + 1;
           const irradiance = (useTilted ? hourly.global_tilted_irradiance?.[j] : undefined) ?? hourly.shortwave_radiation?.[j] ?? 0;
-          const solarKWh = estimateSolarKWh(irradiance, panelCapacityKw);
+          const solarKWh = estimateSolarKWh(irradiance, panelCapacityKw) * solarFactor;
           return {
             time,
             irradianceWm2: irradiance,
@@ -423,6 +437,7 @@ export function useSmartEnergy() {
     isRefreshing,
     error,
     nightLoadStats,
+    calibration,
     batteryCapacityWh,
     reservePct,
     refresh: () => load("refresh"),

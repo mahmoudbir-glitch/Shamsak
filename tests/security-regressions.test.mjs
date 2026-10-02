@@ -525,3 +525,49 @@ test("details onToggle reads the open state before the state updater runs", () =
   assert.doesNotMatch(source, /setPrefsOpen\(\(v\) => \(\{ \.\.\.v, \w+: e\.currentTarget\.open/);
   assert.match(source, /const open = e\.currentTarget\.open;/);
 });
+
+// Type-stripping Node (22.18+) can load the pure solar helpers directly; CI on
+// Node 20 skips these and relies on the source checks below.
+const canLoadTs = Boolean(process.features?.typescript);
+
+test("sun times for Saida match the weather service within a few minutes", { skip: !canLoadTs }, async () => {
+  const { sunTimes } = await import("../src/lib/solar-core.ts");
+  const { sunrise, sunset } = sunTimes(new Date("2026-10-02T17:30:00Z"), 33.5911, 35.4061);
+  // Open-Meteo: sunrise 06:32, sunset 18:21 Beirut (UTC+3) on 2 Oct 2026.
+  assert.ok(Math.abs(sunrise.getTime() - Date.parse("2026-10-02T03:32:00Z")) < 5 * 60_000, sunrise.toISOString());
+  assert.ok(Math.abs(sunset.getTime() - Date.parse("2026-10-02T15:21:00Z")) < 5 * 60_000, sunset.toISOString());
+});
+
+test("panel calibration ignores throttled hours and waits for enough data", { skip: !canLoadTs }, async () => {
+  const { calibrationFactor } = await import("../src/lib/solar-core.ts");
+  const expected = new Map();
+  const rows = [];
+  for (const day of ["2026-10-01", "2026-10-02"]) {
+    for (const h of [9, 10, 11, 12, 13]) {
+      const hour = `${day}T${String(h).padStart(2, "0")}:00`;
+      expected.set(hour, 1.0);
+      rows.push({ hour, pvW: 800, socMax: 70, batteryW: 900, samples: 12 });
+    }
+  }
+  // A full battery and a charge-limited hour both under-report the panels.
+  rows[0] = { ...rows[0], pvW: 200, socMax: 100 };
+  rows[1] = { ...rows[1], pvW: 300, batteryW: 2600 };
+  const result = calibrationFactor(rows, expected, "2026-10-02T20:00");
+  assert.equal(result.status, "calibrated");
+  assert.equal(result.factor, 0.8);
+  assert.equal(result.hours, 8);
+  const early = calibrationFactor(rows.slice(0, 4), expected, "2026-10-02T20:00");
+  assert.equal(early.status, "learning");
+  assert.equal(early.factor, 1);
+});
+
+test("forecast applies the learned calibration and the night check never breaks the sync", () => {
+  const hook = read("src/hooks/use-smart-energy.ts");
+  assert.match(hook, /estimateSolarKWh\(irradiance, panelCapacityKw\) \* solarFactor/);
+  assert.match(hook, /status === "calibrated"/);
+  const sync = read("src/app/api/telemetry/sync/route.ts");
+  assert.match(sync, /const result = await syncSmartEss\(\);\s*\/\/[^\n]*\n\s*\/\/[^\n]*\n\s*await runNightCheck\(\)\.catch\(/);
+  const night = read("src/lib/night-check.ts");
+  assert.match(night, /action: ACTION, timestamp: \{ gte: sunset \}/);
+  assert.match(night, /console\.info\(`\[night\] check verdict=/);
+});

@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { syncSmartEss } from "@/lib/smartess-sync";
+import { runNightCheck } from "@/lib/night-check";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,6 +25,9 @@ async function handle(request: NextRequest) {
   if (!process.env.CRON_SECRET) return NextResponse.json({ error: "cron_not_configured" }, { status: 503 });
   if (!authorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const result = await syncSmartEss();
+  // Right after sunset, once per evening: will the battery last the night?
+  // A failure here must never affect the sync's own result.
+  await runNightCheck().catch((error) => console.error("[night] check_failed", error));
   // Keep the body tiny: cron-job.org only needs the status code.
   const body = result.ok
     ? { ok: true }
