@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { AmpPill } from "@/components/amp-pill";
 import { AC_VOLTS, batteryAmpHours } from "@/lib/energy";
-import { AlertCircle, Bell, CheckCircle2, ChevronDown, Cpu, Database, Eye, EyeOff, Plug, Plus, Radio, RotateCcw, Save, Settings as SettingsIcon, ShieldCheck, X, type LucideIcon } from "lucide-react";
+import { AlertCircle, Bell, CheckCircle2, ChevronDown, Cpu, Database, Eye, EyeOff, Plug, Plus, Radio, RotateCcw, Save, Settings as SettingsIcon, X, type LucideIcon } from "lucide-react";
 
 type Protocol = "Modbus RTU" | "Modbus TCP" | "MQTT" | "Cloud API" | "Wi-Fi Datalogger";
 type ConnectionMode = "local" | "gateway";
@@ -314,7 +314,7 @@ export default function SettingsPage() {
 
   return (
     <div dir="rtl" className="w-full space-y-3 overflow-x-hidden pb-4 text-right">
-      <PageHeader icon={SettingsIcon} tone="rose" eyebrow="شمسك • الإعدادات" title="إعدادات المنظومة" subtitle="الاتصال، العتاد، الحماية، التنبيهات والبيانات." />
+      <PageHeader icon={SettingsIcon} tone="rose" eyebrow="شمسك • الإعدادات" title="إعدادات المنظومة" subtitle="الاتصال، العتاد، التنبيهات والبيانات." />
 
       {/* نظرة سريعة على المنظومة */}
       {!query.trim() && (
@@ -450,35 +450,6 @@ export default function SettingsPage() {
           <SettingsField label="المنطقة الزمنية"><input value={settings.timezone} onChange={(e) => updateSetting("timezone", e.target.value)} className={input} dir="ltr" /></SettingsField>
           </div>
         </AdvancedBlock>
-      </SettingsSection>
-
-      <SettingsSection icon={ShieldCheck} tone="emerald" summary={<bdi dir="ltr">{`${settings.outputSourcePriority} · ${settings.bulkChargeVoltage ?? "—"} V`}</bdi>} query={query} keywords="شحن جهد Bulk Float Cut-off تيار أولوية Safe Zone حماية" onReset={() => resetSection(["bulkChargeVoltage","floatChargeVoltage","lowDcCutoffVoltage","backToGridVoltage","maxChargeCurrentA","batteryMaxChargeA","outputSourcePriority","chargerSourcePriority"], "الشحن والحماية")} title="الشحن والحماية" subtitle="جهود الشحن وأولوية المصدر">
-        <p className="rounded-xl bg-amber-50 p-3 text-xs font-bold leading-5 text-amber-900">اعتمد قيم شركة البطارية وBMS. شمسك يرفض الحفظ إن كان Low DC Cut-off ≥ Back to Grid أو Float ≥ Bulk.</p>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <SettingsField label={<>Bulk / CV <bdi dir="ltr">(V)</bdi></>}><input dir="ltr" type="number" step="0.1" min={20} max={60} value={settings.bulkChargeVoltage ?? ""} onChange={(e) => updateSetting("bulkChargeVoltage", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
-          <SettingsField label={<>Float <bdi dir="ltr">(V)</bdi></>}><input dir="ltr" type="number" step="0.1" min={20} max={60} value={settings.floatChargeVoltage ?? ""} onChange={(e) => updateSetting("floatChargeVoltage", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
-          <SettingsField label={<>Low DC Cut-off <bdi dir="ltr">(V)</bdi></>}><input dir="ltr" type="number" step="0.1" min={15} max={60} value={settings.lowDcCutoffVoltage ?? ""} onChange={(e) => updateSetting("lowDcCutoffVoltage", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
-          <SettingsField label={<>Back to Grid <bdi dir="ltr">(V)</bdi></>}><input dir="ltr" type="number" step="0.1" min={15} max={60} value={settings.backToGridVoltage ?? ""} onChange={(e) => updateSetting("backToGridVoltage", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
-          <SettingsField label={<>Max Charge Current <bdi dir="ltr">(A)</bdi></>}><input dir="ltr" type="number" step="1" min={1} max={300} value={settings.maxChargeCurrentA ?? ""} onChange={(e) => updateSetting("maxChargeCurrentA", e.target.value ? Number(e.target.value) : null)} className={input} /></SettingsField>
-          <SettingsField label="Output Source Priority"><select value={settings.outputSourcePriority} onChange={(e) => updateSetting("outputSourcePriority", e.target.value as "SBU" | "SUB" | "UTI")} className={input}><option value="SBU">SBU first — شمسي ← بطارية ← شبكة</option><option value="SUB">Solar first — شمسي ← شبكة ← بطارية</option><option value="UTI">Utility first — الشبكة أولاً</option></select></SettingsField>
-          <SettingsField label="Charger Source Priority"><select value={settings.chargerSourcePriority} onChange={(e) => updateSetting("chargerSourcePriority", e.target.value as "CSO" | "SNU")} className={input}><option value="CSO">CSO — شمسي فقط</option><option value="SNU">SNU — شمسي + شبكة</option></select></SettingsField>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => {
-            const v = settings.batteryNominalVoltage;
-            const lithium = settings.batteryChemistry === "LiFePO4" || settings.batteryChemistry === "Lithium-ion";
-            if (v === 24) {
-              updateSetting("bulkChargeVoltage", 28.2); updateSetting("floatChargeVoltage", 27.0);
-              updateSetting("lowDcCutoffVoltage", lithium ? 22.5 : 21.5); updateSetting("backToGridVoltage", 23.0);
-            } else {
-              updateSetting("bulkChargeVoltage", 56.4); updateSetting("floatChargeVoltage", 54.0);
-              updateSetting("lowDcCutoffVoltage", lithium ? 45.0 : 43.0); updateSetting("backToGridVoltage", 46.0);
-            }
-            updateSetting("maxChargeCurrentA", lithium ? 50 : 30); updateSetting("batteryMaxChargeA", lithium ? 50 : 30);
-            updateSetting("outputSourcePriority", "SBU"); updateSetting("chargerSourcePriority", "CSO");
-            setMessage("تم تحميل قالب Safe Zone على الحقول. اضغط «حفظ» لتطبيقه داخل شمسك."); setError("");
-          }} className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700"><ShieldCheck className="ml-1.5 inline h-4 w-4" aria-hidden="true" />تحميل Safe Zone</button>
-        </div>
       </SettingsSection>
 
       <SettingsSection icon={Bell} tone="rose" summary={`منخفضة ${settings.lowBatteryPct}% · حرجة ${settings.criticalBatteryPct}%`} query={query} keywords="تنبيه بطارية منخفضة حرجة انقطاع تحميل زائد هدوء بريد" onReset={() => resetSection(["lowBatteryPct","criticalBatteryPct","offlineMinutes","overloadPct","gridOutageAlert","faultAlert","channels","quietHoursStart","quietHoursEnd"], "التنبيهات")} title="التنبيهات" subtitle="حدود البطارية والانقطاع والأعطال">

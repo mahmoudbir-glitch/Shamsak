@@ -117,9 +117,7 @@ test("output source priority covers every option the inverter offers", () => {
   // SmartESS exposes three: Utility first / Solar first / SBU first. With only
   // SBU and SUB, an installation set to Utility first could not be represented.
   const route = read("src/app/api/settings/route.ts");
-  const page = read("src/app/settings/page.tsx");
   assert.match(route, /outputSourcePriority: z\.enum\(\["SBU", "SUB", "UTI"\]\)/);
-  assert.match(page, /value="UTI"/);
 });
 
 test("nameplate limits match the Victor Max-8.2KW rating label", () => {
