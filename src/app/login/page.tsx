@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { Sun } from "lucide-react";
 import LoginForm from "@/components/login-form";
 
 export const dynamic = "force-dynamic";
@@ -30,13 +29,11 @@ export default function LoginPage() {
 
       <section className="relative w-full max-w-sm rounded-[2rem] border border-slate-200/70 bg-white/90 px-6 pb-6 pt-8 shadow-[0_24px_60px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:px-8">
         <header className="flex flex-col items-center text-center">
-          {/* logo: sun tile inside two concentric rings */}
+          {/* logo: the app's ☀️, twinkling as in the header, inside two concentric rings */}
           <div className="relative flex h-24 w-24 items-center justify-center">
             <span className="absolute inset-0 rounded-full border border-dashed border-slate-200" />
             <span className="absolute inset-3 rounded-full border border-slate-100 bg-slate-50" />
-            <span className="relative flex h-14 w-14 items-center justify-center rounded-[1.1rem] border border-amber-200 bg-amber-50 shadow-sm">
-              <Sun className="h-8 w-8 text-amber-500" strokeWidth={2.2} aria-hidden="true" />
-            </span>
+            <span className="sun-twinkle relative text-5xl leading-none" aria-hidden="true">☀️</span>
           </div>
           <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900">شمسك</h1>
           <p className="mt-1 text-sm font-semibold text-slate-500">الشمس تعمل من أجلك</p>
