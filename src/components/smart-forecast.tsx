@@ -5,6 +5,7 @@ import { ChevronDown, CloudSun, Loader2, MoonStar, RefreshCw, SunMedium } from "
 import { useSharedSmartEnergy } from "@/components/smart-energy-provider";
 import { calculateAutonomy, weatherIcon, weatherLabel, type DayForecast, type LoadStability } from "@/lib/smart-forecast";
 import { InfoTip } from "@/components/info-tip";
+import { ForecastSocTimeline } from "@/components/forecast-soc-timeline";
 import { AmpPill } from "@/components/amp-pill";
 import { acAmpHours, acAmps } from "@/lib/energy";
 
@@ -243,9 +244,22 @@ export function SmartForecast() {
             <span className="block text-xs font-black">{day.label}</span>
             <span className="mt-1 block text-lg">{weatherIcon(day.weatherCode)}</span>
             <span className="block text-[11px] font-bold">{formatDate(day.date)}</span>
+            <span className={"mt-1 block whitespace-nowrap text-xs font-black " + (selectedIndex === index ? "text-amber-700" : "text-slate-700")}>
+              نحو <bdi dir="ltr">{Math.round(day.productionKWh)}</bdi> ك.و.س
+            </span>
           </button>
         ))}
       </div>
+
+      {forecasts.length > 0 && (
+        <section className="energy-card p-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h2 className="text-sm font-black text-slate-900">البطارية خلال الأيام القادمة</h2>
+            <span className="text-[11px] font-bold text-slate-400">توقع من الطقس واستهلاكك</span>
+          </div>
+          <ForecastSocTimeline forecasts={forecasts} reservePct={reservePct} />
+        </section>
+      )}
 
       {selected && (
         <>

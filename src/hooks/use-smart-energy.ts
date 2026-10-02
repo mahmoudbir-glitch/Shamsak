@@ -327,6 +327,7 @@ export function useSmartEnergy() {
             const f = clamp((minute - from) / Math.max(1, 60 - from), 0, 1);
             return (hourStartWh + (modeledBatteryWh - hourStartWh) * f) / batteryCapacityWh * 100;
           };
+          point.socPct = Math.round((modeledBatteryWh / batteryCapacityWh) * 1000) / 10;
           if (sunrise && !sunriseSet && point.time.slice(0, 13) === sunrise.slice(0, 13)) {
             sunriseSoc = levelAt(sunrise);
             sunriseSet = true;

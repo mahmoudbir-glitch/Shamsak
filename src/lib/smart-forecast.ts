@@ -7,6 +7,8 @@ export type HourlySolarPoint = {
   surplusKWh: number;
   directRadiationWm2?: number;
   diffuseRadiationWm2?: number;
+  /** Modelled battery level (%) at the end of this hour; absent for hours already past. */
+  socPct?: number;
 };
 
 export type DayForecast = {

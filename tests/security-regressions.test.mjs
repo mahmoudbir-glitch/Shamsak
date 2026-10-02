@@ -503,3 +503,9 @@ test("polling pauses while the app is hidden", () => {
     assert.doesNotMatch(read(file), /window\.setInterval\(/, file);
   }
 });
+
+test("forecast exposes an hourly battery level and a multi-day timeline", () => {
+  assert.match(read("src/hooks/use-smart-energy.ts"), /point\.socPct = /);
+  assert.match(read("src/components/smart-forecast.tsx"), /<ForecastSocTimeline /);
+  assert.match(read("src/components/forecast-soc-timeline.tsx"), /fullChargeTime/);
+});
