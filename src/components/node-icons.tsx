@@ -72,8 +72,7 @@ export function InverterIcon({ active = true, className = "h-10 w-10" }: { activ
           <stop offset="100%" stopColor={active ? "#f97316" : "#94a3b8"} />
         </linearGradient>
       </defs>
-      <path d="M27.5 3 L12 25.5 H22.5 L19.5 41 L36 17.5 H25.5 Z" fill={`url(#bolt-${id})`} stroke={active ? "#ea580c" : "#94a3b8"} strokeWidth="1.6" />
-      <path d="M4 40.5 C8 35, 12 35, 16 40.5 S24 46, 28 40.5 S36 35, 40 40.5 S44 44, 46 42" fill="none" stroke={active ? "#0ea5e9" : "#cbd5e1"} strokeWidth="2.4" />
+      <path transform="translate(0 2)" d="M27.5 3 L12 25.5 H22.5 L19.5 41 L36 17.5 H25.5 Z" fill={`url(#bolt-${id})`} stroke={active ? "#ea580c" : "#94a3b8"} strokeWidth="1.6" />
     </svg>
   );
 }
