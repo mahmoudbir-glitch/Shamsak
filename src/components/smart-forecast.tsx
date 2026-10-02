@@ -5,7 +5,6 @@ import { ChevronDown, Loader2, MoonStar, RefreshCw, SunMedium } from "lucide-rea
 import { useSharedSmartEnergy } from "@/components/smart-energy-provider";
 import { calculateAutonomy, weatherIcon, weatherLabel, type DayForecast, type LoadStability } from "@/lib/smart-forecast";
 import { InfoTip } from "@/components/info-tip";
-import { ForecastSocTimeline } from "@/components/forecast-soc-timeline";
 import { AmpPill } from "@/components/amp-pill";
 import { acAmpHours, acAmps } from "@/lib/energy";
 
@@ -124,7 +123,6 @@ function NightCard({
 export function SmartForecast({ afterDay }: { afterDay?: React.ReactNode } = {}) {
   const { forecasts, weather, snapshot, loading, isRefreshing, error, nightLoadStats, batteryCapacityWh, reservePct, refresh } = useSharedSmartEnergy();
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [showHourlyDetails, setShowHourlyDetails] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -273,7 +271,16 @@ export function SmartForecast({ afterDay }: { afterDay?: React.ReactNode } = {})
                 <strong className="mt-1 block text-2xl font-black text-emerald-700">{selected.confidence}</strong>
               </div>
             </div>
-            {/* Battery levels for each day are in their own cards; here only the sun times. */}
+            {/* The selected day's battery in one line: level at sunrise/now → sunset, and when it fills. */}
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-emerald-50/70 px-4 py-3">
+              <span className="text-xs font-bold text-slate-500">🔋 البطارية</span>
+              <span className="text-sm font-black text-slate-900">
+                <span className="text-slate-400">{selectedIndex === 0 && Date.now() > new Date(selected.sunrise).getTime() ? "الآن" : "الشروق"}</span> <bdi dir="ltr">{selected.chargeAtSunrisePct}%</bdi>
+                <span className="mx-2 text-slate-300">←</span>
+                <span className="text-slate-400">الغروب</span> <bdi dir="ltr" className="text-emerald-700">{selected.chargeAtSunsetPct}%</bdi>
+              </span>
+              <span className="w-full text-[11px] font-bold text-slate-500">{selected.fullChargeTime ? <>تمتلئ نحو <bdi dir="ltr" className="font-black text-emerald-700">{formatHour(selected.fullChargeTime)}</bdi></> : "لا يُتوقع أن تمتلئ هذا اليوم"}</span>
+            </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-indigo-50/70 p-4">
                 <span className="text-xs font-bold text-slate-500">🌅 الشروق</span>
@@ -291,15 +298,6 @@ export function SmartForecast({ afterDay }: { afterDay?: React.ReactNode } = {})
 
       {afterDay}
 
-      {forecasts.length > 0 && (
-        <section className="energy-card p-4">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <h2 className="text-sm font-black text-slate-900">البطارية خلال الأيام القادمة</h2>
-            <span className="text-[11px] font-bold text-slate-400">توقع من الطقس واستهلاكك</span>
-          </div>
-          <ForecastSocTimeline forecasts={forecasts} reservePct={reservePct} capacityWh={batteryCapacityWh} />
-        </section>
-      )}
 
       {selected && (
         <>
@@ -344,36 +342,6 @@ export function SmartForecast({ afterDay }: { afterDay?: React.ReactNode } = {})
             </div>
           </details>
 
-          <section id="hourly-details" className="energy-card p-5">
-            <button
-              type="button"
-              onClick={() => setShowHourlyDetails((value) => !value)}
-              className="flex w-full items-center justify-between gap-2 text-right"
-              aria-expanded={showHourlyDetails}
-              aria-controls="hourly-details-content"
-            >
-              <h2 className="text-lg font-black text-slate-900">تفصيل الساعات</h2>
-              <ChevronDown size={20} className={"text-slate-400 transition-transform " + (showHourlyDetails ? "rotate-180" : "")} />
-            </button>
-            {showHourlyDetails && (
-            <div id="hourly-details-content" className="mt-4 space-y-2">
-              {selected.hourly.map((point) => (
-                <div key={point.time} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl bg-slate-50 p-3">
-                  <span className="text-xs font-black text-slate-500">{formatHour(point.time)}</span>
-                  <div>
-                    <div className="flex items-center gap-2 text-sm font-black text-slate-800">
-                      <span>{weatherIcon(point.weatherCode)}</span>
-                      <span>{Math.round(point.irradianceWm2)} W/m²</span>
-                    </div>
-                    <span className="text-xs font-semibold text-slate-500">إنتاج متوقع <bdi dir="ltr">{point.solarKWh.toFixed(2)} kWh</bdi> • مطر {Math.round(point.precipitationProbability)}%</span>
-                    {point.solarKWh > 0 && <span className="mt-1 block"><AmpPill tone="amber" amps={acAmps(point.solarKWh * 1000)} /></span>}
-                  </div>
-                  <span className="flex flex-col items-end gap-1 text-xs font-black text-amber-700">فائض {point.surplusKWh.toFixed(2)}{point.surplusKWh > 0 && <AmpPill tone="amber" amps={acAmps(point.surplusKWh * 1000)} />}</span>
-                </div>
-              ))}
-            </div>
-            )}
-          </section>
         </>
       )}
 
