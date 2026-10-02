@@ -296,8 +296,6 @@ export function SmartForecast({ afterDay }: { afterDay?: React.ReactNode } = {})
         </section>
       )}
 
-      {afterDay}
-
 
       {selected && (
         <>
@@ -313,6 +311,8 @@ export function SmartForecast({ afterDay }: { afterDay?: React.ReactNode } = {})
               {tomorrowNight && <NightCard title="ليلة الغد" startSoc={tomorrowNight.startSoc} hours={tomorrowNight.hours} loadW={loadW} averageNightLoadW={nightLoadStats.averageW} confidence={nightLoadStats.confidence} sampleCount={nightLoadStats.sampleCount} capacityWh={batteryCapacityWh} reservePct={reservePct} />}
             </div>
           </section>
+
+          {afterDay}
 
           <details className="energy-card group p-5">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-2 [&::-webkit-details-marker]:hidden">
