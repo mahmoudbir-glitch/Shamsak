@@ -26,6 +26,8 @@ export type DayForecast = {
   batteryKWh: number;
   homeKWh: number;
   surplusKWh: number;
+  /** Production the split covers: the whole day, or for today only the hours still ahead. */
+  splitKWh: number;
   confidence: "عالية" | "متوسطة" | "منخفضة";
   hourly: HourlySolarPoint[];
   chargeAtSunsetPct: number;

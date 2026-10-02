@@ -298,27 +298,34 @@ export function SmartForecast({ afterDay }: { afterDay?: React.ReactNode } = {})
               <h2 className="text-lg font-black text-slate-900">توزيع الطاقة الشمسية اليومية</h2>
               <ChevronDown size={20} className="text-slate-400 transition-transform group-open:rotate-180" />
             </summary>
-            <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">تقسيم إنتاج اليوم المتوقع إلى استهلاك مباشر وشحن للبطارية وفائض متبقٍ.</p>
-            <div className="mt-4 flex h-5 overflow-hidden rounded-full bg-slate-100" aria-label="توزيع إنتاج الطاقة الشمسية">
-              <div className="bg-sky-500" style={{ width: selected.homePct + "%" }} title={"المنزل " + selected.homePct + "%"} />
-              <div className="bg-emerald-500" style={{ width: selected.batteryPct + "%" }} title={"البطارية " + selected.batteryPct + "%"} />
-              <div className="bg-amber-400" style={{ width: selected.surplusPct + "%" }} title={"الفائض " + selected.surplusPct + "%"} />
-            </div>
-            <p className="mt-2 text-xs font-bold text-slate-500">إجمالي الإنتاج الشمسي المتوقع: <bdi dir="ltr">{selected.productionKWh} kWh</bdi></p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              {[
-                ["استهلاك المنزل نهارًا", selected.homePct, selected.homeKWh, "text-sky-700", "bg-sky-50", "sky"],
-                ["شحن البطارية", selected.batteryPct, selected.batteryKWh, "text-emerald-700", "bg-emerald-50", "emerald"],
-                ["فائض بلا استخدام", selected.surplusPct, selected.surplusKWh, "text-amber-700", "bg-amber-50", "amber"],
-              ].map(([label, pct, kwh, textColor, bg, ampTone]) => (
-                <div key={String(label)} className={String(bg) + " rounded-2xl p-3"}>
-                  <span className="block text-xs font-bold text-slate-500">{label}</span>
-                  <strong className={"mt-1 block text-xl font-black " + String(textColor)}>{String(pct)}%</strong>
-                  <span className="text-xs font-bold text-slate-500"><bdi dir="ltr">{String(kwh)} kWh</bdi></span>
-                  <span className="mt-1.5 block"><AmpPill tone={ampTone as "sky" | "emerald" | "amber"} unit="Ah" amps={acAmpHours(Number(kwh))} /></span>
+            {/* Today only splits the hours still ahead, so the text and total say so. */}
+            <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">{selectedIndex === 0 ? "ما تبقّى من إنتاج اليوم المتوقع: كم يذهب للمنزل مباشرة، وكم لشحن البطارية، وكم يبقى فائضاً." : "إنتاج اليوم المتوقع: كم يذهب للمنزل مباشرة، وكم لشحن البطارية، وكم يبقى فائضاً."}</p>
+            {selected.splitKWh > 0 ? (
+              <>
+                <div className="mt-4 flex h-5 overflow-hidden rounded-full bg-slate-100" aria-label="توزيع إنتاج الطاقة الشمسية">
+                  <div className="bg-sky-500" style={{ width: selected.homePct + "%" }} title={"المنزل " + selected.homePct + "%"} />
+                  <div className="bg-emerald-500" style={{ width: selected.batteryPct + "%" }} title={"البطارية " + selected.batteryPct + "%"} />
+                  <div className="bg-amber-400" style={{ width: selected.surplusPct + "%" }} title={"الفائض " + selected.surplusPct + "%"} />
                 </div>
-              ))}
-            </div>
+                <p className="mt-2 text-xs font-bold text-slate-500">{selectedIndex === 0 ? "المتبقي من إنتاج اليوم" : "إجمالي الإنتاج الشمسي المتوقع"}: <bdi dir="ltr">{selected.splitKWh} kWh</bdi></p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  {[
+                    ["استهلاك المنزل نهارًا", selected.homePct, selected.homeKWh, "text-sky-700", "bg-sky-50", "sky"],
+                    ["شحن البطارية", selected.batteryPct, selected.batteryKWh, "text-emerald-700", "bg-emerald-50", "emerald"],
+                    ["فائض بلا استخدام", selected.surplusPct, selected.surplusKWh, "text-amber-700", "bg-amber-50", "amber"],
+                  ].map(([label, pct, kwh, textColor, bg, ampTone]) => (
+                    <div key={String(label)} className={String(bg) + " rounded-2xl p-3"}>
+                      <span className="block text-xs font-bold text-slate-500">{label}</span>
+                      <strong className={"mt-1 block text-xl font-black " + String(textColor)}>{String(pct)}%</strong>
+                      <span className="text-xs font-bold text-slate-500"><bdi dir="ltr">{String(kwh)} kWh</bdi></span>
+                      <span className="mt-1.5 block"><AmpPill tone={ampTone as "sky" | "emerald" | "amber"} unit="Ah" amps={acAmpHours(Number(kwh))} /></span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-600">{selectedIndex === 0 ? "انتهى إنتاج الشمس لهذا اليوم. اختر يوم الغد من الأعلى لترى توزيعه." : "لا يُتوقع إنتاج شمسي يُذكر في هذا اليوم."}</p>
+            )}
           </details>
 
         </>

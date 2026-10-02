@@ -386,6 +386,7 @@ export function useSmartEnergy() {
           batteryKWh: Math.round(batteryChargeKWh * 10) / 10,
           homeKWh: Math.round(directHomeKWh * 10) / 10,
           surplusKWh: Math.round(surplusKWh * 10) / 10,
+          splitKWh: Math.round(produced * 10) / 10,
           confidence,
           hourly: points,
           chargeAtSunsetPct: Math.round(clamp(sunsetSoc, 0, 100)),
