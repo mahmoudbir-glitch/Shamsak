@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { AmpPill } from "@/components/amp-pill";
 import { AC_VOLTS, batteryAmpHours } from "@/lib/energy";
-import { AlertCircle, Bell, CheckCircle2, ChevronDown, Cpu, Database, Eye, EyeOff, Plug, Plus, Radio, RotateCcw, Save, Search, Settings as SettingsIcon, ShieldCheck, X, type LucideIcon } from "lucide-react";
+import { AlertCircle, Bell, CheckCircle2, ChevronDown, Cpu, Database, Eye, EyeOff, Plug, Plus, Radio, RotateCcw, Save, Settings as SettingsIcon, ShieldCheck, X, type LucideIcon } from "lucide-react";
 
 type Protocol = "Modbus RTU" | "Modbus TCP" | "MQTT" | "Cloud API" | "Wi-Fi Datalogger";
 type ConnectionMode = "local" | "gateway";
@@ -136,7 +136,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>(defaults);
   // آخر قيم محفوظة: أساس زر «إعادة القسم» ومؤشر التغييرات غير المحفوظة
   const [saved, setSaved] = useState<Settings>(defaults);
-  const [query, setQuery] = useState("");
+  const query = ""; // no search box: every section is shown
   const [showCloudPassword, setShowCloudPassword] = useState(false);
   const [inverters, setInverters] = useState<Inverter[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
@@ -314,12 +314,6 @@ export default function SettingsPage() {
   return (
     <div dir="rtl" className="min-h-[100dvh] w-full space-y-3 overflow-x-hidden overscroll-y-auto bg-slate-50/70 p-2 pb-[calc(12rem+env(safe-area-inset-bottom))] scroll-pb-[calc(12rem+env(safe-area-inset-bottom))] sm:space-y-4 sm:p-4 sm:pb-12">
       <PageHeader icon={SettingsIcon} tone="rose" eyebrow="شمسك • الإعدادات" title="إعدادات المنظومة" subtitle="الاتصال، العتاد، الحماية، التنبيهات والبيانات." />
-
-      {/* بحث سريع: يُصفّي الأقسام حسب العنوان أو أسماء الإعدادات داخلها */}
-      <div className="relative">
-        <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ابحث عن إعداد… مثل: بطارية، تنبيه، عملة" aria-label="بحث في الإعدادات" className={input + " bg-white pr-12"} />
-      </div>
 
       {/* نظرة سريعة على المنظومة */}
       {!query.trim() && (
@@ -534,7 +528,6 @@ export default function SettingsPage() {
       )}
 
       {!draft && <button type="button" onClick={addInverter} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-4 font-black text-white shadow-lg transition hover:bg-slate-800"><Plus className="h-5 w-5" aria-hidden="true" />أضف أول إنفرتر للبدء</button>}
-      {query.trim() && <p className="rounded-2xl bg-white p-4 text-center text-sm font-bold text-slate-500">لا توجد نتائج أخرى مطابقة للبحث.</p>}
 
       {/* شريط الحفظ في نهاية الصفحة (غير ثابت) */}
       <div>
