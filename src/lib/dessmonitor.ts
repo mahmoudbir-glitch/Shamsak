@@ -402,6 +402,23 @@ export function mapReading(body: Record<string, unknown>): DessReading {
     }
   }
 
+  // Panel power is reported under several labels ("PV Power", "PV Charge
+  // Power", "pv_output_power"). In Mains mode the inverter puts the panels'
+  // output only into "PV Charge Power" (it all goes to the battery) and reports
+  // "PV Power" as 0, so the app showed 0 W from the panels on a sunny morning.
+  // The panels produce at least the largest of these figures.
+  let pvMax: number | undefined;
+  for (const [label, { value, unit }] of entries) {
+    const words = label.replace(/_+/g, " ");
+    if (!/\b(pv|solar)\b/i.test(words) || !/\bpower\b/i.test(words)) continue;
+    if (unit && !/w/i.test(unit)) continue;
+    const numeric = toNumber(value);
+    if (numeric === undefined || numeric < 0) continue;
+    const watts = /^\s*kw\b/i.test(unit) ? numeric * 1000 : numeric;
+    pvMax = Math.max(pvMax ?? 0, watts);
+  }
+  if (pvMax !== undefined) reading.solarPowerW = Math.max(reading.solarPowerW ?? 0, pvMax);
+
   // Signed battery current: charging positive, discharging negative. A
   // one-way parameter reading 0 means that direction is simply inactive, so
   // whichever is non-zero wins rather than whichever appears first.

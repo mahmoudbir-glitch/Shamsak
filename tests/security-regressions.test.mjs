@@ -509,3 +509,9 @@ test("forecast exposes an hourly battery level and a multi-day timeline", () => 
   assert.match(read("src/components/smart-forecast.tsx"), /<ForecastSocTimeline /);
   assert.match(read("src/components/forecast-soc-timeline.tsx"), /fullChargeTime/);
 });
+
+test("panel power uses the largest PV figure (Mains mode reports it only as PV Charge Power)", () => {
+  const source = read("src/lib/dessmonitor.ts");
+  assert.match(source, /pvMax = Math\.max\(pvMax \?\? 0, watts\)/);
+  assert.match(source, /reading\.solarPowerW = Math\.max\(reading\.solarPowerW \?\? 0, pvMax\)/);
+});
