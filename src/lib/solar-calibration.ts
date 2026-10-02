@@ -100,10 +100,13 @@ export async function getLearnedProfile(): Promise<LearnedProfile> {
   const settings = await loadSettings();
   const rows = await hourlyReadings(settings.timezone, LOOKBACK_DAYS);
   const night = nightLoadFrom(rows.filter((row) => row.hour >= hourKey(new Date(Date.now() - 7 * 86_400_000), settings.timezone)));
-  let calibration: Calibration = { factor: 1, status: "learning", hours: 0, days: 0, measuredKWh: 0, expectedKWh: 0 };
+  let calibration: Calibration = { factor: 1, ratio: 0, status: "learning", hours: 0, days: 0, measuredKWh: 0, expectedKWh: 0 };
   try {
     const expected = await expectedByHour(settings);
     calibration = calibrationFactor(rows as HourReadings[], expected, hourKey(new Date(), settings.timezone));
+    // Hour by hour, so an odd factor can be explained from the logs.
+    const daylight = rows.filter((row) => (expected.get(row.hour) ?? 0) >= 0.3).slice(-40);
+    console.info("[calibration] hours " + daylight.map((row) => `${row.hour.slice(5)} pv=${Math.round(row.pvW)} exp=${Math.round((expected.get(row.hour) ?? 0) * 1000)} soc=${Math.round(row.socMax)} bat=${Math.round(row.batteryW)} load=${Math.round(row.loadW)} n=${row.samples}`).join(" | "));
   } catch (error) {
     // Weather service down: keep the plain estimate rather than failing the page.
     console.error("[calibration] weather_unavailable", error);
@@ -111,6 +114,6 @@ export async function getLearnedProfile(): Promise<LearnedProfile> {
   }
   const value = { calibration, night };
   cache = { at: Date.now(), value };
-  console.info(`[calibration] factor=${calibration.factor} status=${calibration.status} hours=${calibration.hours} days=${calibration.days} measured=${calibration.measuredKWh} expected=${calibration.expectedKWh} nightW=${night.averageW ?? "-"} nightHours=${night.sampleCount}`);
+  console.info(`[calibration] factor=${calibration.factor} ratio=${calibration.ratio} status=${calibration.status} hours=${calibration.hours} days=${calibration.days} measured=${calibration.measuredKWh} expected=${calibration.expectedKWh} nightW=${night.averageW ?? "-"} nightHours=${night.sampleCount}`);
   return value;
 }

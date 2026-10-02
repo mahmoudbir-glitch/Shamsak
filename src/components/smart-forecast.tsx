@@ -203,7 +203,9 @@ export function SmartForecast({ afterDay }: { afterDay?: React.ReactNode } = {})
           <p className="mt-2 text-[11px] font-bold leading-5 text-slate-500" title={`مقارنة ${calibration.hours} ساعة شمس: أنتجت الألواح ${calibration.measuredKWh} kWh مقابل ${calibration.expectedKWh} kWh في التقدير النظري`}>
             {calibration.status === "calibrated"
               ? <>🎯 التوقع معايَر على إنتاج ألواحك الفعلي في آخر {calibration.days} أيام: تعطي ألواحك <bdi dir="ltr">{Math.round(calibration.factor * 100)}%</bdi> من التقدير النظري.</>
-              : <>⏳ التوقع يتعلّم من إنتاج ألواحك الفعلي، ويصبح أدق بعد يومين مشمسين تقريباً.</>}
+              : calibration.status === "suspect"
+                ? <>⚠️ ألواحك أعطت في آخر {calibration.days} أيام <bdi dir="ltr">{Math.round(calibration.ratio * 100)}%</bdi> فقط من التقدير النظري، وهذا أقل من أي منظومة سليمة. غالباً لم تجد الشمس مكاناً تذهب إليه (البطارية لا تقبل شحناً أسرع)، أو أن قدرة الألواح في الإعدادات غير دقيقة. لذلك لم نعدّل التوقع.</>
+                : <>⏳ التوقع يتعلّم من إنتاج ألواحك الفعلي، ويصبح أدق بعد يومين مشمسين تقريباً.</>}
           </p>
         )}
 

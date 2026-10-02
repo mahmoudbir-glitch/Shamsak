@@ -34,9 +34,17 @@ export function sunTimes(instant: Date, latitude: number, longitude: number): { 
 export type HourReadings = { hour: string; pvW: number; socMax: number; batteryW: number; samples: number };
 
 export type Calibration = {
-  /** Multiplier for the weather-based estimate; 1 while still learning. */
+  /** Multiplier for the weather-based estimate; 1 unless status is "calibrated". */
   factor: number;
-  status: "calibrated" | "learning";
+  /** Measured / expected before any guard, for display and diagnosis. */
+  ratio: number;
+  /**
+   * learning: not enough clean hours yet. suspect: the panels look far weaker
+   * than any healthy array, which on an off-grid system almost always means the
+   * readings were throttled or the panel size in Settings is wrong, so the
+   * factor is not applied.
+   */
+  status: "calibrated" | "learning" | "suspect";
   hours: number;
   days: number;
   measuredKWh: number;
@@ -45,6 +53,10 @@ export type Calibration = {
 
 export const CALIBRATION_MIN_HOURS = 8;
 export const CALIBRATION_MIN_DAYS = 2;
+/** Below this the result is reported but not applied (see "suspect"). */
+export const CALIBRATION_PLAUSIBLE_MIN = 0.65;
+/** LiFePO4 starts tapering its charge current around here, throttling the panels. */
+const TAPER_SOC = 90;
 
 /**
  * How the panels really perform compared with the weather estimate.
@@ -58,16 +70,18 @@ export function calibrationFactor(readings: HourReadings[], expectedKWhByHour: M
   const candidates = readings.filter((row) => row.hour < currentHour && row.samples >= 6 && (expectedKWhByHour.get(row.hour) ?? 0) >= 0.3);
   const peakChargeW = Math.max(0, ...candidates.map((row) => row.batteryW));
   const chargeCapW = peakChargeW > 300 ? peakChargeW * 0.9 : Infinity;
-  const usable = candidates.filter((row) => row.socMax < 97 && row.batteryW < chargeCapW);
+  const usable = candidates.filter((row) => row.socMax < TAPER_SOC && row.batteryW < chargeCapW);
 
   const measuredKWh = usable.reduce((sum, row) => sum + Math.max(0, row.pvW) / 1000, 0);
   const expectedKWh = usable.reduce((sum, row) => sum + (expectedKWhByHour.get(row.hour) ?? 0), 0);
   const days = new Set(usable.map((row) => row.hour.slice(0, 10))).size;
   const round = (value: number) => Math.round(value * 10) / 10;
 
+  const ratio = expectedKWh > 0 ? Math.round((measuredKWh / expectedKWh) * 100) / 100 : 0;
+  const base = { ratio, hours: usable.length, days, measuredKWh: round(measuredKWh), expectedKWh: round(expectedKWh) };
   if (usable.length < CALIBRATION_MIN_HOURS || days < CALIBRATION_MIN_DAYS || expectedKWh <= 0) {
-    return { factor: 1, status: "learning", hours: usable.length, days, measuredKWh: round(measuredKWh), expectedKWh: round(expectedKWh) };
+    return { ...base, factor: 1, status: "learning" };
   }
-  const factor = Math.min(1.3, Math.max(0.4, measuredKWh / expectedKWh));
-  return { factor: Math.round(factor * 100) / 100, status: "calibrated", hours: usable.length, days, measuredKWh: round(measuredKWh), expectedKWh: round(expectedKWh) };
+  if (ratio < CALIBRATION_PLAUSIBLE_MIN) return { ...base, factor: 1, status: "suspect" };
+  return { ...base, factor: Math.min(1.3, ratio), status: "calibrated" };
 }

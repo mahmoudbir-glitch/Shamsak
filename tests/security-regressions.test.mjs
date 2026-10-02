@@ -559,6 +559,14 @@ test("panel calibration ignores throttled hours and waits for enough data", { sk
   const early = calibrationFactor(rows.slice(0, 4), expected, "2026-10-02T20:00");
   assert.equal(early.status, "learning");
   assert.equal(early.factor, 1);
+  // Tapering battery (90%+) throttles the panels too.
+  const tapering = calibrationFactor(rows.map((row) => ({ ...row, socMax: 93 })), expected, "2026-10-02T20:00");
+  assert.equal(tapering.hours, 0);
+  // Far below any healthy array: reported, never applied.
+  const weak = calibrationFactor(rows.map((row) => ({ ...row, pvW: 450 })), expected, "2026-10-02T20:00");
+  assert.equal(weak.status, "suspect");
+  assert.equal(weak.factor, 1);
+  assert.equal(weak.ratio, 0.45);
 });
 
 test("forecast applies the learned calibration and the night check never breaks the sync", () => {
