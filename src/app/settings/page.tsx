@@ -97,10 +97,14 @@ function SettingsSection({ icon: Icon, title, subtitle, tone = "sky", summary, k
 }
 
 /** بطاقة صغيرة في «نظرة سريعة» أعلى الصفحة. */
-function GlanceTile({ label, value, dot, amps, ampTone, ampUnit = "A" }: { label: string; value: React.ReactNode; dot: string; amps?: number | null; ampTone?: "sky" | "amber" | "emerald" | "violet"; ampUnit?: "A" | "Ah" }) {
+function GlanceTile({ label, kind, value, dot, amps, ampTone, ampUnit = "A" }: { label: string; kind?: string | null; value: React.ReactNode; dot: string; amps?: number | null; ampTone?: "sky" | "amber" | "emerald" | "violet"; ampUnit?: "A" | "Ah" }) {
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
-      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500"><span className={"h-2 w-2 rounded-full " + dot} />{label}</div>
+    <div className="min-w-0 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
+      <div className="flex min-w-0 items-center gap-1.5 text-[11px] font-bold text-slate-500">
+        <span className={"h-2 w-2 shrink-0 rounded-full " + dot} />
+        <span className="shrink-0">{label}</span>
+        {kind && <span className="min-w-0 truncate font-black text-slate-700" dir="ltr" title={kind}>· {kind}</span>}
+      </div>
       <div className="mt-1 truncate text-base font-black text-slate-900">{value}</div>
       {ampTone && <div className="mt-1.5"><AmpPill tone={ampTone} amps={amps} unit={ampUnit} /></div>}
     </div>
@@ -326,8 +330,8 @@ export default function SettingsPage() {
             value={draft?.lastStatus === "connected" ? "متصل" : draft?.lastStatus === "error" ? (/لا يرسل قراءات/.test(draft.lastTestReason ?? "") ? "الدنجل متوقف" : "غير متصل") : draft ? "غير معروف" : "لا إنفرتر"}
           />
           <GlanceTile label="الألواح" dot="bg-amber-400" ampTone="amber" amps={settings.panelPowerW / AC_VOLTS} value={<bdi dir="ltr">{(settings.panelPowerW / 1000).toLocaleString("en-US", { maximumFractionDigits: 2 })} kW</bdi>} />
-          <GlanceTile label="البطارية" dot="bg-emerald-400" ampTone="emerald" ampUnit="Ah" amps={batteryAmpHours(settings.batteryCapacityWh / 1000, settings.batteryNominalVoltage)} value={<bdi dir="ltr">{(settings.batteryCapacityWh / 1000).toLocaleString("en-US", { maximumFractionDigits: 1 })} kWh</bdi>} />
-          <GlanceTile label="الإنفرتر" dot="bg-sky-400" ampTone="sky" amps={settings.inverterRatedPowerKw ? (settings.inverterRatedPowerKw * 1000) / AC_VOLTS : null} value={<bdi dir="ltr">{settings.inverterRatedPowerKw ? `${settings.inverterRatedPowerKw} kW` : "—"}</bdi>} />
+          <GlanceTile label="البطارية" kind={settings.batteryChemistry} dot="bg-emerald-400" ampTone="emerald" ampUnit="Ah" amps={batteryAmpHours(settings.batteryCapacityWh / 1000, settings.batteryNominalVoltage)} value={<bdi dir="ltr">{(settings.batteryCapacityWh / 1000).toLocaleString("en-US", { maximumFractionDigits: 1 })} kWh</bdi>} />
+          <GlanceTile label="الإنفرتر" kind={(selected?.inverterModel || draft?.inverterModel || "").replace(/\s*[-–]\s*/, " ").replace(/\s*\d+(\.\d+)?\s*k?w\b/i, "").trim() || null} dot="bg-sky-400" ampTone="sky" amps={settings.inverterRatedPowerKw ? (settings.inverterRatedPowerKw * 1000) / AC_VOLTS : null} value={<bdi dir="ltr">{settings.inverterRatedPowerKw ? `${settings.inverterRatedPowerKw} kW` : "—"}</bdi>} />
         </div>
       )}
 
