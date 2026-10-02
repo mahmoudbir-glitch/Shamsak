@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useSharedSmartEnergy } from "@/components/smart-energy-provider";
 import { AmpPill } from "@/components/amp-pill";
 import { acAmpHours } from "@/lib/energy";
@@ -19,7 +18,6 @@ function addHour(iso: string) {
 
 export function SurplusRecommendations() {
   const { forecasts, loading } = useSharedSmartEnergy();
-  const [showRecommendations, setShowRecommendations] = useState(false);
   type Window = { start: string; end: string; kwh: number };
   const bestWindow = (dayIndex: number): Window | undefined => {
     const windows: Window[] = [];
@@ -50,15 +48,14 @@ export function SurplusRecommendations() {
   // whether today's surplus actually covers it.
   const surplus = best?.kwh ?? 0;
   const loads = [
-    { id: 1, title: "تشغيل الغسالة", icon: "🧺", kwh: 0.8, detail: "دورة غسيل كاملة تستهلك نحو 0.8 kWh." },
-    { id: 2, title: "تشغيل مضخة المياه", icon: "💧", kwh: 0.75, detail: "ساعة تشغيل لمضخة منزلية نحو 0.75 kWh." },
-    { id: 3, title: "الكوي", icon: "👕", kwh: 1, detail: "ساعة كوي تستهلك نحو 1 kWh." },
-    { id: 4, title: "تشغيل المكيف", icon: "❄️", kwh: 1.2, detail: "ساعة تبريد لغرفة واحدة نحو 1.2 kWh." },
-    { id: 5, title: "تشغيل سخان الماء", icon: "♨️", kwh: 2, detail: "ساعة تسخين نحو 2 kWh." },
+    { id: 1, title: "الغسالة", icon: "🧺", kwh: 0.8 },
+    { id: 2, title: "مضخة المياه", icon: "💧", kwh: 0.75 },
+    { id: 4, title: "المكيف", icon: "❄️", kwh: 1.2 },
+    { id: 5, title: "سخان الماء", icon: "♨️", kwh: 2 },
   ];
   const recommendations = loads
     .filter((load) => load.kwh <= surplus)
-    .map((load) => ({ id: load.id, kwh: load.kwh, title: load.title, icon: load.icon, detail: load.detail + ` الفائض المتوقع ${dayWord} يغطيها.` }));
+    .map((load) => ({ id: load.id, kwh: load.kwh, title: load.title, icon: load.icon }));
 
   return (
     <section dir="rtl" className="energy-card overflow-hidden p-4 sm:p-5">
@@ -113,55 +110,26 @@ export function SurplusRecommendations() {
             )}
           </div>
 
-          {recommendations.length > 0 && <div className="mt-4 rounded-3xl border border-emerald-100 bg-emerald-50/70 p-4 sm:p-5">
-            <button
-              type="button"
-              onClick={() => setShowRecommendations((value) => !value)}
-              aria-expanded={showRecommendations}
-              className="flex w-full items-center justify-between gap-3 text-right"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-xl shadow-sm">💡</span>
-                <div>
-                  <strong className="block text-base font-extrabold text-emerald-900">
-                    توصيات ذكية ({recommendations.length})
-                  </strong>
-                  <span className="mt-1 block text-sm font-semibold text-emerald-700">
-                    أفكار عملية لاستخدام الفائض بدلاً من هدره.
-                  </span>
-                </div>
-              </div>
-              <span className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-emerald-800 shadow-sm">
-                {showRecommendations ? "إخفاء" : "عرض"}
-              </span>
-            </button>
-
-            {showRecommendations && (
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {/* What the surplus can run: one compact tile per appliance, no long text. */}
+          {recommendations.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-xs font-black text-slate-500">💡 ما يمكن تشغيله بالفائض <span className="font-semibold text-slate-400">(لكل دورة أو ساعة)</span></h3>
+              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {recommendations.map((item) => (
-                  <div
-                    key={item.id}
-                    className="group rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm transition-transform duration-200 hover:-translate-y-0.5"
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-lg" aria-hidden="true">
-                        {item.icon}
+                  <div key={item.id} className="flex items-center gap-2.5 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-2.5">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-lg shadow-sm" aria-hidden="true">{item.icon}</span>
+                    <div className="min-w-0">
+                      <strong className="block truncate text-xs font-black text-slate-900">{item.title}</strong>
+                      <span className="mt-0.5 flex items-center gap-1 text-[10px] font-bold text-slate-500">
+                        <bdi dir="ltr">{item.kwh} kWh</bdi>
+                        <AmpPill tone="emerald" unit="Ah" amps={acAmpHours(item.kwh)} className="!min-w-0 !px-1.5" />
                       </span>
-                      <div className="min-w-0">
-                        <strong className="block text-sm font-extrabold text-slate-900">
-                          {item.title}
-                        </strong>
-                        <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
-                          {item.detail}
-                        </p>
-                        <span className="mt-2 block"><AmpPill tone="emerald" unit="Ah" amps={acAmpHours(item.kwh)} /></span>
-                      </div>
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>}
+            </div>
+          )}
         </>
       )}
 
