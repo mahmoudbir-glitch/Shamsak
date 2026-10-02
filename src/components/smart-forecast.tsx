@@ -257,7 +257,7 @@ export function SmartForecast() {
             <h2 className="text-sm font-black text-slate-900">البطارية خلال الأيام القادمة</h2>
             <span className="text-[11px] font-bold text-slate-400">توقع من الطقس واستهلاكك</span>
           </div>
-          <ForecastSocTimeline forecasts={forecasts} reservePct={reservePct} />
+          <ForecastSocTimeline forecasts={forecasts} reservePct={reservePct} capacityWh={batteryCapacityWh} />
         </section>
       )}
 
