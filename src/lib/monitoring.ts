@@ -40,6 +40,23 @@ export async function ensureMonitoringStorage() {
   }
 }
 
+/** One TELEMETRY_RECEIVED event is written per reading (about 1,440 a day). */
+const TELEMETRY_EVENT_DAYS = 7;
+/** Everything else: sign-ins, app opens, alerts, night checks. */
+const EVENT_DAYS = 365;
+
+/** Deletes old events so the table does not grow without bound. */
+export async function pruneMonitoringEvents(now = Date.now()) {
+  await prisma.monitoringEvent.deleteMany({
+    where: {
+      OR: [
+        { action: MONITORING_ACTIONS.TELEMETRY_RECEIVED, timestamp: { lt: new Date(now - TELEMETRY_EVENT_DAYS * 86_400_000) } },
+        { timestamp: { lt: new Date(now - EVENT_DAYS * 86_400_000) } },
+      ],
+    },
+  });
+}
+
 export async function recordMonitoringEvent(input: {
   action: string;
   username?: string | null;

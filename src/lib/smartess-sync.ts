@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { decryptSecret, encryptSecret } from "@/lib/inverter-config-crypto";
+import { decryptSecret } from "@/lib/inverter-config-crypto";
+import { patchConnectionExtras } from "@/lib/connection-extras";
 import { authenticate, DessError, describeDessError, discoverDevices, listCollectors, pickDevice, readLastData, type DessAuth, type DessDevice, type DessReading } from "@/lib/dessmonitor";
 import { ingestSample } from "@/lib/telemetry-store";
 
@@ -173,13 +174,18 @@ async function run(deadline: number): Promise<SyncResult> {
   // login is reused for as long as SmartESS honours it: first from memory, then
   // from the encrypted copy in the database (serverless instances come and go),
   // and only then by signing in again. Saving the connection form clears it.
+  // `extras` is this run's copy and can be a minute old by the time something
+  // is written, so every write patches what is stored now instead of writing
+  // the copy back (which could undo a password the owner just corrected).
+  const patchExtras = (change: (stored: Record<string, unknown>) => void) =>
+    patchConnectionExtras(row.id, { username, password }, change);
   const savePersistedAuth = async (auth: DessAuth | null) => {
-    const next = { ...extras };
-    if (auth) next.dessAuth = { username, auth };
-    else delete next.dessAuth;
-    await prisma.inverterConnection
-      .update({ where: { id: row.id }, data: { inverterLinkCode: encryptSecret(JSON.stringify(next)) } })
-      .catch((error) => console.error("[smartess] persist_auth_failed", error));
+    await patchExtras((stored) => {
+      if (auth) {
+        stored.dessAuth = { username, auth };
+        delete stored.authFailedAt;
+      } else delete stored.dessAuth;
+    }).catch((error) => console.error("[smartess] persist_auth_failed", error));
   };
 
   let reusedAuth = false;
@@ -200,15 +206,13 @@ async function run(deadline: number): Promise<SyncResult> {
         auth = await authenticate({ username, password, baseUrl: cloudUrl }, timeout);
       } catch (error) {
         if (error instanceof DessError && /NOT_FOUND_USR|PASSWORD/i.test(error.message)) {
-          extras = { ...extras, authFailedAt: Date.now() };
-          delete extras.dessAuth;
-          await prisma.inverterConnection
-            .update({ where: { id: row.id }, data: { inverterLinkCode: encryptSecret(JSON.stringify(extras)) } })
-            .catch(() => {});
+          await patchExtras((stored) => {
+            stored.authFailedAt = Date.now();
+            delete stored.dessAuth;
+          }).catch(() => {});
         }
         throw error;
       }
-      if (extras.authFailedAt) delete extras.authFailedAt;
       await savePersistedAuth(auth);
     }
     authInUse = auth;
@@ -255,9 +259,9 @@ async function run(deadline: number): Promise<SyncResult> {
       };
       // Discovery costs up to seven slow calls; remember the result.
       extras = { ...extras, dessDevice: target };
-      await prisma.inverterConnection
-        .update({ where: { id: row.id }, data: { inverterLinkCode: encryptSecret(JSON.stringify(extras)) } })
-        .catch((error) => console.error("[smartess] remember_device_failed", error));
+      await patchExtras((stored) => {
+        stored.dessDevice = target;
+      }).catch((error) => console.error("[smartess] remember_device_failed", error));
     }
 
     const reading = await readLastData(auth, target, cloudUrl, timeout);

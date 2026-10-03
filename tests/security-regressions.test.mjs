@@ -605,3 +605,68 @@ test("device list never stores the IP address and requires a session", () => {
   const login = read("src/app/api/auth/login/route.ts");
   assert.match(login, /details: deviceDetails\(device\)/);
 });
+
+test("changing or erasing data requires the owner once an owner account exists", () => {
+  const owner = read("src/lib/owner.ts");
+  assert.match(owner, /export function canManage\(/);
+  // Without an owner account the shared account still manages the app.
+  assert.match(owner, /if \(!owner \|\| !process\.env\.SHAMSAK_OWNER_PASSWORD\) return Boolean\(username\);/);
+  const guard = /if \(!canManage\(session\.username\)\).*403/s;
+  const wipe = read("src/app/api/settings/export/route.ts");
+  assert.match(wipe.slice(wipe.indexOf("export async function DELETE")), guard);
+  const connection = read("src/app/api/inverter/connection/route.ts");
+  const post = connection.slice(connection.indexOf("export async function POST"));
+  assert.match(post, guard);
+  assert.ok(post.search(guard) < post.indexOf("rotateGatewayToken"), "the owner check must run before any action");
+  const settings = read("src/app/api/settings/route.ts");
+  assert.match(settings.slice(settings.indexOf("export async function PUT")), guard);
+});
+
+test("failed sign-ins are limited in the database and never store the IP address", () => {
+  const throttle = read("src/lib/login-throttle.ts");
+  assert.match(throttle, /prisma\.monitoringEvent\.count\(/);
+  assert.match(throttle, /createHmac\("sha256"/);
+  const login = read("src/app/api/auth/login/route.ts");
+  // Checked before the password is compared, and the failure carries the tag.
+  assert.ok(login.indexOf("await tooManyFailedLogins(tag)") < login.indexOf("const ownerLogin"));
+  assert.match(login, /clientDetail\(tag\)/);
+  assert.doesNotMatch(login, /details:[^\n]*\bkey\b/);
+});
+
+test("sessions stop working when the password or the session epoch changes", () => {
+  const session = read("src/lib/auth-session.ts");
+  assert.match(session, /async function credentialVersion\(/);
+  assert.match(session, /SHAMSAK_SESSION_EPOCH/);
+  assert.match(session, /typeof payload\.v!=="string"\|\|!\(await safeEqual\(payload\.v,current\)\)\) return null;/);
+});
+
+test("the sync patches stored SmartESS extras instead of writing back its old copy", () => {
+  const patch = read("src/lib/connection-extras.ts");
+  assert.match(patch, /FOR UPDATE/);
+  assert.match(patch, /stored\.cloudUsername !== used\.username \|\| stored\.cloudPassword !== used\.password\) return false;/);
+  // No whole-blob write is left in the sync or in the connection test.
+  for (const file of ["src/lib/smartess-sync.ts", "src/app/api/inverter/test/route.ts"]) {
+    const source = read(file);
+    assert.match(source, /patchConnectionExtras\(row\.id, \{ username, password \}/);
+    assert.doesNotMatch(source, /encryptSecret\(/);
+  }
+});
+
+test("event log is pruned and the CSV export is read in batches", () => {
+  assert.match(read("src/lib/monitoring.ts"), /export async function pruneMonitoringEvents\(/);
+  assert.match(read("src/lib/telemetry-store.ts"), /if \(hourChanged\) await pruneMonitoringEvents\(\)/);
+  const exportRoute = read("src/app/api/settings/export/route.ts");
+  assert.match(exportRoute, /take: EXPORT_BATCH/);
+  assert.match(exportRoute, /new ReadableStream<Uint8Array>/);
+  assert.doesNotMatch(exportRoute, /telemetryLog\.findMany\(\{ orderBy: \{ timestamp: "asc" \} \}\)/);
+});
+
+test("summary and predictions use the site's time zone, not the server's", () => {
+  const summary = read("src/app/api/telemetry/summary/route.ts");
+  assert.match(summary, /const start = localDayStart\(new Date\(\), timezone\);/);
+  assert.doesNotMatch(summary, /getUTCFullYear/);
+  const predictions = read("src/app/api/predictions/route.ts");
+  assert.match(predictions, /localHour\(row\.timestamp, settings\.timezone\)/);
+  assert.match(predictions, /utc_offset_seconds/);
+  assert.doesNotMatch(predictions, /new Date\(sunrise\)/);
+});

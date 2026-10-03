@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { storeReading } from "@/lib/smartess-sync";
 import { assertPublicEndpoint, PrivateEndpointError } from "@/lib/net-guard";
-import { decryptSecret, encryptSecret } from "@/lib/inverter-config-crypto";
+import { decryptSecret } from "@/lib/inverter-config-crypto";
+import { patchConnectionExtras } from "@/lib/connection-extras";
 import { authenticate, describeDessError, discoverDevices, pickDevice, readLastData } from "@/lib/dessmonitor";
 
 // Login, discovery and up to three read actions against a slow server.
@@ -129,12 +130,12 @@ export async function POST(request: NextRequest) {
         // the device — so the background sync makes one read call instead of
         // repeating login and discovery against a slow server.
         const acceptedUser = auth.usr || username;
-        await prisma.inverterConnection
-          .update({
-            where: { id: row.id },
-            data: { inverterLinkCode: encryptSecret(JSON.stringify({ ...extras, authFailedAt: undefined, cloudUsername: acceptedUser, dessAuth: { username: acceptedUser, auth }, dessDevice: target })) },
-          })
-          .catch((error) => console.error("[inverter] remember_device_failed", error));
+        // Patched onto what is stored now: the test can take a while, and the
+        // credentials may have been saved again in the meantime.
+        await patchConnectionExtras(row.id, { username, password }, (stored) => {
+          delete stored.authFailedAt;
+          Object.assign(stored, { cloudUsername: acceptedUser, dessAuth: { username: acceptedUser, auth }, dessDevice: target });
+        }).catch((error) => console.error("[inverter] remember_device_failed", error));
 
         const latencyMs = Date.now() - started;
         // Store what the test just read so the dashboard shows it straight away.

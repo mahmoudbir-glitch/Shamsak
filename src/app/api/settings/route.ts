@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { checkAgainstInverter, getInverterLimits } from "@/lib/inverter-limits";
+import { canManage, OWNER_ONLY_MESSAGE } from "@/lib/owner";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -186,6 +187,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const session = await getSession(request);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!canManage(session.username)) return NextResponse.json({ error: "forbidden", message: OWNER_ONLY_MESSAGE }, { status: 403 });
   if (!hasDatabase()) {
     return NextResponse.json({ error: "database_not_configured" }, { status: 503 });
   }
