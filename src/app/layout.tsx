@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import React from "react";
 import { Cairo } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import AppShell from "@/components/app-shell";
 
@@ -32,6 +33,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         style={{ backgroundColor: INITIAL_BACKGROUND }}
       >
         <AppShell>{children}</AppShell>
+        {/* Vercel Web Analytics (enabled in the dashboard): cookieless visitor and
+         * device counts. Served by Vercel at this path; no package needed. */}
+        <Script src="/_vercel/insights/script.js" strategy="afterInteractive" />
       </body>
     </html>
   );
