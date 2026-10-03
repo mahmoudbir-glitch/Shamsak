@@ -313,7 +313,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
               )}
               {activeNode === "grid" && (
                 <>
-                  <div className="rounded-xl bg-violet-50 p-3"><div className="font-bold text-slate-500">الحالة</div><div className="mt-1 font-black text-violet-700">{gridConnected ? "متصلة" : "مقطوعة"}</div></div>
+                  <div className="rounded-xl bg-violet-50 p-3"><div className="font-bold text-slate-500">الحالة</div><div className={"mt-1 font-black " + (gridConnected && !inverterOffGrid ? "text-violet-700" : "text-slate-600")}>{!gridConnected ? "مقطوعة" : inverterOffGrid ? "غير مستخدمة (منفصل)" : "متصلة"}</div></div>
                   <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">التدفق</div><div className="mt-1 font-black text-slate-800">{gridExporting ? "تصدير" : gridImporting ? "سحب" : "متوازن / لا يوجد تدفق"}</div></div>
                 </>
               )}
