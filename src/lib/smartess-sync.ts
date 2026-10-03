@@ -15,6 +15,8 @@ export type SyncResult = { ok: true; stored: true } | { ok: false; skipped?: boo
 
 let cachedAuth: { key: string; auth: DessAuth } | null = null;
 let lastStatusCheckAt = 0;
+/** Last online-status answer; while offline, the status is re-checked on every run. */
+let lastSeenOffline = false;
 let parametersLogged = false;
 
 /** How long identical readings may repeat before they count as frozen. */
@@ -221,12 +223,15 @@ async function run(deadline: number): Promise<SyncResult> {
       target = { pn: remembered.pn, sn: remembered.sn, devcode: Number(remembered.devcode), devaddr: Number(remembered.devaddr ?? 1) };
       // The remembered path skips discovery, so re-check the datalogger's
       // online status now and then (one call). A failed check is ignored.
-      if (Date.now() - lastStatusCheckAt > STATUS_CHECK_MS) {
+      // Once seen offline, keep checking every run: SmartESS serves stale (and
+      // partly zeroed, e.g. battery 0%) values until the dongle is back.
+      if (lastSeenOffline || Date.now() - lastStatusCheckAt > STATUS_CHECK_MS) {
         lastStatusCheckAt = Date.now();
         const pn = target.pn;
         const collector = await listCollectors(auth, cloudUrl, timeout)
           .then((list) => list.find((entry) => String(entry.pn ?? "").trim() === pn))
           .catch(() => undefined);
+        if (collector) lastSeenOffline = Number(collector.status) === 1;
         if (collector && Number(collector.status) === 1) {
           return await fail("الدنجل غير متصل في SmartESS (Offline)، لذلك لم تُحفظ قراءة.");
         }

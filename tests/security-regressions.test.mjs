@@ -417,7 +417,15 @@ test("frozen SmartESS values are not stored as new readings", () => {
   const sync = read("src/lib/smartess-sync.ts");
   assert.match(sync, /async function isFrozen\(reading: DessReading\)/);
   assert.match(sync, /if \(await isFrozen\(reading\)\) \{/);
-  assert.match(sync, /Date\.now\(\) - lastStatusCheckAt > STATUS_CHECK_MS/);
+  assert.match(sync, /lastSeenOffline \|\| Date\.now\(\) - lastStatusCheckAt > STATUS_CHECK_MS/);
+});
+
+test("an offline dongle is re-checked on every sync until it is back online", () => {
+  // After an Offline answer, the next runs stored SmartESS's stale values
+  // (battery 0%) for up to 10 minutes because the status check was skipped.
+  const sync = read("src/lib/smartess-sync.ts");
+  assert.match(sync, /let lastSeenOffline = false;/);
+  assert.match(sync, /if \(collector\) lastSeenOffline = Number\(collector\.status\) === 1;/);
 });
 
 test("today's forecast simulates only the hours still ahead, with the saved reserve", () => {
