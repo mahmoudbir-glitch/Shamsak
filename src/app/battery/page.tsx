@@ -130,7 +130,7 @@ export default function BatteryPage() {
           unit={snapshot ? "kW" : undefined}
           valueClass="text-emerald-700"
           pill={snapshot ? <AmpPill tone="emerald" amps={batteryAmps(snapshot)} muted={Math.abs(powerW) < 50} /> : undefined}
-          hint={snapshot?.batteryCurrent != null && Math.abs(snapshot.batteryCurrent) >= 0.5 ? (snapshot.batteryCurrent > 0 ? "شحن" : "تفريغ") : undefined}
+          hint={snapshot && state !== "idle" ? (state === "charging" ? "شحن" : "تفريغ") : undefined}
         />
         <Metric icon={Thermometer} tone="rose" label="حرارة البطارية" value={snapshot?.batteryTemperature != null ? snapshot.batteryTemperature.toFixed(1) + " °C" : "غير متاحة"} />
         <Metric icon={Clock} tone="sky" label={eta ? (eta.charging ? "اكتمال الشحن بعد" : "الوقت المتبقي") : "الوقت المتوقع"} value={eta ? eta.label : "—"} hint={eta ? "تقديري" : undefined} />
