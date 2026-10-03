@@ -583,3 +583,14 @@ test("forecast applies the learned calibration and the night check never breaks 
   assert.match(night, /action: ACTION, timestamp: \{ gte: sunset \}/);
   assert.match(night, /console\.info\(`\[night\] check verdict=/);
 });
+
+test("device list never stores the IP address and requires a session", () => {
+  const lib = read("src/lib/devices.ts");
+  assert.doesNotMatch(lib, /x-forwarded-for|x-real-ip/);
+  assert.match(lib, /httpOnly: true/);
+  const route = read("src/app/api/devices/route.ts");
+  assert.match(route, /verifySessionToken\(/);
+  assert.match(route, /if \(!session\).*401/s);
+  const login = read("src/app/api/auth/login/route.ts");
+  assert.match(login, /details: deviceDetails\(device\)/);
+});

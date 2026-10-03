@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/page-header";
+import { DevicesList } from "@/components/devices-list";
 import { AmpPill } from "@/components/amp-pill";
 import { AC_VOLTS, batteryAmpHours } from "@/lib/energy";
-import { AlertCircle, Bell, CheckCircle2, ChevronDown, Cpu, Database, Eye, EyeOff, Plug, Plus, Radio, RotateCcw, Save, Settings as SettingsIcon, X, type LucideIcon } from "lucide-react";
+import { AlertCircle, Bell, CheckCircle2, ChevronDown, Cpu, Database, Eye, EyeOff, Plug, Plus, Radio, RotateCcw, Save, Settings as SettingsIcon, Smartphone, X, type LucideIcon } from "lucide-react";
 
 type Protocol = "Modbus RTU" | "Modbus TCP" | "MQTT" | "Cloud API" | "Wi-Fi Datalogger";
 type ConnectionMode = "local" | "gateway";
@@ -458,6 +459,10 @@ export default function SettingsPage() {
           <SettingsField label={<>تحميل زائد <bdi dir="ltr">(%)</bdi></>}><input type="number" min={50} max={100} value={settings.overloadPct} onChange={(e) => updateSetting("overloadPct", Number(e.target.value))} className={input} /></SettingsField>
           </div>
         </AdvancedBlock>
+      </SettingsSection>
+
+      <SettingsSection icon={Smartphone} tone="violet" query={query} keywords="أجهزة جهاز موبايل هاتف دخول متصفح أمان" title="الأجهزة" subtitle="الأجهزة التي تستخدم حسابك">
+        <DevicesList />
       </SettingsSection>
 
       <SettingsSection icon={Database} tone="sky" summary={`الحفظ ${settings.retentionDays} يوم`} query={query} keywords="بيانات تصدير CSV سجل النشاط مسح الاحتفاظ حفظ" onReset={() => resetSection(["retentionDays"], "البيانات")} title="البيانات" subtitle="مدة الحفظ والتصدير">

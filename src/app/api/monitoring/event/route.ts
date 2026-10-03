@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { MONITORING_ACTIONS, recordMonitoringEvent } from "@/lib/monitoring";
+import { deviceDetails, deviceFromRequest, rememberDevice } from "@/lib/devices";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,13 +26,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "unsupported_action" }, { status: 422 });
   }
 
+  const device = deviceFromRequest(request);
   await recordMonitoringEvent({
     action,
     username: session.username,
-    details: "Authenticated application session opened.",
+    details: deviceDetails(device),
   });
 
-  return NextResponse.json({ recorded: true });
+  const response = NextResponse.json({ recorded: true });
+  rememberDevice(response, device);
+  return response;
 }
 
 export async function GET(request: NextRequest) {

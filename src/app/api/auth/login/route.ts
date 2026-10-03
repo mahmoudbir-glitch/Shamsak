@@ -6,6 +6,7 @@ import { getAuthConfig } from "@/lib/auth-config";
 import { MONITORING_ACTIONS, recordMonitoringEvent } from "@/lib/monitoring";
 import { safeNextPath } from "@/lib/safe-redirect";
 import { isCrossSiteRequest } from "@/lib/same-origin";
+import { deviceDetails, deviceFromRequest, rememberDevice } from "@/lib/devices";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -91,13 +92,16 @@ export async function POST(request: NextRequest) {
   try {
     const sessionUsername = ownerLogin ? config.ownerUsername : config.username;
     const token = await createSessionToken(sessionUsername);
+    // Which device signed in (shown under Settings > Devices).
+    const device = deviceFromRequest(request);
     await recordMonitoringEvent({
       action: MONITORING_ACTIONS.LOGIN_SUCCESS,
       username: sessionUsername,
       success: true,
-      details: ownerLogin ? "Owner session created." : "User session created.",
+      details: deviceDetails(device),
     });
     const response = NextResponse.json({ ok: true, redirectTo: next });
+    rememberDevice(response, device);
     response.cookies.set(sessionCookie(token));
     response.cookies.set(clearLogoutMarkerCookie());
     return response;
