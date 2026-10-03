@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
+import { canManage, OWNER_ONLY_MESSAGE } from "@/lib/owner";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,8 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const session = await verifySessionToken(request.cookies.get(COOKIE_NAME)?.value);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Erasing the history is the owner's decision, not every signed-in user's.
+  if (!canManage(session.username)) return NextResponse.json({ error: "forbidden", message: OWNER_ONLY_MESSAGE }, { status: 403 });
   let body: { confirm?: unknown } = {};
   try { body = await request.json(); } catch {}
   if (body.confirm !== "مسح السجل") return NextResponse.json({ error: "confirmation_required", message: "اكتب «مسح السجل» للتأكيد." }, { status: 422 });

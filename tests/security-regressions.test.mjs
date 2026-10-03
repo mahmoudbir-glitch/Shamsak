@@ -605,3 +605,19 @@ test("device list never stores the IP address and requires a session", () => {
   const login = read("src/app/api/auth/login/route.ts");
   assert.match(login, /details: deviceDetails\(device\)/);
 });
+
+test("changing or erasing data requires the owner once an owner account exists", () => {
+  const owner = read("src/lib/owner.ts");
+  assert.match(owner, /export function canManage\(/);
+  // Without an owner account the shared account still manages the app.
+  assert.match(owner, /if \(!owner \|\| !process\.env\.SHAMSAK_OWNER_PASSWORD\) return Boolean\(username\);/);
+  const guard = /if \(!canManage\(session\.username\)\).*403/s;
+  const wipe = read("src/app/api/settings/export/route.ts");
+  assert.match(wipe.slice(wipe.indexOf("export async function DELETE")), guard);
+  const connection = read("src/app/api/inverter/connection/route.ts");
+  const post = connection.slice(connection.indexOf("export async function POST"));
+  assert.match(post, guard);
+  assert.ok(post.search(guard) < post.indexOf("rotateGatewayToken"), "the owner check must run before any action");
+  const settings = read("src/app/api/settings/route.ts");
+  assert.match(settings.slice(settings.indexOf("export async function PUT")), guard);
+});

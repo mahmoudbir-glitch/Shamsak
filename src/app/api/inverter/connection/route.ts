@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { decryptSecret, encryptSecret } from "@/lib/inverter-config-crypto";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { MONITORING_ACTIONS, recordMonitoringEvent } from "@/lib/monitoring";
+import { canManage, OWNER_ONLY_MESSAGE } from "@/lib/owner";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { InverterConnection } from "@prisma/client";
 
@@ -196,6 +197,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const session = await verifySessionToken(request.cookies.get(COOKIE_NAME)?.value);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Saving, deleting, choosing the primary inverter and rotating the gateway
+  // token all change the installation; only the owner may do that.
+  if (!canManage(session.username)) return NextResponse.json({ error: "forbidden", message: OWNER_ONLY_MESSAGE }, { status: 403 });
   if (!configured()) return NextResponse.json({ error: "database_not_configured" }, { status: 503 });
 
   let body: unknown;
