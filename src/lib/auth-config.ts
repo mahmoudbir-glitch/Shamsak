@@ -23,10 +23,15 @@ export function getAuthConfig() {
     ownerUsername,
     ownerPassword,
     secret,
+    // Either the shared account or the separate owner account is enough
+    // to enable authentication. Requiring SHAMSAK_USER as well would make
+    // a correctly configured owner-only deployment return 503 forever.
     configured: Boolean(
-      username &&
-      (password || passwordHash) &&
-      secret
+      secret &&
+      (
+        (username && (password || passwordHash)) ||
+        (ownerUsername && ownerPassword)
+      )
     ),
   };
 }
