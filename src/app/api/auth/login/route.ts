@@ -7,13 +7,15 @@ import { MONITORING_ACTIONS, recordMonitoringEvent } from "@/lib/monitoring";
 import { safeNextPath } from "@/lib/safe-redirect";
 import { isCrossSiteRequest } from "@/lib/same-origin";
 import { deviceDetails, deviceFromRequest, rememberDevice } from "@/lib/devices";
+import { clientDetail, clientTag, LOGIN_WINDOW_MS, MAX_ATTEMPTS, tooManyFailedLogins } from "@/lib/login-throttle";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Quick per-instance counter; the durable limit is counted in the database
+// (see login-throttle), because instances do not share this memory.
 const attempts = new Map<string, { count: number; resetAt: number }>();
-const WINDOW_MS = 10 * 60 * 1000;
-const MAX_ATTEMPTS = 5;
+const WINDOW_MS = LOGIN_WINDOW_MS;
 
 function safeEqual(a: string, b: string) {
   const left = Buffer.from(a);
@@ -57,7 +59,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "too_many_attempts" }, { status: 429 });
   }
 
-  if (!state || state.resetAt <= now) {
+  // Forget expired entries so the map cannot grow without bound.
+  for (const [entry, value] of attempts) if (value.resetAt <= now) attempts.delete(entry);
+
+  const tag = clientTag(key);
+  if (await tooManyFailedLogins(tag)) {
+    return NextResponse.json({ error: "too_many_attempts" }, { status: 429 });
+  }
+
+  if (!attempts.has(key)) {
     attempts.set(key, { count: 0, resetAt: now + WINDOW_MS });
   }
 
@@ -79,7 +89,7 @@ export async function POST(request: NextRequest) {
       action: MONITORING_ACTIONS.LOGIN_FAILED,
       username: username || null,
       success: false,
-      details: usernameOk ? "password_mismatch" : "username_mismatch",
+      details: `${usernameOk ? "password_mismatch" : "username_mismatch"}; ${clientDetail(tag)}`,
     });
     return NextResponse.json(
       { error: "invalid_credentials" },

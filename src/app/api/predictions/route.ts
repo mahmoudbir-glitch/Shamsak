@@ -5,6 +5,15 @@ import { assessNightEndurance, findSurplusWindows } from "@/lib/predictions";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/** Clock hour (0–23) of an instant in the given time zone. */
+function localHour(date: Date, timeZone: string) {
+  try {
+    return Number(new Intl.DateTimeFormat("en-US", { timeZone, hour: "2-digit", hourCycle: "h23" }).format(date)) % 24;
+  } catch {
+    return date.getUTCHours();
+  }
+}
+
 export async function GET() {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "database_not_configured" }, { status: 503 });
@@ -23,8 +32,9 @@ export async function GET() {
     });
 
     const averageNightLoadKW = (() => {
+      // The site's clock, not the server's (which runs in UTC).
       const night = recent.filter((row) => {
-        const hour = row.timestamp.getHours();
+        const hour = localHour(row.timestamp, settings.timezone);
         return hour >= 18 || hour < 7;
       });
       const rows = night.length ? night : recent;
@@ -48,9 +58,14 @@ export async function GET() {
     const weather = await weatherResponse.json();
 
     const now = new Date();
-    const sunrise = weather.daily?.sunrise?.[1] ?? weather.daily?.sunrise?.[0];
-    const sunset = weather.daily?.sunset?.[0];
-    const nightEnd = sunrise ? new Date(sunrise).getTime() : now.getTime();
+    // Open-Meteo gives sunrise as local clock time without a zone
+    // ("2026-10-03T06:35"); parsing it directly read it as UTC, hours off.
+    // The night ends at the next sunrise, which after midnight is today's.
+    const offsetMs = Number(weather.utc_offset_seconds ?? 0) * 1000;
+    const sunrises: number[] = (Array.isArray(weather.daily?.sunrise) ? weather.daily.sunrise : [])
+      .map((local: string) => Date.parse(`${local}Z`) - offsetMs)
+      .filter((instant: number) => Number.isFinite(instant));
+    const nightEnd = sunrises.find((instant) => instant > now.getTime()) ?? now.getTime();
     const remainingNightHours = Math.max(0, (nightEnd - now.getTime()) / 3_600_000);
 
     const batterySoc = latest?.batterySoc ?? 0;

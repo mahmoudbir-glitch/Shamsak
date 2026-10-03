@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { TelemetryInput } from "@/lib/telemetry";
-import { MONITORING_ACTIONS, recordMonitoringEvent } from "@/lib/monitoring";
+import { MONITORING_ACTIONS, pruneMonitoringEvents, recordMonitoringEvent } from "@/lib/monitoring";
 
 type Settings = Awaited<ReturnType<typeof loadSettings>>;
 type Sample = {
@@ -204,17 +204,19 @@ export async function ingestSample(input: TelemetryInput) {
   try {
     if (!summaryDone) await updateDailySummary(prisma, timestamp, latest, row, settings);
 
+    // Retention runs about once an hour rather than on every reading.
+    const hourChanged = !latest || latest.timestamp.getUTCHours() !== timestamp.getUTCHours();
     if (settings) {
       for (const event of collectAlerts(latest, row, settings)) {
         await recordMonitoringEvent({ action: event.action, success: true, details: event.details });
       }
-      // Retention runs about once an hour rather than on every reading.
-      const hourChanged = !latest || latest.timestamp.getUTCHours() !== timestamp.getUTCHours();
       if (settings.retentionDays > 0 && hourChanged) {
         const cutoff = new Date(Date.now() - settings.retentionDays * 86_400_000);
         await prisma.telemetryLog.deleteMany({ where: { timestamp: { lt: cutoff } } });
       }
     }
+    // The event log has its own, fixed retention (it is not the energy history).
+    if (hourChanged) await pruneMonitoringEvents().catch((error) => console.error("[monitoring] prune_failed", error));
 
     if (input.source.toLowerCase() !== "demo") {
       await prisma.inverterConnection.updateMany({

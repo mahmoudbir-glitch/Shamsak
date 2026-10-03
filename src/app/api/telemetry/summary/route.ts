@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
+import { loadSettings, localDayStart } from "@/lib/telemetry-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type Period = "day" | "week" | "month";
 
-function startFor(period: Period) {
-  const now = new Date();
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+// Daily summaries are keyed by the local calendar day (see localDayStart), so
+// the period must start on the local day too. Counting from the UTC day made
+// "day" add up two days between local midnight and the zone's UTC offset.
+function startFor(period: Period, timezone?: string | null) {
+  const start = localDayStart(new Date(), timezone);
   if (period === "week") start.setUTCDate(start.getUTCDate() - 6);
   if (period === "month") start.setUTCDate(1);
   return start;
@@ -27,8 +30,9 @@ export async function GET(request: NextRequest) {
   const period: Period = raw === "week" || raw === "month" ? raw : "day";
 
   try {
+    const settings = await loadSettings().catch(() => null);
     const rows = await prisma.dailySummary.findMany({
-      where: { day: { gte: startFor(period) } },
+      where: { day: { gte: startFor(period, settings?.timezone) } },
       orderBy: { day: "asc" },
     });
 
