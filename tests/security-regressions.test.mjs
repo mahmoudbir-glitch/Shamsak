@@ -590,6 +590,9 @@ test("device list never stores the IP address and requires a session", () => {
   assert.match(lib, /httpOnly: true/);
   const route = read("src/app/api/devices/route.ts");
   assert.match(route, /verifySessionToken\(/);
+  assert.match(route, /if \(!isOwner\(session\.username\)\).*403/s);
+  assert.match(read("src/lib/owner.ts"), /SHAMSAK_OWNER_USER/);
+  assert.match(read("src/app/settings/page.tsx"), /\{isOwnerSession && <SettingsSection icon=\{Smartphone\}/);
   assert.match(route, /if \(!session\).*401/s);
   const login = read("src/app/api/auth/login/route.ts");
   assert.match(login, /details: deviceDetails\(device\)/);

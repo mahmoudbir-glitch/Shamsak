@@ -135,6 +135,14 @@ function SettingsField({ label, children, className = "" }: { label: React.React
   );
 }
 export default function SettingsPage() {
+  // The Devices section is for the owner's own account only.
+  const [isOwnerSession, setIsOwnerSession] = useState(false);
+  useEffect(() => {
+    void fetch("/api/auth/session", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { owner?: boolean } | null) => setIsOwnerSession(Boolean(data?.owner)))
+      .catch(() => setIsOwnerSession(false));
+  }, []);
   const [settings, setSettings] = useState<Settings>(defaults);
   // آخر قيم محفوظة: أساس زر «إعادة القسم» ومؤشر التغييرات غير المحفوظة
   const [saved, setSaved] = useState<Settings>(defaults);
@@ -461,9 +469,9 @@ export default function SettingsPage() {
         </AdvancedBlock>
       </SettingsSection>
 
-      <SettingsSection icon={Smartphone} tone="violet" query={query} keywords="أجهزة جهاز موبايل هاتف دخول متصفح أمان" title="الأجهزة" subtitle="الأجهزة التي تستخدم حسابك">
+      {isOwnerSession && <SettingsSection icon={Smartphone} tone="violet" query={query} keywords="أجهزة جهاز موبايل هاتف دخول متصفح أمان" title="الأجهزة" subtitle="الأجهزة التي تستخدم حسابك">
         <DevicesList />
-      </SettingsSection>
+      </SettingsSection>}
 
       <SettingsSection icon={Database} tone="sky" summary={`الحفظ ${settings.retentionDays} يوم`} query={query} keywords="بيانات تصدير CSV سجل النشاط مسح الاحتفاظ حفظ" onReset={() => resetSection(["retentionDays"], "البيانات")} title="البيانات" subtitle="مدة الحفظ والتصدير">
           <SettingsField label="مدة حفظ السجل التاريخي"><select value={settings.retentionDays} onChange={(e) => updateSetting("retentionDays", Number(e.target.value))} className={input}><option value={30}>30 يوماً</option><option value={90}>90 يوماً</option><option value={180}>180 يوماً</option><option value={365}>365 يوماً</option><option value={0}>بلا حد</option></select></SettingsField>

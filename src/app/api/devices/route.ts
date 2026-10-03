@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { deviceDetails, deviceFromRequest, listDevices, rememberDevice } from "@/lib/devices";
 import { MONITORING_ACTIONS, recordMonitoringEvent } from "@/lib/monitoring";
+import { isOwner } from "@/lib/owner";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +11,8 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const session = await verifySessionToken(request.cookies.get(COOKIE_NAME)?.value);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Only the owner's own account may see who else uses the app.
+  if (!isOwner(session.username)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   if (!process.env.DATABASE_URL) return NextResponse.json({ error: "database_not_configured" }, { status: 503 });
   try {
     const device = deviceFromRequest(request);
