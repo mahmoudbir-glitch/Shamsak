@@ -61,6 +61,13 @@ function formatNumber(value: number, digits = Math.abs(value) >= 100 ? 0 : 1) {
   });
 }
 
+/** "آخر يوم" / "آخر يومين" / "آخر 5 أيام" / "آخر 12 يوماً": Arabic plural for the period. */
+function lastDays(n: number) {
+  if (n === 1) return "آخر يوم";
+  if (n === 2) return "آخر يومين";
+  return `آخر ${n} ${n >= 3 && n <= 10 ? "أيام" : "يوماً"}`;
+}
+
 /** Money with at most two decimals (0.325 -> 0.33), Latin digits. */
 const money = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: n % 1 ? 2 : 0 });
 
@@ -161,7 +168,7 @@ export default function MoneyDashboard() {
 
   return (
     <div className="w-full space-y-3 pb-4 text-right" dir="rtl">
-      <PageHeader icon={Wallet} tone="teal" eyebrow="شمسك • المال" title="التحليل المالي ومصادر الكهرباء" subtitle={data?.periodDays ? `مصادر الكهرباء والوفر خلال آخر ${data.periodDays} يوماً.` : "مصادر الكهرباء والوفر من قراءات منظومتك."} />
+      <PageHeader icon={Wallet} tone="teal" eyebrow="شمسك • المال" title="التحليل المالي ومصادر الكهرباء" subtitle={data?.periodDays ? `مصادر الكهرباء والوفر خلال ${lastDays(data.periodDays)}.` : "مصادر الكهرباء والوفر من قراءات منظومتك."} />
 
       {loading ? (
         <section className="rounded-[1.5rem] border border-slate-200 bg-white p-6 text-center shadow-sm">
@@ -190,7 +197,7 @@ export default function MoneyDashboard() {
                 <p className="mt-0.5 text-[11px] font-semibold text-slate-500">كيف تم تغطية استهلاك المنزل؟</p>
               </div>
               <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-600">
-                آخر {data.periodDays} يوم
+                {lastDays(data.periodDays)}
               </span>
             </div>
 
