@@ -84,7 +84,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
 
   // Grid current uses the inverter's measured grid voltage when available.
   // Fall back to the nominal 230 V AC value used elsewhere in the app.
-  const gridAmps = isLive && (gridImporting || gridExporting)
+  const gridAmps = isLive
     ? gridVoltage && Number.isFinite(gridVoltage) && gridVoltage > 0
       ? Math.abs(gridKw * 1000) / gridVoltage
       : acAmps(gridKw * 1000)
@@ -232,7 +232,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
           <div className="pointer-events-none absolute left-1/2 top-full mt-1.5 w-[7.5rem] -translate-x-1/2 text-center">
             <div className="text-xs font-black text-slate-700">الشبكة</div>
             <div className={gridConnected && !inverterOffGrid ? "text-sm font-black text-violet-600" : "text-sm font-black text-slate-500"}>{!gridConnected ? "مقطوعة" : gridImporting ? "تسحب منها" : gridExporting ? "تصدير" : inverterOffGrid ? "غير مستخدمة" : "جهد متوفر"}</div>
-            <div className="mt-0.5 text-sm font-black text-violet-600">{isLive && (gridImporting || gridExporting) ? formatKw(gridKw) : "—"}</div>
+            <div className="mt-0.5 text-sm font-black text-violet-600">{isLive ? formatKw(gridKw) : "—"}</div>
             <div className="mt-0.5 text-[11px] font-bold text-violet-500"><bdi dir="ltr">{gridAmps !== null ? `${gridAmps.toFixed(1)} A` : "—"}</bdi></div>
           </div>
         </button>
