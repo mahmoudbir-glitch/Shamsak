@@ -22,7 +22,7 @@ TELEMETRY_TOKEN = os.getenv("SHAMSAK_TELEMETRY_TOKEN", "")
 POLL_SECONDS = max(2, int(os.getenv("POLL_INTERVAL_SECONDS", "10")))
 # INVERTER_PROFILE is the current name; FELICITY_* stays supported so existing
 # gateway installations keep working after an upgrade.
-PROFILE = (os.getenv("INVERTER_PROFILE") or os.getenv("FELICITY_PROFILE", "")).strip()
+PROFILE = (os.getenv("INVERTER_PROFILE") or os.getenv("FELICITY_PROFILE", "ivem6048-ii")).strip()
 REGISTER_OFFSET = int(os.getenv("INVERTER_REGISTER_OFFSET") or os.getenv("FELICITY_REGISTER_OFFSET", "0"))
 
 # Register maps are per inverter model. Each entry below is only valid for the model
