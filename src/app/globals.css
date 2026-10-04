@@ -36,3 +36,4 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 @media (prefers-reduced-motion: reduce) {
   .sun-twinkle { animation: none; }
 }
+<header className="sticky top-[calc(env(safe-area-inset-top)+0.5rem)] z-50 mx-2 mt-2 overflow-hidden rounded-[1.75rem] border border-slate-200/70 bg-white/90 shadow-[0_8px_28px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:mx-auto sm:max-w-5xl lg:max-w-full lg:mx-0 lg:px-8">
