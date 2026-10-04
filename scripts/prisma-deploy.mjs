@@ -37,8 +37,9 @@ const databaseUrl =
   process.env.DATABASE_URL || process.env.PRISMA_DATABASE_URL || process.env.POSTGRES_URL;
 
 if (!databaseUrl) {
-  console.error("[shamsak] DATABASE_URL is not set; cannot run migrations.");
-  process.exit(1);
+  console.warn("[shamsak] DATABASE_URL is not set; skipping database migrations during build.");
+  console.warn("[shamsak] Configure DATABASE_URL in Vercel Production to apply pending Prisma migrations automatically.");
+  process.exit(0);
 }
 
 const runner = process.platform === "win32" ? "npx.cmd" : "npx";
