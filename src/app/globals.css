@@ -18,8 +18,7 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 }
 .energy-card { border: 1px solid rgba(226,232,240,.88); border-radius: 1.5rem; background: rgba(255,255,255,.97); box-shadow: 0 10px 32px rgba(37,99,235,.055); }
 .page-title { font-size: 1.5rem; line-height: 2rem; font-weight: 900; color: #0f172a; }
-/* The ☀️ logo spins slowly while it pulses and glows. Two animations on
- * separate properties (rotate vs scale/filter) so neither overrides the other. */
+/* The ☀️ logo spins slowly while it pulses and glows. Two animations on separate properties (rotate vs scale/filter) so neither overrides the other. */
 @keyframes sun-spin {
   from { rotate: 0deg; }
   to { rotate: 360deg; }
@@ -36,4 +35,3 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 @media (prefers-reduced-motion: reduce) {
   .sun-twinkle { animation: none; }
 }
-<header className="sticky top-[calc(env(safe-area-inset-top)+0.5rem)] z-50 mx-2 mt-2 overflow-hidden rounded-[1.75rem] border border-slate-200/70 bg-white/90 shadow-[0_8px_28px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:mx-auto sm:max-w-5xl lg:max-w-full lg:mx-0 lg:px-8">
