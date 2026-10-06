@@ -119,7 +119,7 @@ export default function SolarDashboardClient() {
             ].map(([label, value]) => (
               <div key={label} className="flex items-start justify-between gap-3 py-2">
                 <dt className="shrink-0 font-bold text-slate-500">{label}</dt>
-                <dd className="text-left font-black text-slate-800">{value}</dd>
+                <dd className="text-left font-black text-slate-800"><bdi>{value}</bdi></dd>
               </div>
             ))}
           </dl>
