@@ -112,8 +112,7 @@ model DailySummary {
 model EnergySettings {
   id String @id @default("default")
   panelPowerW Float @default(6000)
-  batteryCapacityWh Float @default(7104)
-  batteryCapacityAh Float @default(148)
+  batteryCapacityWh Float @default(4800)
   gridTariff Float @default(1.2)
   exportTariff Float @default(1.2)
   currency String @default("USD")
@@ -136,7 +135,7 @@ model EnergySettings {
   chargerSourcePriority String @default("CSO")
   batteryMaxChargeA Float?
   batteryMaxDischargeA Float?
-  inverterRatedPowerKw Float? @default(6.0)
+  inverterRatedPowerKw Float? @default(8.2)
   gridPhase String @default("single")
   retentionDays Int @default(365)
   pollIntervalSec Int @default(10)
@@ -171,7 +170,7 @@ model MonitoringEvent {
 model InverterConnection {
   id String @id @default("default")
   systemName String @default("منظومة شمسك")
-  inverterModel String @default("Felicitysolar IVEM6048-II 6kW")
+  inverterModel String @default("NEXT - Victor Max 8.2KW")
   serialNumber String?
   manufacturer String?
   dataloggerPn String?
