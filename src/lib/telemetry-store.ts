@@ -11,7 +11,7 @@ type Sample = {
   batteryPowerW: number;
   batterySoc: number;
   gridPowerW: number | null;
-  gridConnected: boolean;
+  gridConnected: boolean | null;
   operatingMode?: string | null;
 };
 type Db = Prisma.TransactionClient | typeof prisma;
@@ -29,7 +29,7 @@ export function effectiveGridW(sample: Sample) {
   if (typeof sample.gridPowerW === "number" && Number.isFinite(sample.gridPowerW)) return sample.gridPowerW;
   const mode = sample.operatingMode ?? "";
   const onMains = /mains|line|grid|bypass|utility/i.test(mode) && !/off.?grid/i.test(mode);
-  if (!onMains || !sample.gridConnected) return 0;
+  if (!onMains || sample.gridConnected !== true) return 0;
   return Math.max(0, sample.loadPowerW + sample.batteryPowerW - sample.pvPowerW);
 }
 
@@ -134,7 +134,7 @@ function collectAlerts(previous: Sample | null, row: Sample, s: NonNullable<Sett
     }
   }
 
-  if (previous && s.gridOutageAlert && previous.gridConnected !== row.gridConnected) {
+  if (previous && s.gridOutageAlert && typeof previous.gridConnected === "boolean" && typeof row.gridConnected === "boolean" && previous.gridConnected !== row.gridConnected) {
     events.push({
       action: row.gridConnected ? "ALERT_GRID_RESTORED" : "ALERT_GRID_OUTAGE",
       details: `gridConnected=${row.gridConnected}`,
@@ -164,7 +164,7 @@ export async function ingestSample(input: TelemetryInput) {
     batteryVoltage: input.battery_voltage,
     batteryCurrent: input.battery_current,
     batteryTemperature: input.battery_temperature,
-    gridConnected: input.grid_status,
+    gridConnected: input.grid_status ?? null,
     gridPowerW: input.grid_power,
     gridVoltage: input.grid_voltage,
     inverterTemperature: input.inverter_temperature,

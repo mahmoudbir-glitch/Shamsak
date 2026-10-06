@@ -13,7 +13,7 @@ interface EnergyFlowProps {
   gridKw: number;
   batteryKw: number;
   batteryPercentage: number;
-  gridConnected?: boolean;
+  gridConnected?: boolean | null;
   /** Voltage the inverter measures on its grid input. */
   gridVoltage?: number;
   /** Inverter operating mode as reported (e.g. "Off-Grid Mode", "Mains Mode"). */
@@ -35,7 +35,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   gridKw,
   batteryKw,
   batteryPercentage,
-  gridConnected = true,
+  gridConnected = null,
   gridVoltage,
   inverterMode,
   todayProductionKWh,
@@ -69,12 +69,15 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   const homeActive = liveFlowActive && homeKw > FLOW_THRESHOLD;
   const batteryCharging = liveFlowActive && batteryKw > FLOW_THRESHOLD;
   const batteryDischarging = liveFlowActive && batteryKw < -FLOW_THRESHOLD;
-  const gridImporting = liveFlowActive && gridConnected && gridKw > FLOW_THRESHOLD;
-  const gridExporting = liveFlowActive && gridConnected && gridKw < -FLOW_THRESHOLD;
+  const gridImporting = liveFlowActive && gridConnected !== false && gridKw > FLOW_THRESHOLD;
+  const gridExporting = liveFlowActive && gridConnected !== false && gridKw < -FLOW_THRESHOLD;
   // In off-grid (battery) mode this inverter still reports ~230 V on "Grid
   // Voltage" even with the mains cut (its own screen shows 0 V), so that
   // number cannot prove the grid is there: say it is unused, show no voltage.
   const inverterOffGrid = /off.?grid|battery/i.test(inverterMode ?? "") && !gridImporting && !gridExporting;
+  const gridAmps = gridVoltage !== undefined && Number.isFinite(gridVoltage) && gridVoltage > 0
+    ? Math.abs(gridKw * 1000) / gridVoltage
+    : acAmps(gridKw * 1000);
 
 
   // <bdi dir="ltr"> keeps "1.23 kW" in that order inside the RTL layout.
@@ -216,17 +219,17 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
 
         <button type="button" onClick={() => setActiveNode("grid")} aria-label="عرض تفاصيل الشبكة" className="absolute left-[18%] top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95">
           <div
-            className={gridConnected ? "relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border-2 border-violet-300 bg-white" : "relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border-2 border-slate-200 bg-slate-50"}
-            style={gridConnected && (gridImporting || gridExporting) ? { boxShadow: `0 10px 24px rgba(139,92,246,${gridGlowStrength}), 0 0 ${Math.round(16 + Math.abs(gridKw) * 2.5)}px rgba(139,92,246,${gridGlowStrength * 0.5})`, animation: `energy-node-pulse ${gridPulseDuration}s ease-in-out infinite` } : undefined}
+            className={gridConnected === true ? "relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border-2 border-violet-300 bg-white" : "relative flex h-16 w-16 items-center justify-center rounded-[1.25rem] border-2 border-slate-200 bg-slate-50"}
+            style={gridConnected === true && (gridImporting || gridExporting) ? { boxShadow: `0 10px 24px rgba(139,92,246,${gridGlowStrength}), 0 0 ${Math.round(16 + Math.abs(gridKw) * 2.5)}px rgba(139,92,246,${gridGlowStrength * 0.5})`, animation: `energy-node-pulse ${gridPulseDuration}s ease-in-out infinite` } : undefined}
           >
-            <GridTowerIcon active={gridConnected} />
+            <GridTowerIcon active={gridConnected === true} />
           </div>
           <div className="pointer-events-none absolute left-1/2 top-full mt-1.5 w-[7.5rem] -translate-x-1/2 text-center">
             <div className="text-xs font-black text-slate-700">الشبكة</div>
             {/* Power from the grid in kW, like the other nodes; the state goes under it. */}
             <div className={gridImporting || gridExporting ? "text-sm font-black text-violet-600" : "text-sm font-black text-slate-500"}>{formatKw(isLive ? gridKw : 0)}</div>
-            <div className={gridConnected && !inverterOffGrid ? "text-[11px] font-bold text-violet-500" : "text-[11px] font-bold text-slate-400"}>{!gridConnected ? "مقطوعة" : gridImporting ? "تسحب منها" : gridExporting ? "تصدير" : inverterOffGrid ? "غير مستخدمة" : "جهد متوفر"}</div>
-            <div className="mt-1"><AmpPill tone="violet" amps={isLive ? acAmps(gridKw * 1000) : null} muted={!gridImporting && !gridExporting} /></div>
+            <div className={gridConnected === true && !inverterOffGrid ? "text-[11px] font-bold text-violet-500" : "text-[11px] font-bold text-slate-400"}>{gridConnected == null ? "غير معروفة" : !gridConnected ? "مقطوعة" : gridImporting ? "تسحب منها" : gridExporting ? "تصدير" : inverterOffGrid ? "غير مستخدمة" : "جهد متوفر"}</div>
+            <div className="mt-1"><AmpPill tone="violet" amps={isLive ? gridAmps : null} muted={!gridImporting && !gridExporting} /></div>
           </div>
         </button>
 
@@ -315,7 +318,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
               )}
               {activeNode === "grid" && (
                 <>
-                  <div className="rounded-xl bg-violet-50 p-3"><div className="font-bold text-slate-500">الحالة</div><div className={"mt-1 font-black " + (gridConnected && !inverterOffGrid ? "text-violet-700" : "text-slate-600")}>{!gridConnected ? "مقطوعة" : inverterOffGrid ? "غير مستخدمة (منفصل)" : "متصلة"}</div></div>
+                  <div className="rounded-xl bg-violet-50 p-3"><div className="font-bold text-slate-500">الحالة</div><div className={"mt-1 font-black " + (gridConnected === true && !inverterOffGrid ? "text-violet-700" : "text-slate-600")}>{gridConnected == null ? "غير معروفة" : !gridConnected ? "مقطوعة" : inverterOffGrid ? "غير مستخدمة (منفصل)" : "متصلة"}</div></div>
                   <div className="rounded-xl bg-slate-50 p-3"><div className="font-bold text-slate-500">التدفق</div><div className="mt-1 font-black text-slate-800">{gridExporting ? "تصدير" : gridImporting ? "سحب" : "متوازن / لا يوجد تدفق"}</div></div>
                 </>
               )}

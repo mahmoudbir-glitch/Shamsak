@@ -14,7 +14,7 @@ except ImportError:
 
 load_dotenv()
 
-HOST = os.getenv("GATEWAY_HOST", "0.0.0.0")
+HOST = os.getenv("GATEWAY_HOST", "127.0.0.1")
 PORT = int(os.getenv("GATEWAY_PORT", "8787"))
 TOKEN = os.getenv("GATEWAY_TOKEN", "")
 API_URL = os.getenv("SHAMSAK_API_URL", "").rstrip("/")
@@ -57,6 +57,9 @@ def json_response(handler, status, payload):
     handler.send_header("Content-Length", str(len(raw)))
     handler.end_headers()
     handler.wfile.write(raw)
+
+def is_strong_secret(value):
+    return len(value) >= 32 and value.lower() not in {"change-me", "changeme"}
 
 def read_u16(result):
     return int(result.registers[0])
@@ -138,8 +141,6 @@ def read_telemetry(config):
             "batteryCurrent": float(batt_i_raw) / 10.0 if batt_i_raw < 32768 else (batt_i_raw - 65536) / 10.0,
             "batteryPowerW": float(batt_p_raw) if batt_p_raw < 32768 else float(batt_p_raw - 65536),
             "batteryTemperature": float(batt_t_raw if batt_t_raw < 32768 else batt_t_raw - 65536),
-            "gridPowerW": 0.0,
-            "gridConnected": True,
             "faultCode": fault,
             "profile": PROFILE,
             "latencyMs": round((time.monotonic() - started) * 1000),
@@ -150,7 +151,7 @@ def read_telemetry(config):
 def push_telemetry(snapshot):
     if not API_URL:
         return
-    body = json.dumps({
+    payload = {
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "pv_power": snapshot["solarPowerW"],
         "load_power": snapshot["loadPowerW"],
@@ -159,10 +160,13 @@ def push_telemetry(snapshot):
         "battery_voltage": snapshot.get("batteryVoltage"),
         "battery_current": snapshot.get("batteryCurrent"),
         "battery_temperature": snapshot.get("batteryTemperature"),
-        "grid_status": snapshot.get("gridConnected", False),
-        "grid_power": snapshot.get("gridPowerW", 0),
         "source": "modbus-gateway",
-    }).encode()
+    }
+    if "gridConnected" in snapshot:
+        payload["grid_status"] = snapshot["gridConnected"]
+    if "gridPowerW" in snapshot:
+        payload["grid_power"] = snapshot["gridPowerW"]
+    body = json.dumps(payload).encode()
     req = urllib.request.Request(API_URL + "/api/telemetry", data=body, headers={
         "Content-Type": "application/json",
         "Authorization": "Bearer " + TELEMETRY_TOKEN,
@@ -216,8 +220,10 @@ def poll_loop():
             print("poll failed:", exc)
 
 if __name__ == "__main__":
-    if not TOKEN:
-        raise SystemExit("GATEWAY_TOKEN is not set. Refusing to start without authentication: set GATEWAY_TOKEN to the token shown in Shamsak settings.")
+    if not is_strong_secret(TOKEN):
+        raise SystemExit("GATEWAY_TOKEN must be a unique secret of at least 32 characters. Refusing to start with a missing or weak token.")
+    if API_URL and not is_strong_secret(TELEMETRY_TOKEN):
+        raise SystemExit("SHAMSAK_TELEMETRY_TOKEN must be a unique secret of at least 32 characters when SHAMSAK_API_URL is set.")
     print(f"Shamsak Gateway listening on {HOST}:{PORT}, profile={PROFILE}")
     threading.Thread(target=poll_loop, daemon=True).start()
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()

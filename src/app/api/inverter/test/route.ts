@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { storeReading } from "@/lib/smartess-sync";
-import { assertPublicEndpoint, PrivateEndpointError } from "@/lib/net-guard";
+import { assertPublicEndpoint, fetchPublicEndpoint, PrivateEndpointError } from "@/lib/net-guard";
 import { decryptSecret } from "@/lib/inverter-config-crypto";
 import { patchConnectionExtras } from "@/lib/connection-extras";
 import { authenticate, describeDessError, discoverDevices, pickDevice, readLastData } from "@/lib/dessmonitor";
@@ -208,10 +208,8 @@ export async function POST(request: NextRequest) {
     const timer = setTimeout(() => controller.abort(), remoteTimeout(row.timeoutMs));
     const started = Date.now();
     try {
-      const response = await fetch(safeGateway + "/v1/inverter/test", {
+      const response = await fetchPublicEndpoint(safeGateway + "/v1/inverter/test", {
         method: "POST",
-        // A redirect could point the request (and its token) at an internal host.
-        redirect: "manual",
         headers: { "Content-Type": "application/json", ...gatewayAuthHeader(row.gatewayTokenCipher, incomingGatewayToken) },
         body: JSON.stringify({
           enabled: row.enabled,
@@ -221,13 +219,15 @@ export async function POST(request: NextRequest) {
           baudRate: row.baudRate, dataBits: row.dataBits, stopBits: row.stopBits, parity: row.parity,
           slaveId: row.slaveId, timeoutMs: row.timeoutMs,
         }),
-        cache: "no-store",
         signal: controller.signal,
       });
-      const data = await response.json().catch(() => ({ message: "استجابة البوابة غير صالحة." }));
+      const body = await response.json().catch(() => null);
+      const data = body && typeof body === "object" && !Array.isArray(body)
+        ? body as Record<string, unknown>
+        : { message: "استجابة البوابة غير صالحة." };
       const latencyMs = Date.now() - started;
       if (!response.ok || data.ok !== true) {
-        await prisma.inverterConnection.update({ where: { id: row.id }, data: { lastStatus: "error", lastTestResult: "error", lastTestLatencyMs: latencyMs, lastTestReason: data.message || "gateway_error" } });
+        await prisma.inverterConnection.update({ where: { id: row.id }, data: { lastStatus: "error", lastTestResult: "error", lastTestLatencyMs: latencyMs, lastTestReason: typeof data.message === "string" ? data.message : "gateway_error" } });
         return NextResponse.json({ ok: false, source: "gateway", latencyMs, ...data }, { status: 502 });
       }
       await prisma.inverterConnection.update({ where: { id: row.id }, data: { lastStatus: "connected", lastSeenAt: new Date(), lastTestResult: "success", lastTestLatencyMs: latencyMs, lastTestReason: null } });

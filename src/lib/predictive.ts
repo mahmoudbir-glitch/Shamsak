@@ -53,7 +53,7 @@ export function solarSurplus(
 export function powerSourceShares(snapshot: EnergySnapshot) {
   const solar = Math.max(0, snapshot.solarPowerW);
   const battery = Math.max(0, -snapshot.batteryPowerW);
-  const grid = snapshot.gridConnected ? Math.max(0, snapshot.gridPowerW) : 0;
+  const grid = snapshot.gridConnected === false ? 0 : Math.max(0, snapshot.gridPowerW);
   const total = solar + battery + grid;
   if (total <= 0) return { solarPct: 0, batteryPct: 0, gridPct: 0 };
   return {
@@ -71,6 +71,6 @@ export function notificationMessages(snapshot: EnergySnapshot, batteryMinSoc = 2
   if (snapshot.homePowerW > snapshot.solarPowerW + Math.max(0, -snapshot.batteryPowerW) && snapshot.batterySoc <= batteryMinSoc) {
     messages.push("⚠️ استهلاك مرتفع والبطارية منخفضة.");
   }
-  if (!snapshot.gridConnected) messages.push("الشبكة مفصولة.");
+  if (snapshot.gridConnected === false) messages.push("الشبكة مفصولة.");
   return messages;
 }

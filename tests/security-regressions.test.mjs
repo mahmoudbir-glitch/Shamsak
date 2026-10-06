@@ -95,6 +95,18 @@ test("telemetry ingest reports a missing ingest token instead of a bare 401", ()
   assert.match(source, /timingSafeEqual/);
 });
 
+test("Modbus gateway does not invent grid status when its profile cannot read it", () => {
+  const gateway = read("gateway/gateway.py");
+  assert.doesNotMatch(gateway, /"gridConnected": True/);
+  assert.doesNotMatch(gateway, /"gridPowerW": 0\.0/);
+  assert.match(gateway, /if "gridConnected" in snapshot:/);
+  assert.match(gateway, /if "gridPowerW" in snapshot:/);
+  assert.match(read("src/lib/telemetry.ts"), /grid_status: z\.boolean\(\)\.nullable\(\)\.optional\(\)/);
+  assert.match(read("prisma/schema.prisma"), /gridConnected Boolean\?/);
+  assert.match(read("prisma/migrations/20261003120000_allow_unknown_grid_status/migration.sql"), /ALTER COLUMN "gridConnected" DROP NOT NULL/);
+  assert.match(read("src/components/energy-flow.tsx"), /gridConnected == null \? "غير معروفة"/);
+});
+
 test("RLS migration does not assume Supabase roles exist", () => {
   // Deployed as-is, `CREATE POLICY ... TO anon` aborted with `role "anon" does
   // not exist` on Prisma Postgres, leaving a failed migration that blocked every
@@ -189,7 +201,7 @@ test("saving the connection form without retyping a password keeps it", () => {
 test("gateway SSRF guard blocks private, reserved and IPv4-mapped addresses", () => {
   // Evaluate the real function: string checks missed "::ffff:7f00:1" (127.0.0.1).
   const source = read("src/lib/net-guard.ts")
-    .replace(/^import.*$/m, "")
+    .replace(/^import.*$/gm, "")
     .replace(/export /g, "")
     .replace(/: string/g, "")
     .replace(/async function assertPublicEndpoint[\s\S]*$/, "");
@@ -208,8 +220,10 @@ test("both outbound test routes share one SSRF guard", () => {
   for (const route of ["src/app/api/inverter/test/route.ts", "src/app/api/connection/test/route.ts"]) {
     const source = read(route);
     assert.match(source, /from "@\/lib\/net-guard"/, `${route} must use the shared guard`);
+    assert.match(source, /fetchPublicEndpoint\(/, `${route} must pin requests to the validated DNS address`);
     assert.doesNotMatch(source, /function isPrivateIp/, `${route} must not redefine isPrivateIp`);
   }
+  assert.match(read("src/lib/net-guard.ts"), /headers\["Content-Length"\]/);
 });
 
 test("gateway token is recoverable so connection tests authenticate", () => {
@@ -310,7 +324,7 @@ test("no component or library module is left without a user", () => {
     }
   };
   collect("src");
-  all.push("middleware.ts");
+  all.push("src/middleware.ts");
   const orphans = files.filter((file) => {
     const base = path.basename(file).replace(/\.tsx?$/, "");
     const pattern = new RegExp(`[/"']${base}["']`);
@@ -408,7 +422,7 @@ test("QA fixes: today totals, finance split, blank values, gateway token", () =>
   assert.match(read("src/lib/dessmonitor.ts"), /if \(!\/\\d\/\.test\(cleaned\)\) return undefined;/);
   assert.match(read("src/lib/telemetry-store.ts"), /if \(hours <= 0 \|\| hours > 0\.25\) return;/);
   assert.match(read("src/app/api/inverter/connection/route.ts"), /gatewayTokenHash: null, gatewayTokenCipher: null/);
-  assert.match(read("src/app/api/inverter/test/route.ts"), /redirect: "manual"/);
+  assert.match(read("src/app/api/inverter/test/route.ts"), /fetchPublicEndpoint\(/);
 });
 
 test("frozen SmartESS values are not stored as new readings", () => {
@@ -466,7 +480,9 @@ test("preview builds never run migrations against the shared database", () => {
 
 test("gateway refuses to start or serve without GATEWAY_TOKEN", () => {
   const source = read("gateway/gateway.py");
-  assert.match(source, /if not TOKEN:\s*\n\s*raise SystemExit/);
+  assert.match(source, /if not is_strong_secret\(TOKEN\):\s*\n\s*raise SystemExit/);
+  assert.match(source, /if API_URL and not is_strong_secret\(TELEMETRY_TOKEN\):/);
+  assert.match(read("gateway/.env.example"), /GATEWAY_HOST=127\.0\.0\.1/);
   assert.match(source, /if not TOKEN or self\.headers\.get\("Authorization"\)/);
 });
 
@@ -486,7 +502,7 @@ test("settings page cannot save placeholder defaults before real settings load",
 });
 
 test("browser cross-site requests cannot change state or redirect off-site after login", () => {
-  const middleware = read("middleware.ts");
+  const middleware = read("src/middleware.ts");
   assert.match(middleware, /isCrossSiteRequest\(request\)/);
   assert.match(read("src/app/api/auth/logout/route.ts"), /isCrossSiteRequest\(request\)/);
   const redirect = read("src/lib/safe-redirect.ts");
@@ -537,6 +553,13 @@ test("details onToggle reads the open state before the state updater runs", () =
 // Type-stripping Node (22.18+) can load the pure solar helpers directly; CI on
 // Node 20 skips these and relies on the source checks below.
 const canLoadTs = Boolean(process.features?.typescript);
+
+test("telemetry rejects timestamps too far in the future", { skip: !canLoadTs }, async () => {
+  const { telemetryInputSchema } = await import("../src/lib/telemetry.ts");
+  const reading = { pv_power: 0, load_power: 0, battery_soc: 50, battery_power: 0 };
+  assert.equal(telemetryInputSchema.safeParse({ ...reading, timestamp: new Date().toISOString() }).success, true);
+  assert.equal(telemetryInputSchema.safeParse({ ...reading, timestamp: new Date(Date.now() + 60_000).toISOString() }).success, false);
+});
 
 test("sun times for Saida match the weather service within a few minutes", { skip: !canLoadTs }, async () => {
   const { sunTimes } = await import("../src/lib/solar-core.ts");
@@ -626,6 +649,7 @@ test("failed sign-ins are limited in the database and never store the IP address
   const throttle = read("src/lib/login-throttle.ts");
   assert.match(throttle, /prisma\.monitoringEvent\.count\(/);
   assert.match(throttle, /createHmac\("sha256"/);
+  assert.doesNotMatch(throttle, /MAX_ATTEMPTS_ALL_CLIENTS|count\(\{ where \}\)/);
   const login = read("src/app/api/auth/login/route.ts");
   // Checked before the password is compared, and the failure carries the tag.
   assert.ok(login.indexOf("await tooManyFailedLogins(tag)") < login.indexOf("const ownerLogin"));
@@ -669,4 +693,12 @@ test("summary and predictions use the site's time zone, not the server's", () =>
   assert.match(predictions, /localHour\(row\.timestamp, settings\.timezone\)/);
   assert.match(predictions, /utc_offset_seconds/);
   assert.doesNotMatch(predictions, /new Date\(sunrise\)/);
+});
+
+test("middleware lives in src/ (next to app/) so Next.js actually runs it", () => {
+  // At the repository root it was silently ignored: every page and the
+  // routes without their own session check were public in production.
+  assert.equal(fs.existsSync(path.join(root, "middleware.ts")), false);
+  const middleware = read("src/middleware.ts");
+  assert.match(middleware, /pathname\.startsWith\("\/api\/"\)\) \{\s*\n\s*return NextResponse\.json\(\{ error: "unauthorized" \}, \{ status: 401/);
 });

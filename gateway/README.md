@@ -26,9 +26,9 @@ Linux:
 | --- | --- |
 | `INVERTER_PROFILE` | Register map to use. Must match the inverter model. Bundled: `ivem6048-ii` (Felicity IVEM6048-II). The gateway refuses to read without it. `FELICITY_PROFILE` is still accepted. |
 | `INVERTER_REGISTER_OFFSET` | Offset applied to every register address, for maps documented 1-based. Defaults to 0. |
-| `GATEWAY_TOKEN` | **Required.** Shared secret this gateway requires on `POST /v1/inverter/test`; the gateway refuses to start without it. Paste the token Shamsak shows once after "rotate gateway token". |
+| `GATEWAY_TOKEN` | **Required.** Unique secret of at least 32 characters for `POST /v1/inverter/test`; the gateway refuses to start with a missing, short, or example token. Paste the token Shamsak shows once after "rotate gateway token". |
 | `SHAMSAK_API_URL` | Base URL of the Shamsak deployment, used by the polling loop. |
-| `SHAMSAK_TELEMETRY_TOKEN` | Must equal `TELEMETRY_INGEST_TOKEN` in Shamsak, or every push is rejected. |
+| `SHAMSAK_TELEMETRY_TOKEN` | Required when `SHAMSAK_API_URL` is set. Use a unique secret of at least 32 characters matching `TELEMETRY_INGEST_TOKEN` in Shamsak, or every push is rejected. |
 | `POLL_INTERVAL_SECONDS` | Seconds between Modbus reads. Minimum 2, default 10. |
 
 ### Adding an inverter model
@@ -50,3 +50,4 @@ The gateway can also poll the inverter and POST normalized telemetry to:
 POST <SHAMSAK_API_URL>/api/telemetry
 
 Never expose port 8787 directly to the public internet. Put it on the same LAN/VPN as the Shamsak server or use a secure tunnel/reverse proxy.
+The sample binds to `127.0.0.1` so it is not reachable from other machines by default. Set `GATEWAY_HOST=0.0.0.0` only when a trusted LAN or tunnel requires it, and keep the port behind a firewall or VPN.

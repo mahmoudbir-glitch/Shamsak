@@ -91,15 +91,26 @@ npm run build
 
 لا تضع أي secret داخل الواجهة أو متغيرات `NEXT_PUBLIC_*`.
 
-المتغيرات الأساسية:
+### متغيرات Vercel
 
-- `SHAMSAK_USER` و`SHAMSAK_PASSWORD` — بيانات تسجيل الدخول. إلزامية، وبدونها يرد `/api/auth/login` بـ 503.
-- `AUTH_SECRET` — مفتاح توقيع الجلسات. إلزامي: بدونه يعود التوقيع إلى `SHAMSAK_PASSWORD`، فيخرج كل المستخدمين عند تغيير كلمة المرور.
-- `INVERTER_CONFIG_SECRET` — مفتاح تشفير أسرار الإنفرتر (كلمة Wi-Fi ورمز البوابة). تغييره يجعل القيم المخزّنة غير قابلة للقراءة.
-- `TELEMETRY_INGEST_TOKEN` — إلزامي لاستقبال القراءات. بدونه يرد `POST /api/telemetry` بـ 503 ولا تصل أي بيانات من الإنفرتر.
-- `SHAMSAK_PASSWORD_HASH` — بديل اختياري عن `SHAMSAK_PASSWORD`.
+أضف القيم التالية في **Project → Settings → Environment Variables** لكل بيئة تريد تشغيلها:
 
-استخدم قيمة مختلفة لكل secret. القيمة نفسها لـ `TELEMETRY_INGEST_TOKEN` يجب أن توضع في الـ Gateway تحت `SHAMSAK_TELEMETRY_TOKEN`.
+- `DATABASE_URL` — رابط PostgreSQL المستخدم من Prisma. هو المتغير الأساسي؛ لا حاجة إلى `PRISMA_DATABASE_URL` أو `POSTGRES_URL` عند ضبطه.
+- `AUTH_SECRET` — مفتاح عشوائي قوي لتوقيع الجلسات.
+- بيانات دخول واحدة على الأقل: `SHAMSAK_USER` مع `SHAMSAK_PASSWORD` (أو `SHAMSAK_PASSWORD_HASH` بدلاً من كلمة المرور)، أو `SHAMSAK_OWNER_USER` مع `SHAMSAK_OWNER_PASSWORD`.
+- `TELEMETRY_INGEST_TOKEN` — مطلوب إذا كان الـ Gateway سيرسل القراءات إلى `/api/telemetry`.
+- `CRON_SECRET` — مطلوب إذا كان مجدول خارجي يستدعي `/api/telemetry/sync`. يجب أن يكون 16 حرفاً على الأقل؛ أرسله في ترويسة `Authorization: Bearer <secret>`.
+- `INVERTER_CONFIG_SECRET` — موصى به كمفتاح عشوائي مستقل لتشفير إعدادات الإنفرتر؛ يمكن للتطبيق استخدام `AUTH_SECRET` عند غيابه.
+
+أنشئ قيمة مختلفة لكل مفتاح سري، ولا تستخدم القيم التوضيحية في `.env.example`. أضف القيم الحساسة إلى Vercel مباشرة ولا ترسلها أو تحفظها في Git. استخدم قاعدة بيانات منفصلة لبيئة Preview إذا كانت مفعلة.
+
+متغيرات اختيارية بحسب التكامل:
+
+- `SHAMSAK_SESSION_EPOCH` — غيّره لإبطال كل الجلسات الحالية.
+- `SHAMSAK_GATEWAY_URL` و`SHAMSAK_GATEWAY_TOKEN` — قيم احتياطية لاتصال الـ Gateway عند عدم حفظها في إعدادات التطبيق.
+- `SHAMSAK_DESSMONITOR_URL` — عنوان SmartESS/DESSMonitor بديل عند الحاجة.
+
+ضع قيمة `TELEMETRY_INGEST_TOKEN` نفسها في الـ Gateway تحت `SHAMSAK_TELEMETRY_TOKEN`. لا تضبط `SHAMSAK_MOCK_INVERTER=true` في Production.
 
 ## Drivers والإنفرترات
 

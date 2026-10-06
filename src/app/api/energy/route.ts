@@ -23,7 +23,7 @@ export async function GET() {
           solar_production: row.pvPowerW,
           home_consumption: row.loadPowerW,
           battery_level: row.batterySoc,
-          grid_status: row.gridConnected ? "متصلة" : "مقطوعة",
+          grid_status: row.gridConnected == null ? "غير معروفة" : row.gridConnected ? "متصلة" : "مقطوعة",
           grid_power: row.gridPowerW ?? 0,
           battery_power: row.batteryPowerW,
           timestamp: row.timestamp.toISOString(),

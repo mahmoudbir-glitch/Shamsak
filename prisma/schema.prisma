@@ -84,7 +84,7 @@ model TelemetryLog {
   batteryVoltage Float?
   batteryCurrent Float?
   batteryTemperature Float?
-  gridConnected Boolean
+  gridConnected Boolean?
   gridPowerW Float?
   gridVoltage Float?
   inverterTemperature Float?

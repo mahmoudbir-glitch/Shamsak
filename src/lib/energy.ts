@@ -9,7 +9,7 @@ export type EnergySnapshot = {
   batteryVoltage?: number;
   batteryCurrent?: number;
   batteryTemperature?: number;
-  gridConnected: boolean;
+  gridConnected?: boolean | null;
   gridVoltage?: number;
   inverterTemperature?: number;
   loadPercent?: number;
@@ -48,7 +48,8 @@ export function batteryStateLabel(state: BatteryState) {
   return state === "charging" ? "تشحن" : state === "discharging" ? "تفرغ" : "ثابتة";
 }
 
-export function gridLabel(w: number, connected: boolean) {
+export function gridLabel(w: number, connected: boolean | null | undefined) {
+  if (connected == null) return "حالة الشبكة غير معروفة";
   if (!connected) return "الشبكة مفصولة";
   return w > 50 ? "سحب من الشبكة" : w < -50 ? "تصدير إلى الشبكة" : "غير مستخدمة الآن";
 }

@@ -9,8 +9,6 @@ import { MONITORING_ACTIONS } from "@/lib/monitoring";
  */
 export const LOGIN_WINDOW_MS = 10 * 60 * 1000;
 export const MAX_ATTEMPTS = 5;
-/** Across all clients: slows a guess spread over many addresses. */
-const MAX_ATTEMPTS_ALL_CLIENTS = 30;
 
 /** Opaque tag for the caller's address; the IP address itself is never stored. */
 export function clientTag(address: string) {
@@ -21,18 +19,15 @@ export function clientTag(address: string) {
 export const clientDetail = (tag: string) => `client=${tag}`;
 
 /**
- * True when this client (or everyone together) has used up the failed
- * attempts for the current window. If the database cannot answer, sign-in
- * stays possible and the in-memory counter is the only limit.
+ * True when this client has used up the failed attempts for the current
+ * window. Avoid a global limit: distributed failures must not lock everyone
+ * out of the application.
  */
 export async function tooManyFailedLogins(tag: string) {
   try {
     const where = { action: MONITORING_ACTIONS.LOGIN_FAILED, timestamp: { gte: new Date(Date.now() - LOGIN_WINDOW_MS) } };
-    const [mine, all] = await Promise.all([
-      prisma.monitoringEvent.count({ where: { ...where, details: { endsWith: clientDetail(tag) } } }),
-      prisma.monitoringEvent.count({ where }),
-    ]);
-    return mine >= MAX_ATTEMPTS || all >= MAX_ATTEMPTS_ALL_CLIENTS;
+    const mine = await prisma.monitoringEvent.count({ where: { ...where, details: { endsWith: clientDetail(tag) } } });
+    return mine >= MAX_ATTEMPTS;
   } catch (error) {
     console.error("[auth] failed_login_count_unavailable", error);
     return false;

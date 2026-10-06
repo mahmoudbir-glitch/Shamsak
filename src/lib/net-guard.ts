@@ -1,4 +1,7 @@
-import { lookup } from "node:dns/promises";
+import { lookup as dnsLookup } from "node:dns/promises";
+import type { RequestOptions as HttpRequestOptions } from "node:http";
+import { request as httpRequest } from "node:http";
+import { request as httpsRequest } from "node:https";
 
 /**
  * Shared SSRF guard.
@@ -67,6 +70,17 @@ export class InvalidEndpointError extends Error {
  * Returns the normalised URL without a trailing slash.
  */
 export async function assertPublicEndpoint(endpoint: string) {
+  const { url } = await resolvePublicEndpoint(endpoint);
+  return url.toString().replace(/\/$/, "");
+}
+
+type ResolvedEndpoint = {
+  url: URL;
+  host: string;
+  address: { address: string; family: number };
+};
+
+async function resolvePublicEndpoint(endpoint: string): Promise<ResolvedEndpoint> {
   let url: URL;
   try {
     url = new URL(endpoint);
@@ -83,10 +97,96 @@ export async function assertPublicEndpoint(endpoint: string) {
     throw new PrivateEndpointError();
   }
 
-  const addresses = await lookup(host, { all: true });
+  const addresses = await dnsLookup(host, { all: true, verbatim: true });
   if (!addresses.length || addresses.some(({ address }) => isPrivateIp(address))) {
     throw new PrivateEndpointError();
   }
 
-  return url.toString().replace(/\/$/, "");
+  if (url.username || url.password) throw new InvalidEndpointError();
+  return { url, host, address: addresses[0] };
+}
+
+type PublicFetchOptions = {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string | Uint8Array;
+  signal?: AbortSignal;
+  maxResponseBytes?: number;
+};
+
+type PublicFetchResponse = {
+  status: number;
+  ok: boolean;
+  json(): Promise<unknown>;
+};
+
+/** Sends the request to the exact public IP that was validated, preventing DNS rebinding. */
+export async function fetchPublicEndpoint(endpoint: string, options: PublicFetchOptions = {}): Promise<PublicFetchResponse> {
+  const { url, host, address } = await resolvePublicEndpoint(endpoint);
+  const transport = url.protocol === "https:" ? httpsRequest : httpRequest;
+  const pinnedLookup: NonNullable<HttpRequestOptions["lookup"]> = (hostname, lookupOptions, callback) => {
+    if (hostname.toLowerCase().replace(/^\[|\]$/g, "") !== host) {
+      callback(new Error("unexpected_endpoint_host"), "", 0);
+      return;
+    }
+    if (typeof lookupOptions === "object" && lookupOptions.all) {
+      callback(null, [address]);
+    } else {
+      callback(null, address.address, address.family);
+    }
+  };
+  const maxResponseBytes = Math.max(0, options.maxResponseBytes ?? 1_048_576);
+  const headers = { ...options.headers };
+  if (options.body !== undefined && !Object.keys(headers).some((key) => key.toLowerCase() === "content-length")) {
+    headers["Content-Length"] = String(typeof options.body === "string" ? Buffer.byteLength(options.body) : options.body.byteLength);
+  }
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let size = 0;
+    const chunks: Buffer[] = [];
+    const request = transport(url, {
+      method: options.method ?? "GET",
+      headers,
+      signal: options.signal,
+      lookup: pinnedLookup,
+    }, (response) => {
+      response.on("data", (chunk: Buffer | string) => {
+        if (maxResponseBytes === 0) return;
+        const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        size += buffer.length;
+        if (size > maxResponseBytes) {
+          settled = true;
+          request.destroy(new Error("endpoint_response_too_large"));
+          reject(new Error("endpoint_response_too_large"));
+          return;
+        }
+        chunks.push(buffer);
+      });
+      response.on("end", () => {
+        if (settled) return;
+        settled = true;
+        const body = Buffer.concat(chunks).toString("utf8");
+        resolve({
+          status: response.statusCode ?? 0,
+          ok: (response.statusCode ?? 0) >= 200 && (response.statusCode ?? 0) < 300,
+          async json() {
+            return JSON.parse(body) as unknown;
+          },
+        });
+      });
+      response.on("error", (error) => {
+        if (settled) return;
+        settled = true;
+        reject(error);
+      });
+    });
+    request.on("error", (error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    });
+    if (options.body !== undefined) request.write(options.body);
+    request.end();
+  });
 }

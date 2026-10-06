@@ -351,8 +351,10 @@ export default function SettingsPage() {
             <SettingsField label="اسم المنظومة"><input value={draft.systemName} onChange={(e) => updateDraft("systemName", e.target.value)} className={input} /></SettingsField>
             <SettingsField label="رقم Datalogger (PN)"><input dir="ltr" value={draft.dataloggerPn || ""} onChange={(e) => updateDraft("dataloggerPn", e.target.value)} className={input} /></SettingsField>
             <SettingsField label="نوع / موديل الإنفرتر"><select value={draft.inverterModel} onChange={(e) => updateDraft("inverterModel", e.target.value)} className={input}><option>Deye</option><option>Felicity Solar</option><option>Growatt</option><option>NEXT - Victor Max 8.2KW</option><option>Voltronic</option><option>غير ذلك</option></select></SettingsField>
-            <SettingsField label="نوع الاتصال"><select value={draft.protocol} onChange={(e) => updateDraft("protocol", e.target.value as Protocol)} className={input}><option>Wi-Fi Datalogger</option><option>Modbus RTU</option><option>Modbus TCP</option></select></SettingsField>
-            {draft.protocol !== "Wi-Fi Datalogger" && <SettingsField label="وضع الاتصال"><select value={draft.connectionMode || "gateway"} onChange={(e) => updateDraft("connectionMode", e.target.value as ConnectionMode)} className={input}><option value="gateway">عبر بوابة</option><option value="local">محلي (نفس الجهاز)</option></select></SettingsField>}
+            {draft.protocol !== "Wi-Fi Datalogger" && <>
+              <SettingsField label="نوع الاتصال"><select value={draft.protocol} onChange={(e) => updateDraft("protocol", e.target.value as Protocol)} className={input}><option>Wi-Fi Datalogger</option><option>Modbus RTU</option><option>Modbus TCP</option></select></SettingsField>
+              <SettingsField label="وضع الاتصال"><select value={draft.connectionMode || "gateway"} onChange={(e) => updateDraft("connectionMode", e.target.value as ConnectionMode)} className={input}><option value="gateway">عبر بوابة</option><option value="local">محلي (نفس الجهاز)</option></select></SettingsField>
+            </>}
           </div>
 
           {draft.protocol === "Wi-Fi Datalogger" && (
@@ -369,18 +371,19 @@ export default function SettingsPage() {
                   {draft.hasCloudCredential && !draft.cloudPassword && <p className="mt-1.5 text-[11px] font-semibold text-emerald-800">كلمة المرور محفوظة. اترك الخانة فارغة للإبقاء عليها، أو اكتب كلمة جديدة لتغييرها.</p>}
                 </SettingsField>
               </div>
-              <div className="mt-3"><AdvancedBlock title="تفاصيل الدنجل (متقدم)"><div className="grid gap-3 sm:grid-cols-2">
-                <SettingsField label="نوع الدنجل"><input dir="ltr" value={draft.dataloggerType || ""} onChange={(e) => updateDraft("dataloggerType", e.target.value)} className={input} /></SettingsField>
-                <SettingsField label="Firmware"><input dir="ltr" value={draft.dataloggerFirmware || ""} onChange={(e) => updateDraft("dataloggerFirmware", e.target.value)} className={input} /></SettingsField>
-                <SettingsField label="معرّف الجهاز الظاهر في SmartESS"><input dir="ltr" value={draft.dataloggerDeviceIdentifier || ""} onChange={(e) => updateDraft("dataloggerDeviceIdentifier", e.target.value)} className={input} /></SettingsField>
-                <SettingsField label="تحديث الدنجل (ثانية)"><input dir="ltr" type="number" min={30} value={draft.dataloggerUpdateIntervalSec || 300} onChange={(e) => updateDraft("dataloggerUpdateIntervalSec", Number(e.target.value))} className={input} /></SettingsField>
-                <SettingsField label="المنصة"><input dir="ltr" value={draft.dataloggerCloud || "SmartESS / DESSMonitor"} onChange={(e) => updateDraft("dataloggerCloud", e.target.value)} className={input} /></SettingsField>
-                <SettingsField label="محطة SmartESS"><input dir="ltr" value={draft.dataloggerStationName || ""} onChange={(e) => updateDraft("dataloggerStationName", e.target.value)} className={input} /></SettingsField>
-              </div></AdvancedBlock></div>
+              <div className="mt-3">
+                <AdvancedBlock title="خيارات اتصال أخرى">
+                  <SettingsField label="نوع الاتصال">
+                    <select value={draft.protocol} onChange={(e) => updateDraft("protocol", e.target.value as Protocol)} className={input}>
+                      <option>Wi-Fi Datalogger</option><option>Modbus RTU</option><option>Modbus TCP</option>
+                    </select>
+                  </SettingsField>
+                </AdvancedBlock>
+              </div>
             </div>
           )}
 
-          {draft.connectionMode === "gateway" && draft.protocol !== "Wi-Fi Datalogger" && (
+          {draft.protocol !== "Wi-Fi Datalogger" && draft.connectionMode === "gateway" && (
             <div className="rounded-2xl border border-slate-200 bg-white p-4">
               <h4 className="font-black text-slate-900">إعدادات البوابة المحلية</h4>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -413,17 +416,19 @@ export default function SettingsPage() {
             </div>
           )}
 
-          <details className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-            <summary className="cursor-pointer list-none font-black text-slate-800 [&::-webkit-details-marker]:hidden">خيارات الاتصال المتقدمة</summary>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <SettingsField label="الرقم التسلسلي (SN)"><input dir="ltr" value={draft.serialNumber || ""} onChange={(e) => updateDraft("serialNumber", e.target.value)} placeholder="مثلاً: SN123456789" className={input} /></SettingsField>
-              {draft.protocol === "Modbus TCP" && <><SettingsField label="عنوان IP"><input dir="ltr" value={draft.inverterAddress || ""} onChange={(e) => updateDraft("inverterAddress", e.target.value)} placeholder="192.168.1.50" className={input} /></SettingsField><SettingsField label="منفذ TCP"><input dir="ltr" type="number" value={draft.port || 502} onChange={(e) => updateDraft("port", Number(e.target.value))} className={input} /></SettingsField></>}
-              {draft.protocol === "Modbus RTU" && draft.connectionMode === "local" && <><SettingsField label="المنفذ التسلسلي / RS485"><input dir="ltr" value={draft.serialPort || ""} onChange={(e) => updateDraft("serialPort", e.target.value)} placeholder="COM3 أو /dev/ttyUSB0" className={input} /></SettingsField><SettingsField label="Baud Rate"><select value={draft.baudRate || 9600} onChange={(e) => updateDraft("baudRate", Number(e.target.value))} className={input}><option>9600</option><option>19200</option><option>38400</option><option>57600</option><option>115200</option></select></SettingsField><SettingsField label="Parity"><select value={draft.parity || "N"} onChange={(e) => updateDraft("parity", e.target.value as "N" | "E" | "O")} className={input}><option value="N">None</option><option value="E">Even</option><option value="O">Odd</option></select></SettingsField><SettingsField label="Data bits"><select value={draft.dataBits || 8} onChange={(e) => updateDraft("dataBits", Number(e.target.value))} className={input}><option>8</option><option>7</option></select></SettingsField><SettingsField label="Stop bits"><select value={draft.stopBits || 1} onChange={(e) => updateDraft("stopBits", Number(e.target.value))} className={input}><option>1</option><option>2</option></select></SettingsField><SettingsField label="Slave ID"><input dir="ltr" type="number" min={1} max={247} value={draft.slaveId || 1} onChange={(e) => updateDraft("slaveId", Number(e.target.value))} className={input} /></SettingsField></>}
-              <SettingsField label={<>مهلة الاستجابة <bdi dir="ltr">(ms)</bdi></>}><input dir="ltr" type="number" min={200} max={10000} value={draft.timeoutMs || 1000} onChange={(e) => updateDraft("timeoutMs", Number(e.target.value))} className={input} /></SettingsField>
-              <SettingsField label={<>فترة القراءة <bdi dir="ltr">(ms)</bdi></>}><input dir="ltr" type="number" min={2000} max={300000} value={draft.pollingIntervalMs || 10000} onChange={(e) => updateDraft("pollingIntervalMs", Number(e.target.value))} className={input} /></SettingsField>
-              <SettingsField label="عدد المحاولات"><input dir="ltr" type="number" min={1} max={10} value={draft.retryCount || 3} onChange={(e) => updateDraft("retryCount", Number(e.target.value))} className={input} /></SettingsField>
-            </div>
-          </details>
+          {draft.protocol !== "Wi-Fi Datalogger" && (
+            <details className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+              <summary className="cursor-pointer list-none font-black text-slate-800 [&::-webkit-details-marker]:hidden">خيارات الاتصال المتقدمة</summary>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <SettingsField label="الرقم التسلسلي (SN)"><input dir="ltr" value={draft.serialNumber || ""} onChange={(e) => updateDraft("serialNumber", e.target.value)} placeholder="مثلاً: SN123456789" className={input} /></SettingsField>
+                {draft.protocol === "Modbus TCP" && <><SettingsField label="عنوان IP"><input dir="ltr" value={draft.inverterAddress || ""} onChange={(e) => updateDraft("inverterAddress", e.target.value)} placeholder="192.168.1.50" className={input} /></SettingsField><SettingsField label="منفذ TCP"><input dir="ltr" type="number" value={draft.port || 502} onChange={(e) => updateDraft("port", Number(e.target.value))} className={input} /></SettingsField></>}
+                {draft.protocol === "Modbus RTU" && draft.connectionMode === "local" && <><SettingsField label="المنفذ التسلسلي / RS485"><input dir="ltr" value={draft.serialPort || ""} onChange={(e) => updateDraft("serialPort", e.target.value)} placeholder="COM3 أو /dev/ttyUSB0" className={input} /></SettingsField><SettingsField label="Baud Rate"><select value={draft.baudRate || 9600} onChange={(e) => updateDraft("baudRate", Number(e.target.value))} className={input}><option>9600</option><option>19200</option><option>38400</option><option>57600</option><option>115200</option></select></SettingsField><SettingsField label="Parity"><select value={draft.parity || "N"} onChange={(e) => updateDraft("parity", e.target.value as "N" | "E" | "O")} className={input}><option value="N">None</option><option value="E">Even</option><option value="O">Odd</option></select></SettingsField><SettingsField label="Data bits"><select value={draft.dataBits || 8} onChange={(e) => updateDraft("dataBits", Number(e.target.value))} className={input}><option>8</option><option>7</option></select></SettingsField><SettingsField label="Stop bits"><select value={draft.stopBits || 1} onChange={(e) => updateDraft("stopBits", Number(e.target.value))} className={input}><option>1</option><option>2</option></select></SettingsField><SettingsField label="Slave ID"><input dir="ltr" type="number" min={1} max={247} value={draft.slaveId || 1} onChange={(e) => updateDraft("slaveId", Number(e.target.value))} className={input} /></SettingsField></>}
+                <SettingsField label={<>مهلة الاستجابة <bdi dir="ltr">(ms)</bdi></>}><input dir="ltr" type="number" min={200} max={10000} value={draft.timeoutMs || 1000} onChange={(e) => updateDraft("timeoutMs", Number(e.target.value))} className={input} /></SettingsField>
+                <SettingsField label={<>فترة القراءة <bdi dir="ltr">(ms)</bdi></>}><input dir="ltr" type="number" min={2000} max={300000} value={draft.pollingIntervalMs || 10000} onChange={(e) => updateDraft("pollingIntervalMs", Number(e.target.value))} className={input} /></SettingsField>
+                <SettingsField label="عدد المحاولات"><input dir="ltr" type="number" min={1} max={10} value={draft.retryCount || 3} onChange={(e) => updateDraft("retryCount", Number(e.target.value))} className={input} /></SettingsField>
+              </div>
+            </details>
+          )}
 
           <p className="text-xs font-bold text-slate-500">آخر قراءة: {draft.lastSeenAt ? new Date(draft.lastSeenAt).toLocaleString("ar-u-nu-latn") : "لا توجد"}</p>
           {draft.lastStatus === "error" && draft.lastTestReason && !/لا يرسل قراءات/.test(draft.lastTestReason) && <p className="rounded-xl bg-rose-50 p-3 text-xs font-bold leading-5 text-rose-700">سبب عدم الاتصال: {draft.lastTestReason}</p>}

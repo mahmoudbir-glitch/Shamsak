@@ -1,8 +1,13 @@
 import { z } from "zod";
 import type { EnergySnapshot } from "@/lib/energy";
 
+const MAX_FUTURE_CLOCK_SKEW_MS = 30_000;
+
 export const telemetryInputSchema = z.object({
-  timestamp: z.string().datetime().optional(),
+  timestamp: z.string().datetime().refine(
+    (timestamp) => Date.parse(timestamp) <= Date.now() + MAX_FUTURE_CLOCK_SKEW_MS,
+    "timestamp_too_far_in_future",
+  ).optional(),
   pv_power: z.number().finite().min(0),
   load_power: z.number().finite().min(0),
   battery_soc: z.number().finite().min(0).max(100),
@@ -10,7 +15,7 @@ export const telemetryInputSchema = z.object({
   battery_voltage: z.number().finite().nonnegative().optional(),
   battery_current: z.number().finite().optional(),
   battery_temperature: z.number().finite().optional(),
-  grid_status: z.boolean(),
+  grid_status: z.boolean().nullable().optional(),
   grid_power: z.number().finite().optional(),
   grid_voltage: z.number().finite().nonnegative().optional(),
   inverter_temperature: z.number().finite().optional(),
@@ -34,7 +39,7 @@ export function telemetryToSnapshot(input: TelemetryInput): EnergySnapshot {
     batteryVoltage: input.battery_voltage,
     batteryCurrent: input.battery_current,
     batteryTemperature: input.battery_temperature,
-    gridConnected: input.grid_status,
+    gridConnected: input.grid_status ?? null,
     source: "live",
   };
 }

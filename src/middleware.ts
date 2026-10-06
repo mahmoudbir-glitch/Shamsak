@@ -49,6 +49,11 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
+  // API callers get a status they can act on, not the login page's HTML.
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+  }
+
   return redirectToLogin(request);
 }
 

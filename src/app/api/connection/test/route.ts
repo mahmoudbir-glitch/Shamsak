@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sanitizeConnection } from "@/lib/inverter-connection";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-session";
 import { MONITORING_ACTIONS, recordMonitoringEvent } from "@/lib/monitoring";
-import { assertPublicEndpoint, PrivateEndpointError } from "@/lib/net-guard";
+import { assertPublicEndpoint, fetchPublicEndpoint, PrivateEndpointError } from "@/lib/net-guard";
 
 export const runtime = "nodejs";
 
@@ -11,12 +11,11 @@ async function probeHttp(endpoint: string) {
   const timeout = setTimeout(() => controller.abort(), 4500);
 
   try {
-    const response = await fetch(endpoint, {
+    const response = await fetchPublicEndpoint(endpoint, {
       method: "GET",
-      cache: "no-store",
-      redirect: "manual",
       signal: controller.signal,
       headers: { Accept: "application/json,text/plain,*/*" },
+      maxResponseBytes: 0,
     });
 
     return {
