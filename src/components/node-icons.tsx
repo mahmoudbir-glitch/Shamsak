@@ -64,18 +64,28 @@ export function HouseIcon({ className = "h-10 w-10" }: { className?: string }) {
  * side and the alternating-current wave it turns it into on the other.
  */
 export function InverterIcon({ active = true, className = "h-10 w-10" }: { active?: boolean; className?: string }) {
+  // A wall-mounted hybrid inverter: case, display with a charging bolt,
+  // status lights, cooling vents and the cables underneath.
   const frame = active ? "#ea580c" : "#94a3b8";
-  const dc = active ? "#f59e0b" : "#cbd5e1";
-  const ac = active ? "#f97316" : "#94a3b8";
+  const body = active ? "#fff7ed" : "#f8fafc";
+  const screen = active ? "#7c2d12" : "#cbd5e1";
+  const bolt = active ? "#fbbf24" : "#f8fafc";
   return (
     <svg viewBox="0 0 48 48" className={className} aria-hidden="true" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="6" y="6" width="36" height="36" rx="7" fill={active ? "#fff7ed" : "#f8fafc"} stroke={frame} strokeWidth="2.2" />
-      <path d="M9.5 38.5 L38.5 9.5" stroke={frame} strokeWidth="1.8" />
-      {/* DC in */}
-      <path d="M12.5 14.5 H25" stroke={dc} strokeWidth="2.6" />
-      <path d="M12.5 20 H25" stroke={dc} strokeWidth="2.4" strokeDasharray="2.6 2.4" />
-      {/* AC out */}
-      <path d="M22.5 32.5 q3.25 -8 6.5 0 t6.5 0" stroke={ac} strokeWidth="2.8" />
+      {/* cables */}
+      <path d="M19 42 V46 M29 42 V46" stroke={frame} strokeWidth="2.2" />
+      {/* case */}
+      <rect x="10.5" y="3.5" width="27" height="39" rx="5.5" fill={body} stroke={frame} strokeWidth="2.2" />
+      {/* display with bolt */}
+      <rect x="15" y="8.5" width="18" height="14" rx="2.6" fill={screen} />
+      <path d="M25.6 10.6 L19.8 16.6 H23.6 L22.4 20.6 L28.2 14.6 H24.4 Z" fill={bolt} />
+      {/* status lights */}
+      <circle cx="19" cy="27.5" r="1.7" fill={active ? "#22c55e" : "#cbd5e1"}>
+        {active && <animate attributeName="opacity" values="1;0.35;1" dur="1.8s" repeatCount="indefinite" />}
+      </circle>
+      <circle cx="24" cy="27.5" r="1.7" fill={active ? "#f59e0b" : "#cbd5e1"} />
+      {/* vents */}
+      <path d="M16.5 33 H31.5 M16.5 37 H31.5" stroke={active ? "#fdba74" : "#cbd5e1"} strokeWidth="2" />
     </svg>
   );
 }
