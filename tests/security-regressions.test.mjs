@@ -702,3 +702,19 @@ test("middleware lives in src/ (next to app/) so Next.js actually runs it", () =
   const middleware = read("src/middleware.ts");
   assert.match(middleware, /pathname\.startsWith\("\/api\/"\)\) \{\s*\n\s*return NextResponse\.json\(\{ error: "unauthorized" \}, \{ status: 401/);
 });
+
+test("energy accounting: one grid figure everywhere, grid-first split, signed savings", () => {
+  // Savings are (house use - grid purchases) x tariff; clamping each interval
+  // at zero counted grid energy stored in the battery as saved.
+  const store = read("src/lib/telemetry-store.ts");
+  assert.ok(store.includes("const avoidedGridKWh = homeKWh - gridImportKWh;"));
+  // The live reading and the daily totals use the same grid power.
+  for (const route of ["src/app/api/telemetry/route.ts", "src/app/api/analytics/route.ts", "src/app/api/energy/route.ts"]) {
+    assert.ok(read(route).includes("effectiveGridW("), route);
+    assert.ok(!read(route).includes("gridPowerW ?? 0"), route);
+  }
+  // The summary splits house use like the money page: grid, battery, then sun.
+  const summary = read("src/app/api/telemetry/summary/route.ts");
+  assert.ok(summary.includes("const gridToHome = Math.min(home, Math.max(0, totals.gridImportKWh));"));
+  assert.ok(!summary.includes("Math.min(totals.homeKWh, totals.solarKWh)"));
+});
