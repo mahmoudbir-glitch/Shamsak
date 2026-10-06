@@ -59,20 +59,23 @@ export function HouseIcon({ className = "h-10 w-10" }: { className?: string }) {
 }
 
 /**
- * The inverter as an energy core: a bold gradient bolt (the power it handles)
- * riding on a sine wave (the AC it delivers to the home).
+ * The inverter by what it does, drawn as its symbol on a wiring diagram: a box
+ * split corner to corner, direct current (a solid and a dashed line) on one
+ * side and the alternating-current wave it turns it into on the other.
  */
 export function InverterIcon({ active = true, className = "h-10 w-10" }: { active?: boolean; className?: string }) {
-  const id = React.useId().replace(/:/g, "");
+  const frame = active ? "#ea580c" : "#94a3b8";
+  const dc = active ? "#f59e0b" : "#cbd5e1";
+  const ac = active ? "#f97316" : "#94a3b8";
   return (
-    <svg viewBox="0 0 48 48" className={className} aria-hidden="true" strokeLinecap="round" strokeLinejoin="round">
-      <defs>
-        <linearGradient id={`bolt-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={active ? "#fcd34d" : "#e2e8f0"} />
-          <stop offset="100%" stopColor={active ? "#f97316" : "#94a3b8"} />
-        </linearGradient>
-      </defs>
-      <path transform="translate(0 2)" d="M27.5 3 L12 25.5 H22.5 L19.5 41 L36 17.5 H25.5 Z" fill={`url(#bolt-${id})`} stroke={active ? "#ea580c" : "#94a3b8"} strokeWidth="1.6" />
+    <svg viewBox="0 0 48 48" className={className} aria-hidden="true" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="6" y="6" width="36" height="36" rx="7" fill={active ? "#fff7ed" : "#f8fafc"} stroke={frame} strokeWidth="2.2" />
+      <path d="M9.5 38.5 L38.5 9.5" stroke={frame} strokeWidth="1.8" />
+      {/* DC in */}
+      <path d="M12.5 14.5 H25" stroke={dc} strokeWidth="2.6" />
+      <path d="M12.5 20 H25" stroke={dc} strokeWidth="2.4" strokeDasharray="2.6 2.4" />
+      {/* AC out */}
+      <path d="M22.5 32.5 q3.25 -8 6.5 0 t6.5 0" stroke={ac} strokeWidth="2.8" />
     </svg>
   );
 }
