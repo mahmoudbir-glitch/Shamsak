@@ -59,33 +59,20 @@ export function HouseIcon({ className = "h-10 w-10" }: { className?: string }) {
 }
 
 /**
- * The inverter by what it does, drawn as its symbol on a wiring diagram: a box
- * split corner to corner, direct current (a solid and a dashed line) on one
- * side and the alternating-current wave it turns it into on the other.
+ * The inverter as an energy core: a bold gradient bolt (the power it handles)
+ * riding on a sine wave (the AC it delivers to the home).
  */
 export function InverterIcon({ active = true, className = "h-10 w-10" }: { active?: boolean; className?: string }) {
-  // A wall-mounted hybrid inverter: case, display with a charging bolt,
-  // status lights, cooling vents and the cables underneath.
-  const frame = active ? "#ea580c" : "#94a3b8";
-  const body = active ? "#fff7ed" : "#f8fafc";
-  const screen = active ? "#7c2d12" : "#cbd5e1";
-  const bolt = active ? "#fbbf24" : "#f8fafc";
+  const id = React.useId().replace(/:/g, "");
   return (
-    <svg viewBox="0 0 48 48" className={className} aria-hidden="true" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      {/* cables */}
-      <path d="M19 42 V46 M29 42 V46" stroke={frame} strokeWidth="2.2" />
-      {/* case */}
-      <rect x="10.5" y="3.5" width="27" height="39" rx="5.5" fill={body} stroke={frame} strokeWidth="2.2" />
-      {/* display with bolt */}
-      <rect x="15" y="8.5" width="18" height="14" rx="2.6" fill={screen} />
-      <path d="M25.6 10.6 L19.8 16.6 H23.6 L22.4 20.6 L28.2 14.6 H24.4 Z" fill={bolt} />
-      {/* status lights */}
-      <circle cx="19" cy="27.5" r="1.7" fill={active ? "#22c55e" : "#cbd5e1"}>
-        {active && <animate attributeName="opacity" values="1;0.35;1" dur="1.8s" repeatCount="indefinite" />}
-      </circle>
-      <circle cx="24" cy="27.5" r="1.7" fill={active ? "#f59e0b" : "#cbd5e1"} />
-      {/* vents */}
-      <path d="M16.5 33 H31.5 M16.5 37 H31.5" stroke={active ? "#fdba74" : "#cbd5e1"} strokeWidth="2" />
+    <svg viewBox="0 0 48 48" className={className} aria-hidden="true" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id={`bolt-${id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={active ? "#fcd34d" : "#e2e8f0"} />
+          <stop offset="100%" stopColor={active ? "#f97316" : "#94a3b8"} />
+        </linearGradient>
+      </defs>
+      <path transform="translate(0 2)" d="M27.5 3 L12 25.5 H22.5 L19.5 41 L36 17.5 H25.5 Z" fill={`url(#bolt-${id})`} stroke={active ? "#ea580c" : "#94a3b8"} strokeWidth="1.6" />
     </svg>
   );
 }
