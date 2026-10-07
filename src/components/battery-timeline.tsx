@@ -16,6 +16,13 @@ function hourEnd(time: string) {
   return `${String(hour).padStart(2, "0")}:00`;
 }
 
+/** "ليلة" / "ليلتين" / "3 ليالٍ": "2 أيام" is not Arabic. */
+function nightsWord(n: number) {
+  if (n === 1) return "ليلة";
+  if (n === 2) return "ليلتين";
+  return `${n} ليالٍ`;
+}
+
 type DayRow = {
   date: string;
   label: string;
@@ -107,7 +114,7 @@ export function BatteryTimeline({ anchor }: { anchor?: string } = {}) {
               ? "متى تمتلئ وكم تبقى عند الغروب"
               : short === 0
                 ? `✓ تكفي حتى الصباح في كل الأيام (${withNight.length})`
-                : `⚠ تصل للاحتياطي ليلًا في ${short} من ${withNight.length} أيام`}
+                : `⚠ تصل للاحتياطي في ${short === 1 ? "ليلة" : short} من ${nightsWord(withNight.length)}`}
           </p>
         </div>
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-500 ring-1 ring-slate-200/70">
