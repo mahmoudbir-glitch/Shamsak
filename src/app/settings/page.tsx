@@ -463,6 +463,7 @@ export default function SettingsPage() {
         <div className="grid gap-3 sm:grid-cols-2">
           <SettingsField label={<>بطارية منخفضة <bdi dir="ltr">(%)</bdi></>}><input type="number" min={5} max={50} value={settings.lowBatteryPct} onChange={(e) => updateSetting("lowBatteryPct", Number(e.target.value))} className={input} /></SettingsField>
           <SettingsField label={<>بطارية حرجة <bdi dir="ltr">(%)</bdi></>}><input type="number" min={5} max={30} value={settings.criticalBatteryPct} onChange={(e) => updateSetting("criticalBatteryPct", Number(e.target.value))} className={input} /></SettingsField>
+          <SettingsField label="تنبيه انقطاع القراءات بعد (دقيقة)"><input type="number" min={2} max={120} value={settings.offlineMinutes} onChange={(e) => updateSetting("offlineMinutes", Number(e.target.value))} className={input} /></SettingsField>
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
           {[["gridOutageAlert","انقطاع / عودة الشبكة"]].map(([key,label]) => <label key={key} className="flex min-h-14 items-center justify-between rounded-xl bg-slate-50 px-4 text-sm font-bold"><span>{label}</span><input type="checkbox" checked={Boolean(settings[key as "gridOutageAlert"])} onChange={(e) => updateSetting(key as "gridOutageAlert", e.target.checked)} className="h-6 w-6" /></label>)}
