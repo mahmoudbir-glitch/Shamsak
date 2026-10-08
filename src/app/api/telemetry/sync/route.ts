@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { syncSmartEss } from "@/lib/smartess-sync";
 import { runNightCheck } from "@/lib/night-check";
+import { runOfflineCheck } from "@/lib/offline-check";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,8 @@ async function handle(request: NextRequest) {
   // Right after sunset, once per evening: will the battery last the night?
   // A failure here must never affect the sync's own result.
   await runNightCheck().catch((error) => console.error("[night] check_failed", error));
+  // No reading for longer than the owner's limit: log the outage once.
+  await runOfflineCheck().catch((error) => console.error("[offline] check_failed", error));
   // Keep the body tiny: cron-job.org only needs the status code.
   const body = result.ok
     ? { ok: true }
