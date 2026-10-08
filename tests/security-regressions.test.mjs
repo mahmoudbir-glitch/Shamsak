@@ -834,3 +834,15 @@ test("the house chart's hourly-average peaks are not called a peak", () => {
   assert.doesNotMatch(source, /label="ذروة المنزل"/);
   assert.match(source, /label="أعلى ساعة للمنزل"/);
 });
+
+test("per-minute sync keeps database work low", () => {
+  // Night check: settings come from memory outside the post-sunset window.
+  const night = read("src/lib/night-check.ts");
+  assert.match(night, /SETTINGS_CACHE_MS = 60 \* 60_000/);
+  assert.match(night, /const settings = await nightSettings\(\);/);
+  // The "telemetry received" event is written once an hour, not per reading.
+  const store = read("src/lib/telemetry-store.ts");
+  assert.match(store, /if \(hourChanged\) \{\s*await recordMonitoringEvent\(\{\s*action: MONITORING_ACTIONS\.TELEMETRY_RECEIVED/);
+  // The frozen-data check reads at most an hour of rows.
+  assert.match(read("src/lib/smartess-sync.ts"), /take: 60,/);
+});
