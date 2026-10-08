@@ -58,11 +58,13 @@ export function LoadChart({ points, timeZone, now }: { points: LoadPoint[]; time
 
   return (
     <div className="space-y-3">
+      {/* The lower two are the busiest hour's average, not the instant peak shown
+          in "أعلى حمل اليوم" above, so they are named for the hour. */}
       <div className="grid auto-rows-fr grid-cols-2 gap-3" dir="rtl">
         <StatTile big tone="sky" label="استهلاك المنزل" value={homeKWh.toFixed(1)} unit="kWh" ampTone="sky" ampUnit="Ah" amps={(homeKWh * 1000) / AC_VOLTS} />
         <StatTile big tone="amber" label="الإنتاج الشمسي" value={solarKWh.toFixed(1)} unit="kWh" ampTone="amber" ampUnit="Ah" amps={(solarKWh * 1000) / AC_VOLTS} />
-        <StatTile label="ذروة المنزل" value={peakHomeW === null ? "—" : kw(peakHomeW)} unit="kW" ampTone="sky" amps={peakHomeW === null ? null : peakHomeW / AC_VOLTS} />
-        <StatTile label="ذروة الإنتاج" value={peakSolarW === null ? "—" : kw(peakSolarW)} unit="kW" ampTone="amber" amps={peakSolarW === null ? null : peakSolarW / AC_VOLTS} />
+        <StatTile label="أعلى ساعة للمنزل" value={peakHomeW === null ? "—" : kw(peakHomeW)} unit="kW" ampTone="sky" amps={peakHomeW === null ? null : peakHomeW / AC_VOLTS} />
+        <StatTile label="أعلى ساعة إنتاج" value={peakSolarW === null ? "—" : kw(peakSolarW)} unit="kW" ampTone="amber" amps={peakSolarW === null ? null : peakSolarW / AC_VOLTS} />
       </div>
 
       <HomeHourRows points={points} timeZone={timeZone} now={now} />

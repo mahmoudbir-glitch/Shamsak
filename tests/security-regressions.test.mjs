@@ -828,3 +828,9 @@ test("the 24-hour split bars round their percentages to add up to 100", () => {
   assert.match(source, /splitPercents\(parts\.map\(\(part\) => part\.kwh\)\)/);
   assert.doesNotMatch(source, /pct: Math\.round\(\(part\.kwh \/ total\) \* 100\)/);
 });
+
+test("the house chart's hourly-average peaks are not called a peak", () => {
+  const source = read("src/components/load-chart.tsx");
+  assert.doesNotMatch(source, /label="ذروة المنزل"/);
+  assert.match(source, /label="أعلى ساعة للمنزل"/);
+});
