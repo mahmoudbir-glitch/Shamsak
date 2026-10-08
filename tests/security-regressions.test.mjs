@@ -807,3 +807,18 @@ test("off-grid, the grid icon stays idle like its label", () => {
   const flow = read("src/components/energy-flow.tsx");
   assert.ok(flow.includes("<GridTowerIcon active={gridConnected === true && !inverterOffGrid} />"));
 });
+
+test("split percentages always add up to 100", { skip: !canLoadTs }, async () => {
+  const { splitPercents } = await import("../src/lib/energy.ts");
+  assert.deepEqual(splitPercents([1, 1, 1]), [34, 33, 33]);
+  assert.deepEqual(splitPercents([0, 0, 0]), [0, 0, 0]);
+  assert.deepEqual(splitPercents([5, 0, 5]), [50, 0, 50]);
+  for (const parts of [[1.5, 1.5, 7], [0.01, 2.3, 9.9], [3, 3, 3.333]]) {
+    assert.equal(splitPercents(parts).reduce((a, b) => a + b, 0), 100);
+  }
+});
+
+test("the money page's source percentages are rounded to add up to 100", () => {
+  const source = read("src/app/money/page.tsx");
+  assert.match(source, /splitPercents\(\[data\.sources\.solarKWh, data\.sources\.batteryKWh, data\.sources\.gridKWh\]\)/);
+});
