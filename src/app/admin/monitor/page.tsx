@@ -16,8 +16,6 @@ const actionLabels: Record<string, string> = {
   CONNECTION_TEST_SUCCESS: "نجح اختبار الاتصال",
   CONNECTION_TEST_FAILED: "فشل اختبار الاتصال",
   TELEMETRY_RECEIVED: "وصول Telemetry",
-  ALERT_OFFLINE: "انقطاع القراءات (Offline)",
-  ALERT_BACK_ONLINE: "عودة القراءات",
 };
 
 function formatDate(date: Date | null) {
