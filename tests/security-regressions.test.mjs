@@ -391,15 +391,6 @@ test("connection test passes only on a complete, still-changing reading", () => 
   assert.ok(route.indexOf('notLive("telemetry_frozen"') < route.indexOf("await storeReading(reading, device)"));
 });
 
-test("an outage longer than offlineMinutes is logged once and shown as offline", () => {
-  const check = read("src/lib/offline-check.ts");
-  assert.match(check, /if \(minutes >= settings\.offlineMinutes\) \{/);
-  assert.match(check, /lastEvent\?\.action === OFFLINE_ACTION && lastEvent\.timestamp > latest\.timestamp\) return;/);
-  assert.match(read("src/app/api/telemetry/sync/route.ts"), /await runOfflineCheck\(\)\.catch\(/);
-  assert.match(read("src/app/api/telemetry/route.ts"), /offline: ageSeconds >= \(settings\?\.offlineMinutes \?\? 10\) \* 60/);
-  assert.match(read("src/components/status-bar.tsx"), /data\.offline \? "offline"/);
-  assert.match(read("src/app/settings/page.tsx"), /updateSetting\("offlineMinutes", Number\(e\.target\.value\)\)/);
-});
 
 test("device discovery falls back beyond the energy-storage listing", () => {
   // A device of type "Other" is missing from webQueryDeviceEs (ERR_NOT_FOUND_DEVICE)

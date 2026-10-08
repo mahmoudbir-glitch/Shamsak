@@ -100,8 +100,6 @@ export async function GET(request: NextRequest) {
         source: "live",
         // الواجهة تستطيع الآن إظهار "غير متصل" بدل عرض قراءة قديمة كأنها لحظية
         stale: ageSeconds > STALE_AFTER_SEC,
-        // Past the owner's own limit (Settings > alerts) the system is offline.
-        offline: ageSeconds >= (settings?.offlineMinutes ?? 10) * 60,
         ageSeconds,
         todayProductionKWh: today ? Math.round(today.solarKWh * 100) / 100 : undefined,
         todayHomeUsageKWh: today ? Math.round(today.homeKWh * 100) / 100 : undefined,
