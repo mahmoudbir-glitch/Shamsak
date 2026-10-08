@@ -822,3 +822,9 @@ test("the money page's source percentages are rounded to add up to 100", () => {
   const source = read("src/app/money/page.tsx");
   assert.match(source, /splitPercents\(\[data\.sources\.solarKWh, data\.sources\.batteryKWh, data\.sources\.gridKWh\]\)/);
 });
+
+test("the 24-hour split bars round their percentages to add up to 100", () => {
+  const source = read("src/components/energy-split.tsx");
+  assert.match(source, /splitPercents\(parts\.map\(\(part\) => part\.kwh\)\)/);
+  assert.doesNotMatch(source, /pct: Math\.round\(\(part\.kwh \/ total\) \* 100\)/);
+});

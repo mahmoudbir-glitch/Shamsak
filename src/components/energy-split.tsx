@@ -2,6 +2,7 @@
 
 import { useMemo, type ReactNode } from "react";
 import type { LoadPoint } from "@/components/load-chart";
+import { splitPercents } from "@/lib/energy";
 
 const HOUR = 3_600_000;
 
@@ -15,7 +16,9 @@ type Part = { key: string; label: string; kwh: number; bar: string; dot: string;
 function SplitBar({ title, parts, footer }: { title: string; parts: Part[]; footer?: ReactNode }) {
   const total = parts.reduce((sum, part) => sum + part.kwh, 0);
   if (total < 0.05) return null;
-  const shown = parts.map((part) => ({ ...part, pct: Math.round((part.kwh / total) * 100) }));
+  // Rounded so the three always add up to 100 (one by one they could read 99% or 101%).
+  const pcts = splitPercents(parts.map((part) => part.kwh));
+  const shown = parts.map((part, i) => ({ ...part, pct: pcts[i] }));
   return (
     <div dir="rtl">
       <p className="text-[11px] font-black text-slate-500">{title}</p>
