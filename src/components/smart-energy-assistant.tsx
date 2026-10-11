@@ -5,9 +5,15 @@ import { AlertTriangle, Sparkles } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
 import { forecastEnergy } from "@/lib/energy-forecast";
 import { analyzeEnergy } from "@/lib/intelligent-energy";
+import { recommendLoadAction } from "@/lib/load-decision";
 import { analyzeTimeOfDay } from "@/lib/time-of-day-insight";
 
-const QUICK_QUESTIONS = ["هل البطارية بخير؟", "هل أستطيع تشغيل حمل الآن؟", "ماذا سيحدث بعد ساعة؟"];
+const QUICK_QUESTIONS = ["هل البطارية بخير؟", "هل أستطيع تشغيل حمل 1000 واط الآن؟", "ماذا سيحدث بعد ساعة؟"];
+
+const DEFAULT_LOAD_SETTINGS = {
+  batteryCapacityWh: 4800,
+  batteryMinReservePct: 10,
+};
 
 type SmartEnergyAssistantProps = {
   snapshot: EnergySnapshot | null;
@@ -38,10 +44,9 @@ export function SmartEnergyAssistant({ snapshot, embedded = false }: SmartEnergy
       return `الإنتاج الشمسي الحالي نحو ${Math.round(snapshot.solarPowerW)} واط، بينما استهلاك المنزل نحو ${Math.round(snapshot.homePowerW)} واط. ${snapshot.solarPowerW >= snapshot.homePowerW ? "يوجد تغطية شمسية جيدة للحمل الحالي." : "الشمس لا تغطي كامل الحمل الحالي."}`;
     }
 
-    if (q.includes("حمل") || q.includes("أشغل") || q.includes("تشغيل") || q.includes("جهاز")) {
-      if (snapshot.batteryPowerW < -50 && snapshot.batterySoc <= 25) return "يفضل تأجيل الحمل غير الضروري؛ البطارية تفرغ ونسبتها منخفضة نسبياً.";
-      if (snapshot.solarPowerW > snapshot.homePowerW + 200) return "هناك فائض شمسي حالياً، لذلك الوقت مناسب نسبياً لتشغيل حمل مرن، مع مراعاة قدرته.";
-      return "لا يظهر فائض شمسي واضح حالياً. يفضل تأجيل الحمل المرن إذا لم يكن ضرورياً.";
+    if (q.includes("1000") || q.includes("حمل") || q.includes("أشغل") || q.includes("تشغيل") || q.includes("جهاز")) {
+      const decision = recommendLoadAction(snapshot, 1000, DEFAULT_LOAD_SETTINGS);
+      return `${decision.title}: ${decision.reason}`;
     }
 
     if (q.includes("ساعة") || q.includes("توقع") || q.includes("لاحق")) {
