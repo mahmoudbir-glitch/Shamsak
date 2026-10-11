@@ -62,6 +62,8 @@ export function analyzeEnergy(
   const batteryDischarging = batteryPowerW < -50;
   const batteryCharging = batteryPowerW > 50;
   const solarSurplus = Math.max(0, solarKw - homeKw);
+  const reservePct = settings ? Math.min(99, Math.max(0, safeNumber(settings.batteryMinReservePct, 10))) : 10;
+  const nearReserve = batteryDischarging && soc > reservePct && soc <= reservePct + 5;
   const estimate = settings ? batteryEstimate(snapshot, settings) : null;
   const estimateDetail = estimate
     ? estimate.charging
@@ -111,6 +113,18 @@ export function analyzeEnergy(
       action: "راجع الأحمال الكبيرة الآن",
       recommendation: "يفضل تأجيل الأحمال المرنة لتقليل سرعة هبوط البطارية.",
       details: ["تشغيل سخان أو مكيف أو حمل كبير قد يسرّع هبوط البطارية.", "إذا كان هناك حمل غير ضروري، إيقافه قد يطيل وقت التشغيل.", ...(unusualLoadDetail ? [unusualLoadDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
+    };
+  }
+
+  if (nearReserve) {
+    return {
+      tone: "amber",
+      alert: true,
+      title: "البطارية تقترب من الاحتياطي",
+      summary: `البطارية عند ${Math.round(soc)}% وتفرغ حالياً، والاحتياطي مضبوط على ${Math.round(reservePct)}%.`,
+      action: "خفّف أو أجّل الأحمال المرنة",
+      recommendation: "يفضل الحفاظ على الطاقة للأحمال الأساسية حتى تتوقف البطارية عن الهبوط أو يبدأ الشحن.",
+      details: ["شمسك يعتمد هنا على حد الاحتياطي المحفوظ في إعدادات البطارية.", ...(estimateDetail ? [estimateDetail] : [])],
     };
   }
 
