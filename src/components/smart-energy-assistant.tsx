@@ -27,7 +27,7 @@ export function SmartEnergyAssistant({ snapshot, embedded = false }: SmartEnergy
     if (!snapshot || snapshot.stale) return "لا توجد بيانات حية كافية حالياً. تحقق من اتصال الإنفرتر أو الـ Gateway ثم أعد المحاولة.";
 
     const q = question.trim();
-    if (!q) return "اسألني عن البطارية أو استهلاك المنزل أو الطاقة الشمسية أو التوقع خلال الساعة القادمة.";
+    if (!q) return "اختر سؤالاً سريعاً من الخيارات أعلاه لمعرفة حالة البطارية أو الحمل أو التوقع للساعة القادمة.";
 
     if (q.includes("بطاري") || q.includes("شحن") || q.includes("نسبة")) {
       const state = snapshot.batteryPowerW > 50 ? "تشحن" : snapshot.batteryPowerW < -50 ? "تفرغ" : "مستقرة";
@@ -53,7 +53,7 @@ export function SmartEnergyAssistant({ snapshot, embedded = false }: SmartEnergy
         : `بعد ساعة، يُتوقع استهلاك قريب من ${point.expectedHomePowerW} واط وإنتاج شمسي قريب من ${point.expectedSolarPowerW} واط، والبطارية نحو ${Math.round(point.expectedBatterySocPct)}٪ إذا استمر الاتجاه الحالي.`;
     }
 
-    return "أستطيع حالياً الإجابة عن حالة البطارية، الإنتاج الشمسي، استهلاك المنزل، تشغيل حمل، أو التوقع للساعة القادمة.";
+    return "اختر أحد الأسئلة السريعة لمعرفة حالة البطارية، الإنتاج الشمسي، تشغيل حمل، أو التوقع للساعة القادمة.";
   }, [question, snapshot]);
 
   return (
@@ -98,9 +98,6 @@ export function SmartEnergyAssistant({ snapshot, embedded = false }: SmartEnergy
         {QUICK_QUESTIONS.map((item) => (
           <button key={item} type="button" onClick={() => setQuestion(item)} className="rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-slate-700 shadow-sm ring-1 ring-slate-200/70 transition hover:bg-slate-50">{item}</button>
         ))}
-      </div>
-      <div className="mt-2.5 flex gap-2">
-        <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="اكتب سؤالك هنا..." className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold outline-none focus:border-violet-400" aria-label="سؤال المساعد الذكي" />
       </div>
       <div className="mt-2.5 rounded-xl bg-white/80 px-3 py-3 text-xs font-bold leading-6 text-slate-700">{answer}</div>
     </section>
