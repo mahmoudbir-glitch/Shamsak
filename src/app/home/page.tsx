@@ -1,7 +1,7 @@
 "use client";
 
 import { HomeSourceSplit } from "@/components/energy-split";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown, Home, Loader2, RefreshCw } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
 import { PageHeader } from "@/components/page-header";
@@ -11,6 +11,7 @@ import { homeText, acAmps, acAmpHours } from "@/lib/energy";
 import { AmpPill } from "@/components/amp-pill";
 import { IntelligentEnergyCard } from "@/components/intelligent-energy-card";
 import { SmartEnergyAssistant } from "@/components/smart-energy-assistant";
+import { buildDailyEnergySummary } from "@/lib/daily-energy-summary";
 import { startVisiblePolling } from "@/lib/visible-polling";
 
 const REFRESH_MS = 15_000;
@@ -102,6 +103,7 @@ export default function HomeConsumptionPage() {
   const homeW = Math.max(0, snapshot?.homePowerW ?? 0);
   const homeKw = homeW / 1000;
   const toneText = homeText(homeKw);
+  const dailySummary = useMemo(() => snapshot ? buildDailyEnergySummary(snapshot) : null, [snapshot]);
 
   const fromSolar = Math.min(homeW, Math.max(0, snapshot?.solarPowerW ?? 0));
   const fromBattery = Math.min(homeW - fromSolar, Math.max(0, -(snapshot?.batteryPowerW ?? 0)));
@@ -180,6 +182,19 @@ export default function HomeConsumptionPage() {
       <CollapsibleCard index="04" title="مساعد شمسك الذكي" subtitle="اسأل عن البطارية والطاقة والتوقعات" defaultOpen={false} accentClass="border-r-violet-400">
         <SmartEnergyAssistant snapshot={snapshot} embedded />
       </CollapsibleCard>
+
+      {dailySummary && (
+        <section className="overflow-hidden rounded-[24px] border border-slate-200/80 border-r-4 border-r-cyan-400 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)]">
+          <div className="border-b border-slate-100 px-3.5 py-3">
+            <div className="text-sm font-black text-slate-900">ملخص الطاقة اليوم</div>
+            <div className="mt-0.5 text-[10px] font-semibold text-slate-400">قراءة مختصرة لما حدث في المنظومة حتى الآن</div>
+          </div>
+          <div className="space-y-2.5 p-3.5 text-right">
+            <p className="text-sm font-bold leading-6 text-slate-700">{dailySummary.summary}</p>
+            <div className="rounded-2xl bg-cyan-50 px-3 py-2.5 text-xs font-black leading-5 text-cyan-900">التوصية: {dailySummary.recommendation}</div>
+          </div>
+        </section>
+      )}
 
       <div className="grid auto-rows-fr grid-cols-2 gap-3">
         <StatTile card tone="sky" label="استهلاك اليوم" value={snapshot?.todayHomeUsageKWh !== undefined ? snapshot.todayHomeUsageKWh.toFixed(1) : "—"} unit="kWh" ampTone="sky" ampUnit="Ah" amps={acAmpHours(snapshot?.todayHomeUsageKWh)} hint="منذ منتصف الليل" />
