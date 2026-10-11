@@ -49,7 +49,7 @@ export function SmartEnergyAssistant({ snapshot, embedded = false }: SmartEnergy
       ) : (
         <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-600">
           <Sparkles size={15} className="text-sky-600" />
-          <span><bdi dir="rtl">{insight?.title || "الوضع مستقر"}</bdi> — {insight?.summary || "لا توجد حالة تستدعي تنبيهاً الآن."}</span>
+          <span>لا توجد توصية حالياً.</span>
         </div>
       )}
     </section>
