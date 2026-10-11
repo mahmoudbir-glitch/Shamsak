@@ -1,14 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { AlertTriangle, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, Sparkles, X } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
 import { forecastEnergy } from "@/lib/energy-forecast";
 import { analyzeEnergy } from "@/lib/intelligent-energy";
 import { recommendLoadAction } from "@/lib/load-decision";
 import { analyzeTimeOfDay } from "@/lib/time-of-day-insight";
+import { buildSmartAlert } from "@/lib/smart-alerts";
 
 const QUICK_QUESTIONS = ["هل البطارية بخير؟", "هل أستطيع تشغيل حمل 1000 واط الآن؟", "ماذا سيحدث بعد ساعة؟"];
+const DISMISSED_ALERT_KEY = "shamsak_dismissed_smart_alert_v1";
 
 const DEFAULT_LOAD_SETTINGS = {
   batteryCapacityWh: 4800,
@@ -22,12 +24,24 @@ type SmartEnergyAssistantProps = {
 
 export function SmartEnergyAssistant({ snapshot, embedded = false }: SmartEnergyAssistantProps) {
   const [question, setQuestion] = useState("");
+  const [dismissedAlertKey, setDismissedAlertKey] = useState<string | null>(null);
 
   const insight = useMemo(() => (snapshot ? analyzeEnergy(snapshot) : null), [snapshot]);
+  const smartAlert = useMemo(() => (snapshot && insight ? buildSmartAlert(snapshot, insight) : null), [snapshot, insight]);
   const timeOfDay = useMemo(
     () => (snapshot && !snapshot.stale ? analyzeTimeOfDay(snapshot) : null),
     [snapshot],
   );
+
+  useEffect(() => {
+    try {
+      setDismissedAlertKey(localStorage.getItem(DISMISSED_ALERT_KEY));
+    } catch {
+      setDismissedAlertKey(null);
+    }
+  }, [smartAlert?.key]);
+
+  const visibleAlert = smartAlert && smartAlert.key !== dismissedAlertKey ? smartAlert : null;
 
   const answer = useMemo(() => {
     if (!snapshot || snapshot.stale) return "لا توجد بيانات حية كافية حالياً. تحقق من اتصال الإنفرتر أو الـ Gateway ثم أعد المحاولة.";
@@ -61,6 +75,16 @@ export function SmartEnergyAssistant({ snapshot, embedded = false }: SmartEnergy
     return "اختر أحد الأسئلة السريعة لمعرفة حالة البطارية، الإنتاج الشمسي، تشغيل حمل، أو التوقع للساعة القادمة.";
   }, [question, snapshot]);
 
+  const dismissAlert = () => {
+    if (!smartAlert) return;
+    setDismissedAlertKey(smartAlert.key);
+    try {
+      localStorage.setItem(DISMISSED_ALERT_KEY, smartAlert.key);
+    } catch {
+      // التنبيه يبقى قابلاً للاستخدام حتى إذا تعذر التخزين المحلي.
+    }
+  };
+
   return (
     <section
       dir="rtl"
@@ -88,14 +112,23 @@ export function SmartEnergyAssistant({ snapshot, embedded = false }: SmartEnergy
         </div>
       )}
 
-      {insight?.alert && (
-        <div className="mt-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5" role="status" aria-live="polite">
-          <div className="flex items-center gap-2 text-xs font-black text-amber-900">
-            <AlertTriangle size={15} aria-hidden="true" />
-            <span>{insight.title}</span>
+      {visibleAlert && (
+        <div
+          className={`mt-2.5 rounded-xl px-3 py-2.5 ${visibleAlert.severity === "critical" ? "border border-rose-200 bg-rose-50" : visibleAlert.severity === "warning" ? "border border-amber-200 bg-amber-50" : "border border-sky-200 bg-sky-50"}`}
+          role="alert"
+          aria-live="assertive"
+        >
+          <div className="flex items-start gap-2">
+            <AlertTriangle size={16} className={visibleAlert.severity === "critical" ? "text-rose-600" : visibleAlert.severity === "warning" ? "text-amber-600" : "text-sky-600"} aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-black text-slate-900">{visibleAlert.title}</div>
+              <p className="mt-1 text-[11px] font-semibold leading-5 text-slate-700">{visibleAlert.message}</p>
+              <p className="mt-1 text-[11px] font-black text-slate-900">الإجراء المقترح: {visibleAlert.action}</p>
+            </div>
+            <button type="button" onClick={dismissAlert} className="rounded-lg p-1 text-slate-400 transition hover:bg-white/70 hover:text-slate-700" aria-label="إخفاء هذا التنبيه">
+              <X size={15} />
+            </button>
           </div>
-          <p className="mt-1 text-[11px] font-semibold leading-5 text-amber-800">{insight.summary}</p>
-          <p className="mt-1 text-[11px] font-bold text-amber-900">الإجراء المقترح: {insight.action}</p>
         </div>
       )}
 
