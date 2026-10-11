@@ -1,14 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { AlertTriangle, Sparkles } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
 import { forecastEnergy } from "@/lib/energy-forecast";
+import { analyzeEnergy } from "@/lib/intelligent-energy";
 
 const QUICK_QUESTIONS = ["هل البطارية بخير؟", "هل أستطيع تشغيل حمل الآن؟", "ماذا سيحدث بعد ساعة؟"];
 
 export function SmartEnergyAssistant({ snapshot }: { snapshot: EnergySnapshot | null }) {
   const [question, setQuestion] = useState("");
+
+  const insight = useMemo(() => (snapshot ? analyzeEnergy(snapshot) : null), [snapshot]);
 
   const answer = useMemo(() => {
     if (!snapshot || snapshot.stale) return "لا توجد بيانات حية كافية حالياً. تحقق من اتصال الإنفرتر أو الـ Gateway ثم أعد المحاولة.";
@@ -50,6 +53,18 @@ export function SmartEnergyAssistant({ snapshot }: { snapshot: EnergySnapshot | 
         <h2 className="text-sm font-black text-sky-950">مساعد شمسك الذكي</h2>
       </div>
       <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">اسأل عن حالة منظومتك، وسيجيب اعتماداً على بيانات الطاقة الحالية فقط.</p>
+
+      {insight?.alert && (
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5" role="status" aria-live="polite">
+          <div className="flex items-center gap-2 text-xs font-black text-amber-900">
+            <AlertTriangle size={15} aria-hidden="true" />
+            <span>{insight.title}</span>
+          </div>
+          <p className="mt-1 text-[11px] font-semibold leading-5 text-amber-800">{insight.summary}</p>
+          <p className="mt-1 text-[11px] font-bold text-amber-900">الإجراء المقترح: {insight.action}</p>
+        </div>
+      )}
+
       <div className="mt-3 flex flex-wrap gap-2">
         {QUICK_QUESTIONS.map((item) => (
           <button key={item} type="button" onClick={() => setQuestion(item)} className="rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-slate-700 shadow-sm hover:bg-slate-50">{item}</button>
