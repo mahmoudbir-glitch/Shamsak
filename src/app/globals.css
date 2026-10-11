@@ -74,6 +74,31 @@ button:disabled { cursor: not-allowed; opacity: .6; }
   }
 }
 
+/* Keep the original card wording, but make the gauge itself explain exactly
+ * what the displayed kW value represents. */
+@media (max-width: 1023px) {
+  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child {
+    font-size: 0;
+  }
+  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child::before {
+    content: "السحب الحالي";
+    display: block;
+    font-size: 9px;
+    line-height: 1.4;
+    font-weight: 800;
+    color: #64748b;
+  }
+  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child::after {
+    content: "قدرة المنزل الآن";
+    display: block;
+    margin-top: 2px;
+    font-size: 8px;
+    line-height: 1.4;
+    font-weight: 700;
+    color: #94a3b8;
+  }
+}
+
 /* Computer screens (1024px and wider): a page lays its cards out in two columns
  * instead of one phone-width column. Headers, notes, collapsible blocks and
  * anything marked .desktop-wide span both columns. Phones are not affected. */
