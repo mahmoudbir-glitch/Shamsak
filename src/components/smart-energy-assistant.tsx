@@ -9,7 +9,12 @@ import { analyzeTimeOfDay } from "@/lib/time-of-day-insight";
 
 const QUICK_QUESTIONS = ["هل البطارية بخير؟", "هل أستطيع تشغيل حمل الآن؟", "ماذا سيحدث بعد ساعة؟"];
 
-export function SmartEnergyAssistant({ snapshot }: { snapshot: EnergySnapshot | null }) {
+type SmartEnergyAssistantProps = {
+  snapshot: EnergySnapshot | null;
+  embedded?: boolean;
+};
+
+export function SmartEnergyAssistant({ snapshot, embedded = false }: SmartEnergyAssistantProps) {
   const [question, setQuestion] = useState("");
 
   const insight = useMemo(() => (snapshot ? analyzeEnergy(snapshot) : null), [snapshot]);
@@ -52,23 +57,34 @@ export function SmartEnergyAssistant({ snapshot }: { snapshot: EnergySnapshot | 
   }, [question, snapshot]);
 
   return (
-    <section dir="rtl" className="rounded-2xl border border-sky-200 bg-sky-50 p-4" aria-label="المساعد الذكي للطاقة">
-      <div className="flex items-center gap-2">
-        <Sparkles size={18} className="text-sky-600" aria-hidden="true" />
-        <h2 className="text-sm font-black text-sky-950">مساعد شمسك الذكي</h2>
-      </div>
-      <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">اسأل عن حالة منظومتك، وسيجيب اعتماداً على بيانات الطاقة الحالية فقط.</p>
+    <section
+      dir="rtl"
+      className={embedded ? "" : "rounded-2xl border border-sky-200 bg-sky-50 p-4"}
+      aria-label="المساعد الذكي للطاقة"
+    >
+      {!embedded && (
+        <>
+          <div className="flex items-center gap-2">
+            <Sparkles size={18} className="text-sky-600" aria-hidden="true" />
+            <h2 className="text-sm font-black text-sky-950">مساعد شمسك الذكي</h2>
+          </div>
+          <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">اسأل عن حالة منظومتك، وسيجيب اعتماداً على بيانات الطاقة الحالية فقط.</p>
+        </>
+      )}
 
       {timeOfDay && (
-        <div className="mt-3 rounded-xl border border-sky-200 bg-white/80 px-3 py-2.5" aria-label="تحليل الفترة الحالية">
-          <div className="text-xs font-black text-sky-900">{timeOfDay.title}</div>
+        <div className="mt-1 rounded-xl border border-sky-200 bg-sky-50/60 px-3 py-2.5" aria-label="تحليل الفترة الحالية">
+          <div className="flex items-center gap-2">
+            {embedded && <Sparkles size={15} className="text-violet-600" aria-hidden="true" />}
+            <div className="text-xs font-black text-sky-900">{timeOfDay.title}</div>
+          </div>
           <p className="mt-1 text-[11px] font-semibold leading-5 text-slate-600">{timeOfDay.summary}</p>
           <p className="mt-1 text-[11px] font-bold leading-5 text-sky-900">نصيحة: {timeOfDay.recommendation}</p>
         </div>
       )}
 
       {insight?.alert && (
-        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5" role="status" aria-live="polite">
+        <div className="mt-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5" role="status" aria-live="polite">
           <div className="flex items-center gap-2 text-xs font-black text-amber-900">
             <AlertTriangle size={15} aria-hidden="true" />
             <span>{insight.title}</span>
@@ -78,15 +94,15 @@ export function SmartEnergyAssistant({ snapshot }: { snapshot: EnergySnapshot | 
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-2.5 flex flex-wrap gap-2">
         {QUICK_QUESTIONS.map((item) => (
-          <button key={item} type="button" onClick={() => setQuestion(item)} className="rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-slate-700 shadow-sm hover:bg-slate-50">{item}</button>
+          <button key={item} type="button" onClick={() => setQuestion(item)} className="rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-slate-700 shadow-sm ring-1 ring-slate-200/70 transition hover:bg-slate-50">{item}</button>
         ))}
       </div>
-      <div className="mt-3 flex gap-2">
-        <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="اكتب سؤالك هنا..." className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold outline-none focus:border-sky-400" aria-label="سؤال المساعد الذكي" />
+      <div className="mt-2.5 flex gap-2">
+        <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="اكتب سؤالك هنا..." className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold outline-none focus:border-violet-400" aria-label="سؤال المساعد الذكي" />
       </div>
-      <div className="mt-3 rounded-xl bg-white/80 px-3 py-3 text-xs font-bold leading-6 text-slate-700">{answer}</div>
+      <div className="mt-2.5 rounded-xl bg-white/80 px-3 py-3 text-xs font-bold leading-6 text-slate-700">{answer}</div>
     </section>
   );
 }
