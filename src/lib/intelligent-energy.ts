@@ -5,6 +5,10 @@ export type IntelligentEnergySettings = {
   batteryMinReservePct: number;
 };
 
+export type IntelligentEnergyContext = {
+  recentAverageHomePowerW?: number | null;
+};
+
 export type IntelligentInsight = {
   tone: "green" | "amber" | "red" | "blue";
   title: string;
@@ -44,7 +48,11 @@ function batteryEstimate(snapshot: EnergySnapshot, settings: IntelligentEnergySe
   return { charging, label: formatDuration(Math.round(hours * 60)) };
 }
 
-export function analyzeEnergy(snapshot: EnergySnapshot, settings?: IntelligentEnergySettings): IntelligentInsight {
+export function analyzeEnergy(
+  snapshot: EnergySnapshot,
+  settings?: IntelligentEnergySettings,
+  context?: IntelligentEnergyContext,
+): IntelligentInsight {
   const solarKw = Math.max(0, safeNumber(snapshot.solarPowerW)) / 1000;
   const homeKw = Math.max(0, safeNumber(snapshot.homePowerW)) / 1000;
   const gridImport = Math.max(0, safeNumber(snapshot.gridPowerW)) / 1000;
@@ -58,6 +66,16 @@ export function analyzeEnergy(snapshot: EnergySnapshot, settings?: IntelligentEn
     ? estimate.charging
       ? `بالقدرة الحالية، قد تحتاج البطارية ${estimate.label} للوصول إلى 100٪.`
       : `بالقدرة الحالية، التقدير حتى حد الاحتياطي هو ${estimate.label}.`
+    : null;
+  const recentAverageW = context?.recentAverageHomePowerW;
+  const unusualLoad =
+    typeof recentAverageW === "number" &&
+    Number.isFinite(recentAverageW) &&
+    recentAverageW >= 500 &&
+    snapshot.homePowerW >= recentAverageW * 1.6 &&
+    snapshot.homePowerW - recentAverageW >= 800;
+  const unusualLoadDetail = unusualLoad
+    ? `الاستهلاك الحالي أعلى من متوسط القراءات الأخيرة بنحو ${Math.round((snapshot.homePowerW / recentAverageW - 1) * 100)}٪.`
     : null;
 
   if (snapshot.stale) {
@@ -78,7 +96,7 @@ export function analyzeEnergy(snapshot: EnergySnapshot, settings?: IntelligentEn
       title: "البطارية منخفضة جداً",
       summary: `البطارية عند ${Math.round(soc)}%${batteryDischarging ? " وتفرغ حالياً" : ""}.`,
       action: "خفّف الأحمال غير الضرورية",
-      details: ["الأولوية الآن للحفاظ على الطاقة للأحمال الأساسية.", gridImport > 0 ? "الشبكة تساهم حالياً في تغذية المنزل." : "لا يظهر سحب من الشبكة في القراءة الحالية.", ...(estimateDetail ? [estimateDetail] : [])],
+      details: ["الأولوية الآن للحفاظ على الطاقة للأحمال الأساسية.", gridImport > 0 ? "الشبكة تساهم حالياً في تغذية المنزل." : "لا يظهر سحب من الشبكة في القراءة الحالية.", ...(unusualLoadDetail ? [unusualLoadDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
     };
   }
 
@@ -89,7 +107,18 @@ export function analyzeEnergy(snapshot: EnergySnapshot, settings?: IntelligentEn
       title: "استهلاك مرتفع مع بطارية منخفضة",
       summary: `المنزل يسحب ${homeKw.toFixed(1)} kW والبطارية عند ${Math.round(soc)}%.`,
       action: "راجع الأحمال الكبيرة الآن",
-      details: ["تشغيل سخان أو مكيف أو حمل كبير قد يسرّع هبوط البطارية.", "إذا كان هناك حمل غير ضروري، إيقافه قد يطيل وقت التشغيل.", ...(estimateDetail ? [estimateDetail] : [])],
+      details: ["تشغيل سخان أو مكيف أو حمل كبير قد يسرّع هبوط البطارية.", "إذا كان هناك حمل غير ضروري، إيقافه قد يطيل وقت التشغيل.", ...(unusualLoadDetail ? [unusualLoadDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
+    };
+  }
+
+  if (unusualLoad) {
+    return {
+      tone: "amber",
+      alert: true,
+      title: "الاستهلاك أعلى من المعتاد",
+      summary: `الاستهلاك الحالي ${homeKw.toFixed(1)} kW أعلى بوضوح من متوسطك الأخير.`,
+      action: "تحقق من الأجهزة التي تعمل الآن",
+      details: [unusualLoadDetail!, "قد يكون السبب جهازاً كبيراً بدأ العمل أو عدة أحمال تعمل معاً.", ...(estimateDetail ? [estimateDetail] : [])],
     };
   }
 
