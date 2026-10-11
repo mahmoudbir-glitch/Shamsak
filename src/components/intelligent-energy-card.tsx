@@ -65,12 +65,12 @@ export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot |
   const Icon = insight.tone === "green" ? CheckCircle2 : insight.tone === "red" ? AlertTriangle : insight.tone === "amber" ? BatteryCharging : Sun;
 
   return (
-    <section className={`energy-card overflow-hidden border ${tone.border} ${tone.bg}`} dir="rtl" aria-label="التحليل الذكي للطاقة">
+    <section className={`energy-card overflow-hidden border ${tone.border} ${tone.bg}`} dir="rtl" aria-label="مراقبة شمسك الذكي">
       <div className="flex items-start gap-3 p-3.5">
         <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/80 ${tone.icon}`}><Sparkles size={17} /></div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className={`text-xs font-black ${tone.title}`}>تحليل شمسك الذكي</span>
+            <span className={`text-xs font-black ${tone.title}`}>مراقبة شمسك الذكي</span>
             {insight.alert && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-black text-rose-700">تنبيه</span>}
             <Icon size={15} className={tone.icon} aria-hidden="true" />
           </div>
