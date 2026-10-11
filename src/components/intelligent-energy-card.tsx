@@ -29,6 +29,7 @@ export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot |
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className={`text-xs font-black ${tone.title}`}>تحليل شمسك الذكي</span>
+            {insight.alert && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-black text-rose-700">تنبيه</span>}
             <Icon size={16} className={tone.icon} aria-hidden="true" />
           </div>
           <h2 className={`mt-1 text-base font-black ${tone.title}`}>{insight.title}</h2>
