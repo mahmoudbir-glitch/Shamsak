@@ -135,11 +135,7 @@ export default function HomeConsumptionPage() {
         }
       />
 
-      <CollapsibleCard index="01" title="التحليل الذكي" subtitle="قراءة شمسك لحالة المنظومة الآن" accentClass="border-r-emerald-400">
-        <IntelligentEnergyCard snapshot={snapshot} />
-      </CollapsibleCard>
-
-      <CollapsibleCard index="02" title="الاستهلاك الآن" subtitle="القدرة التي يسحبها المنزل حالياً" accentClass="border-r-sky-400">
+      <CollapsibleCard index="01" title="الاستهلاك الآن" subtitle="القدرة التي يسحبها المنزل حالياً" accentClass="border-r-sky-400">
         <div className="rounded-[20px] bg-slate-50/80 p-5 text-center">
           <span className="block text-sm font-semibold text-slate-400">إجمالي سحب المنزل الآن</span>
           {loading && !snapshot ? (
@@ -159,7 +155,7 @@ export default function HomeConsumptionPage() {
         </div>
       </CollapsibleCard>
 
-      <CollapsibleCard index="03" title="مصادر الطاقة" subtitle="من أين يأتي استهلاك المنزل الآن" accentClass="border-r-amber-400">
+      <CollapsibleCard index="02" title="مصادر الطاقة" subtitle="من أين يأتي استهلاك المنزل الآن" accentClass="border-r-amber-400">
         <div className="space-y-3">
           <div className="flex h-3 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
             {sources.map((source) => source.w > 0 && <div key={source.label} className={source.bar} style={{ width: `${source.pct}%` }} />)}
@@ -175,6 +171,10 @@ export default function HomeConsumptionPage() {
             ))}
           </div>
         </div>
+      </CollapsibleCard>
+
+      <CollapsibleCard index="03" title="التحليل الذكي" subtitle="قراءة شمسك لحالة المنظومة الآن" accentClass="border-r-emerald-400">
+        <IntelligentEnergyCard snapshot={snapshot} />
       </CollapsibleCard>
 
       <CollapsibleCard index="04" title="مساعد شمسك الذكي" subtitle="اسأل عن البطارية والطاقة والتوقعات" defaultOpen={false} accentClass="border-r-violet-400">
