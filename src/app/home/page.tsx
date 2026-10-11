@@ -10,6 +10,7 @@ import { LoadChart, type LoadPoint } from "@/components/load-chart";
 import { homeText, acAmps, acAmpHours } from "@/lib/energy";
 import { AmpPill } from "@/components/amp-pill";
 import { IntelligentEnergyCard } from "@/components/intelligent-energy-card";
+import { SmartEnergyAssistant } from "@/components/smart-energy-assistant";
 import { startVisiblePolling } from "@/lib/visible-polling";
 
 const REFRESH_MS = 15_000;
@@ -65,15 +66,10 @@ export default function HomeConsumptionPage() {
   const homeKw = homeW / 1000;
   const toneText = homeText(homeKw);
 
-  // من أين يأتي حمل المنزل الآن: الشمس أولاً، ثم البطارية، والباقي من الشبكة.
   const fromSolar = Math.min(homeW, Math.max(0, snapshot?.solarPowerW ?? 0));
   const fromBattery = Math.min(homeW - fromSolar, Math.max(0, -(snapshot?.batteryPowerW ?? 0)));
-  // The grid only counts what it really delivers (measured, or the shortfall
-  // while on mains). Off-grid the small leftover is the inverter's own loss,
-  // so it must not show up as "from the grid" (it showed 8% / 21 W off-grid).
   const fromGrid = Math.min(Math.max(0, homeW - fromSolar - fromBattery), Math.max(0, snapshot?.gridPowerW ?? 0));
   const served = fromSolar + fromBattery + fromGrid;
-  // Rounded so the three always add up to 100 (33 + 33 + 33 left 1% unexplained).
   const solarPct = served > 0 ? Math.round((fromSolar / served) * 100) : 0;
   const batteryPct = served > 0 ? Math.min(100 - solarPct, Math.round((fromBattery / served) * 100)) : 0;
   const gridPct = served > 0 ? 100 - solarPct - batteryPct : 0;
@@ -103,8 +99,8 @@ export default function HomeConsumptionPage() {
       />
 
       <IntelligentEnergyCard snapshot={snapshot} />
+      <SmartEnergyAssistant snapshot={snapshot} />
 
-      {/* إجمالي السحب الحالي */}
       <section className="energy-card p-6 text-center">
         <span className="block text-sm font-semibold text-slate-400">إجمالي سحب المنزل الآن</span>
         {loading && !snapshot ? (
@@ -123,7 +119,6 @@ export default function HomeConsumptionPage() {
         )}
       </section>
 
-      {/* من أين يأتي الاستهلاك الآن */}
       <section className="energy-card space-y-3 p-4">
         <h2 className="text-sm font-black text-slate-900">من أين يأتي استهلاكك الآن</h2>
         <div className="flex h-3 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
@@ -143,19 +138,9 @@ export default function HomeConsumptionPage() {
 
       <div className="grid auto-rows-fr grid-cols-2 gap-3">
         <StatTile card tone="sky" label="استهلاك اليوم" value={snapshot?.todayHomeUsageKWh !== undefined ? snapshot.todayHomeUsageKWh.toFixed(1) : "—"} unit="kWh" ampTone="sky" ampUnit="Ah" amps={acAmpHours(snapshot?.todayHomeUsageKWh)} hint="منذ منتصف الليل" />
-        <StatTile
-          card
-          tone="sky"
-          label="أعلى حمل اليوم"
-          value={history?.peak ? (history.peak.w / 1000).toFixed(2) : "—"}
-          unit="kW"
-          ampTone="sky"
-          amps={history?.peak ? acAmps(history.peak.w) : null}
-          hint={history?.peak ? <>{peakTime}{peakPct !== null && <> · <bdi dir="ltr">{peakPct}%</bdi> من الإنفرتر</>}</> : undefined}
-        />
+        <StatTile card tone="sky" label="أعلى حمل اليوم" value={history?.peak ? (history.peak.w / 1000).toFixed(2) : "—"} unit="kW" ampTone="sky" amps={history?.peak ? acAmps(history.peak.w) : null} hint={history?.peak ? <>{peakTime}{peakPct !== null && <> · <bdi dir="ltr">{peakPct}%</bdi> من الإنفرتر</>}</> : undefined} />
       </div>
 
-      {/* منحنى آخر 24 ساعة */}
       <section className="energy-card space-y-2 p-4">
         <h2 className="text-sm font-black text-slate-900">آخر 24 ساعة</h2>
         {history && history.points.length >= 2 ? (
