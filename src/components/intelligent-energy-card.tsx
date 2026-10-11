@@ -3,13 +3,43 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BatteryCharging, CheckCircle2, ChevronDown, Lightbulb, Sparkles, Sun } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
-import { analyzeEnergy, type IntelligentEnergySettings } from "@/lib/intelligent-energy";
+import { analyzeEnergy, type IntelligentEnergyContext, type IntelligentEnergySettings } from "@/lib/intelligent-energy";
 
 const DEFAULT_SETTINGS: IntelligentEnergySettings = { batteryCapacityWh: 4800, batteryMinReservePct: 10 };
+const LOAD_HISTORY_KEY = "shamsak_intelligent_load_history_v1";
+const MAX_HISTORY_AGE_MS = 24 * 60 * 60 * 1000;
+
+function recentAverageHomePowerW(snapshot: EnergySnapshot | null) {
+  if (typeof window === "undefined" || !snapshot || snapshot.source !== "live" || !Number.isFinite(snapshot.homePowerW)) return null;
+  const now = Date.now();
+  let samples: Array<{ timestamp: string; homePowerW: number }> = [];
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LOAD_HISTORY_KEY) || "[]") as Array<{ timestamp: string; homePowerW: number }>;
+    samples = Array.isArray(parsed)
+      ? parsed.filter((item) => Number.isFinite(new Date(item.timestamp).getTime()) && Number.isFinite(item.homePowerW))
+      : [];
+  } catch {
+    samples = [];
+  }
+  samples = samples.filter((item) => now - new Date(item.timestamp).getTime() <= MAX_HISTORY_AGE_MS);
+  const last = samples[samples.length - 1];
+  if (!last || new Date(snapshot.timestamp).getTime() - new Date(last.timestamp).getTime() >= 60_000) {
+    samples.push({ timestamp: snapshot.timestamp, homePowerW: Math.max(0, snapshot.homePowerW) });
+    try {
+      localStorage.setItem(LOAD_HISTORY_KEY, JSON.stringify(samples.slice(-120)));
+    } catch {
+      // Local storage is optional; analysis remains fully functional without it.
+    }
+  }
+  const recent = samples.slice(-12);
+  if (recent.length < 4) return null;
+  return recent.reduce((sum, item) => sum + Math.max(0, item.homePowerW), 0) / recent.length;
+}
 
 export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot | null }) {
   const [open, setOpen] = useState(false);
   const [settings, setSettings] = useState<IntelligentEnergySettings>(DEFAULT_SETTINGS);
+  const [recentAverageW, setRecentAverageW] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -31,7 +61,12 @@ export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot |
     return () => { active = false; };
   }, []);
 
-  const insight = useMemo(() => (snapshot ? analyzeEnergy(snapshot, settings) : null), [snapshot, settings]);
+  useEffect(() => {
+    setRecentAverageW(recentAverageHomePowerW(snapshot));
+  }, [snapshot]);
+
+  const context = useMemo<IntelligentEnergyContext>(() => ({ recentAverageHomePowerW: recentAverageW }), [recentAverageW]);
+  const insight = useMemo(() => (snapshot ? analyzeEnergy(snapshot, settings, context) : null), [snapshot, settings, context]);
 
   if (!insight) return null;
 
