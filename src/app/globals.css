@@ -74,33 +74,6 @@ button:disabled { cursor: not-allowed; opacity: .6; }
   }
 }
 
-/* Home consumption card: make the instantaneous draw wording explicit without
- * changing telemetry values or calculations. */
-.desktop-grid > section:nth-of-type(2) > div > div:first-child > div:first-child > span:first-child {
-  font-size: 0;
-}
-.desktop-grid > section:nth-of-type(2) > div > div:first-child > div:first-child > span:first-child::after {
-  content: "السحب الحالي";
-  font-size: 10px;
-}
-.desktop-grid > section:nth-of-type(2) > div > div:first-child > div:first-child > span:nth-child(2) {
-  font-size: 0;
-}
-.desktop-grid > section:nth-of-type(2) > div > div:first-child > div:first-child > span:nth-child(2)::after {
-  content: "قدرة المنزل الآن";
-  font-size: 12px;
-}
-.desktop-grid > section:nth-of-type(2) > div > div:first-child > div:first-child::after {
-  content: "kW = القدرة اللحظية التي يسحبها المنزل الآن، وليست استهلاك اليوم. استهلاك اليوم يُعرض بوحدة kWh.";
-  display: block;
-  margin-top: 4px;
-  max-width: 320px;
-  font-size: 9px;
-  line-height: 1.5;
-  font-weight: 700;
-  color: #94a3b8;
-}
-
 /* Computer screens (1024px and wider): a page lays its cards out in two columns
  * instead of one phone-width column. Headers, notes, collapsible blocks and
  * anything marked .desktop-wide span both columns. Phones are not affected. */
