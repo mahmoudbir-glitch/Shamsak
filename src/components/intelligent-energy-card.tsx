@@ -6,35 +6,68 @@ import type { EnergySnapshot } from "@/lib/energy";
 import { analyzeEnergy, type IntelligentEnergyContext, type IntelligentEnergySettings } from "@/lib/intelligent-energy";
 
 const DEFAULT_SETTINGS: IntelligentEnergySettings = { batteryCapacityWh: 4800, batteryMinReservePct: 10 };
-const BATTERY_HISTORY_KEY = "shamsak_intelligent_battery_history_v1";
+const HISTORY_KEY = "shamsak_intelligent_energy_history_v2";
 const MAX_HISTORY_AGE_MS = 24 * 60 * 60 * 1000;
+const MAX_HISTORY_SAMPLES = 120;
 
-function recentBatterySocDropPerHour(snapshot: EnergySnapshot | null) {
-  if (typeof window === "undefined" || !snapshot || snapshot.source !== "live" || !Number.isFinite(snapshot.batterySoc)) return null;
-  const now = Date.now();
-  let samples: Array<{ timestamp: string; batterySoc: number }> = [];
+type TrendSample = { timestamp: string; batterySoc: number; homePowerW: number; solarPowerW: number };
+
+function readTrendHistory(): TrendSample[] {
+  if (typeof window === "undefined") return [];
   try {
-    const parsed = JSON.parse(localStorage.getItem(BATTERY_HISTORY_KEY) || "[]") as Array<{ timestamp: string; batterySoc: number }>;
-    samples = Array.isArray(parsed) ? parsed.filter((item) => Number.isFinite(new Date(item.timestamp).getTime()) && Number.isFinite(item.batterySoc)) : [];
-  } catch { samples = []; }
-  samples = samples.filter((item) => now - new Date(item.timestamp).getTime() <= MAX_HISTORY_AGE_MS);
-  const last = samples[samples.length - 1];
-  if (!last || new Date(snapshot.timestamp).getTime() - new Date(last.timestamp).getTime() >= 60_000) {
-    samples.push({ timestamp: snapshot.timestamp, batterySoc: Math.min(100, Math.max(0, snapshot.batterySoc)) });
-    try { localStorage.setItem(BATTERY_HISTORY_KEY, JSON.stringify(samples.slice(-120))); } catch {}
+    const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]") as TrendSample[];
+    if (!Array.isArray(parsed)) return [];
+    const now = Date.now();
+    return parsed.filter((item) => {
+      const time = new Date(item.timestamp).getTime();
+      return Number.isFinite(time) && now - time >= 0 && now - time <= MAX_HISTORY_AGE_MS &&
+        Number.isFinite(item.batterySoc) && Number.isFinite(item.homePowerW) && Number.isFinite(item.solarPowerW);
+    }).slice(-MAX_HISTORY_SAMPLES);
+  } catch {
+    return [];
   }
-  if (samples.length < 4) return null;
-  const first = samples[Math.max(0, samples.length - 12)];
-  const lastSample = samples[samples.length - 1];
-  const elapsedHours = (new Date(lastSample.timestamp).getTime() - new Date(first.timestamp).getTime()) / 3_600_000;
-  const drop = first.batterySoc - lastSample.batterySoc;
-  if (elapsedHours < 0.05 || drop <= 0) return null;
-  return drop / elapsedHours;
+}
+
+function collectTrendContext(snapshot: EnergySnapshot | null) {
+  if (typeof window === "undefined" || !snapshot || snapshot.source !== "live") {
+    return { recentAverageHomePowerW: null, recentAverageSolarPowerW: null, batterySocDropPerHour: null };
+  }
+
+  const samples = readTrendHistory();
+  const timestamp = new Date(snapshot.timestamp).getTime();
+  const last = samples[samples.length - 1];
+  if (!last || timestamp - new Date(last.timestamp).getTime() >= 60_000) {
+    samples.push({
+      timestamp: snapshot.timestamp,
+      batterySoc: Math.min(100, Math.max(0, snapshot.batterySoc)),
+      homePowerW: Math.max(0, snapshot.homePowerW),
+      solarPowerW: Math.max(0, snapshot.solarPowerW),
+    });
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(samples.slice(-MAX_HISTORY_SAMPLES)));
+    } catch {}
+  }
+
+  const recent = samples.slice(-12);
+  const average = (values: number[]) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+  const recentAverageHomePowerW = average(recent.map((item) => item.homePowerW));
+  const recentAverageSolarPowerW = average(recent.map((item) => item.solarPowerW));
+
+  let batterySocDropPerHour: number | null = null;
+  if (samples.length >= 4) {
+    const first = samples[Math.max(0, samples.length - 12)];
+    const lastSample = samples[samples.length - 1];
+    const elapsedHours = (new Date(lastSample.timestamp).getTime() - new Date(first.timestamp).getTime()) / 3_600_000;
+    const drop = first.batterySoc - lastSample.batterySoc;
+    if (elapsedHours >= 0.05 && drop > 0) batterySocDropPerHour = drop / elapsedHours;
+  }
+
+  return { recentAverageHomePowerW, recentAverageSolarPowerW, batterySocDropPerHour };
 }
 
 export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot | null }) {
   const [settings, setSettings] = useState<IntelligentEnergySettings>(DEFAULT_SETTINGS);
-  const [batteryDropPerHour, setBatteryDropPerHour] = useState<number | null>(null);
+  const [trendContext, setTrendContext] = useState<IntelligentEnergyContext>({});
 
   useEffect(() => {
     let active = true;
@@ -50,10 +83,14 @@ export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot |
     return () => { active = false; };
   }, []);
 
-  useEffect(() => { setBatteryDropPerHour(recentBatterySocDropPerHour(snapshot)); }, [snapshot]);
+  useEffect(() => {
+    setTrendContext(collectTrendContext(snapshot));
+  }, [snapshot]);
 
-  const context = useMemo<IntelligentEnergyContext>(() => ({ batterySocDropPerHour: batteryDropPerHour }), [batteryDropPerHour]);
-  const insight = useMemo(() => (snapshot ? analyzeEnergy(snapshot, settings, context) : null), [snapshot, settings, context]);
+  const insight = useMemo(
+    () => (snapshot ? analyzeEnergy(snapshot, settings, trendContext) : null),
+    [snapshot, settings, trendContext],
+  );
   if (!insight) return null;
 
   const tone = {
