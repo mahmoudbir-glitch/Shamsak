@@ -37,9 +37,19 @@ function BatteryGauge({ soc, reservePct, tone, charging }: { soc: number; reserv
   const cell = (BODY.width - BODY.gap * (CELLS - 1)) / CELLS;
   const right = BODY.x + BODY.width;
   const reserveX = right - (reservePct / 100) * BODY.width;
+  const headTone = charging ? "text-emerald-500" : soc <= reservePct ? "text-rose-500" : "text-amber-500";
   return (
     <svg viewBox="0 0 300 120" className="h-auto w-full" role="img" aria-label={`البطارية مشحونة ${Math.round(soc)}٪، والاحتياطي ${reservePct}٪`}>
-      {/* Terminal on the left, body outline */}
+      {/* رأس البطارية: خطوط ديناميكية خارجية فقط، تدور حول الرأس عند وجود شحن. */}
+      <g className={"fill-none stroke-current " + headTone} opacity={charging ? 0.95 : 0.35}>
+        <path d="M10 42 A18 18 0 0 1 28 60" strokeWidth="2" strokeLinecap="round" strokeDasharray="5 5">
+          {charging && <animateTransform attributeName="transform" type="rotate" from="0 10 60" to="360 10 60" dur="2.2s" repeatCount="indefinite" />}
+        </path>
+        <path d="M10 78 A18 18 0 0 1 28 60" strokeWidth="2" strokeLinecap="round" strokeDasharray="5 5">
+          {charging && <animateTransform attributeName="transform" type="rotate" from="0 10 60" to="360 10 60" dur="2.2s" repeatCount="indefinite" />}
+        </path>
+      </g>
+      {/* رأس البطارية نفسه — بدون أي خط زخرفي داخلي. */}
       <rect x="4" y="42" width="14" height="36" rx="4" className="fill-slate-300" />
       <rect x="20" y="10" width="270" height="100" rx="16" className="fill-white stroke-slate-300" strokeWidth="3" />
       {Array.from({ length: CELLS }, (_, i) => {
@@ -116,21 +126,18 @@ export default function BatteryPage() {
   const capacityKWh = (settings?.batteryCapacityWh ?? 0) / 1000;
   const storedKWh = (soc / 100) * capacityKWh;
   const usableKWh = (Math.max(0, soc - reservePct) / 100) * capacityKWh;
-  // Where the reserve line sits under the gauge, as a share of its width (matches BatteryGauge's geometry).
   const reserveLeftPct = ((280 - (reservePct / 100) * 250) / 300) * 100;
 
   return (
     <div className="desktop-grid w-full space-y-3 pb-4 text-right" dir="rtl">
       <PageHeader icon={BatteryCharging} tone="emerald" eyebrow="شمسك • البطارية" title="حالة البطارية" subtitle="الشحن والجهد والحرارة والوقت المتوقع." />
 
-      {/* البطارية كما هي: الخانات، النسبة، الحالة، والطاقة المخزّنة */}
       <section className="energy-card p-5">
         {loading && !snapshot ? (
           <div className="flex justify-center py-10"><Loader2 className="h-10 w-10 animate-spin text-emerald-500" aria-label="جاري تحميل القراءة" /></div>
         ) : (
           <>
             <BatteryGauge soc={soc} reservePct={reservePct} tone={toneText} charging={state === "charging"} />
-            {/* Scale under the cells: they fill from the right, so 0% is on the right and 100% by the terminal. */}
             <div className="relative mt-1 h-4 text-[10px] font-bold text-slate-400">
               <span className="absolute right-[3%]">0%</span>
               <span className="absolute -translate-x-1/2 whitespace-nowrap text-rose-500" style={{ left: `${reserveLeftPct}%` }}>الاحتياطي {reservePct}%</span>
@@ -169,7 +176,6 @@ export default function BatteryPage() {
         )}
       </section>
 
-      {/* لوحة القياسات */}
       <section className="energy-card p-4">
         <div className="grid grid-cols-3 divide-x divide-x-reverse divide-slate-100">
           <Reading label="الجهد" value={snapshot?.batteryVoltage != null ? snapshot.batteryVoltage.toFixed(1) : "—"} unit={snapshot?.batteryVoltage != null ? "V" : undefined} muted={snapshot?.batteryVoltage == null} note={settings?.batteryNominalVoltage ? `الاسمي ${settings.batteryNominalVoltage} V` : undefined} />
@@ -184,7 +190,6 @@ export default function BatteryPage() {
         <p className="rounded-2xl bg-amber-50 p-3 text-[11px] font-bold leading-5 text-amber-800">الحرارة والنسبة الدقيقة يرسلهما جهاز إدارة البطارية (BMS). تظهران بعد توصيل كابل الاتصال من منفذ CAN في البطارية إلى الإنفرتر.</p>
       )}
 
-      {/* البطارية اليوم */}
       <section className="energy-card p-4">
         <h2 className="text-sm font-black text-slate-900">البطارية اليوم</h2>
         <div className="mt-3 grid grid-cols-3 gap-2 text-center">
@@ -194,7 +199,6 @@ export default function BatteryPage() {
         </div>
       </section>
 
-      {/* منحنى نسبة الشحن */}
       <section className="energy-card space-y-2 p-4">
         <h2 className="text-sm font-black text-slate-900">نسبة الشحن خلال آخر 24 ساعة</h2>
         {history && history.points.filter((p) => typeof p.soc === "number").length >= 2 ? (
@@ -209,7 +213,6 @@ export default function BatteryPage() {
         )}
       </section>
 
-      {/* مواصفات البطارية من الإعدادات */}
       {settings && (
         <section className="energy-card desktop-wide p-4">
           <h2 className="text-sm font-black text-slate-900">مواصفات البطارية</h2>
