@@ -1,13 +1,37 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BatteryCharging, CheckCircle2, ChevronDown, Lightbulb, Sparkles, Sun } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
-import { analyzeEnergy } from "@/lib/intelligent-energy";
+import { analyzeEnergy, type IntelligentEnergySettings } from "@/lib/intelligent-energy";
+
+const DEFAULT_SETTINGS: IntelligentEnergySettings = { batteryCapacityWh: 4800, batteryMinReservePct: 10 };
 
 export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot | null }) {
   const [open, setOpen] = useState(false);
-  const insight = useMemo(() => (snapshot ? analyzeEnergy(snapshot) : null), [snapshot]);
+  const [settings, setSettings] = useState<IntelligentEnergySettings>(DEFAULT_SETTINGS);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/settings", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: Record<string, unknown> | null) => {
+        if (!active || !data) return;
+        const capacity = typeof data.batteryCapacityWh === "number" && Number.isFinite(data.batteryCapacityWh) && data.batteryCapacityWh > 0
+          ? data.batteryCapacityWh
+          : DEFAULT_SETTINGS.batteryCapacityWh;
+        const reserve = typeof data.batteryMinReservePct === "number" && Number.isFinite(data.batteryMinReservePct) && data.batteryMinReservePct >= 0 && data.batteryMinReservePct < 100
+          ? data.batteryMinReservePct
+          : DEFAULT_SETTINGS.batteryMinReservePct;
+        setSettings({ batteryCapacityWh: capacity, batteryMinReservePct: reserve });
+      })
+      .catch(() => {
+        // The default is intentionally safe and keeps the card usable if settings are unavailable.
+      });
+    return () => { active = false; };
+  }, []);
+
+  const insight = useMemo(() => (snapshot ? analyzeEnergy(snapshot, settings) : null), [snapshot, settings]);
 
   if (!insight) return null;
 
