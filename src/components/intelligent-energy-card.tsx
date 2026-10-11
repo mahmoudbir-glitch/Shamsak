@@ -95,15 +95,15 @@ export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot |
   if (!insight) return null;
 
   const tone = {
-    green: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600", title: "text-emerald-900" },
-    amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600", title: "text-amber-900" },
-    red: { bg: "bg-rose-50", border: "border-rose-200", icon: "text-rose-600", title: "text-rose-900" },
-    blue: { bg: "bg-sky-50", border: "border-sky-200", icon: "text-sky-600", title: "text-sky-900" },
+    green: { bg: "bg-emerald-50", border: "border-emerald-300", ring: "ring-1 ring-emerald-200/70", shadow: "shadow-[0_8px_24px_rgba(16,185,129,0.12)]", icon: "text-emerald-600", title: "text-emerald-900" },
+    amber: { bg: "bg-amber-50", border: "border-amber-300", ring: "ring-1 ring-amber-200/70", shadow: "shadow-[0_8px_24px_rgba(245,158,11,0.14)]", icon: "text-amber-600", title: "text-amber-900" },
+    red: { bg: "bg-rose-50", border: "border-rose-300", ring: "ring-1 ring-rose-200/70", shadow: "shadow-[0_8px_24px_rgba(244,63,94,0.16)]", icon: "text-rose-600", title: "text-rose-900" },
+    blue: { bg: "bg-sky-50", border: "border-sky-300", ring: "ring-1 ring-sky-200/70", shadow: "shadow-[0_8px_24px_rgba(14,165,233,0.10)]", icon: "text-sky-600", title: "text-sky-900" },
   }[insight.tone];
   const Icon = insight.tone === "green" ? CheckCircle2 : insight.tone === "red" ? AlertTriangle : insight.tone === "amber" ? BatteryCharging : Sun;
 
   return (
-    <section className={`overflow-hidden border ${tone.border} ${tone.bg}`} dir="rtl" aria-label="مراقبة شمسك الذكي">
+    <section className={`overflow-hidden rounded-2xl border ${tone.border} ${tone.bg} ${tone.ring} ${tone.shadow} transition-colors duration-500`} dir="rtl" aria-label="مراقبة شمسك الذكي">
       <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} className="flex w-full items-center gap-3 p-3.5 text-right transition hover:bg-white/40 active:bg-white/60">
         <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/80 ${tone.icon}`}><Sparkles size={17} /></div>
         <div className="min-w-0 flex-1">
