@@ -97,6 +97,11 @@ export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot |
             <Lightbulb size={15} className="text-amber-500" />
             <span>{insight.action}</span>
           </div>
+          {insight.recommendation && (
+            <div className="mt-2 rounded-xl bg-white/65 px-3 py-2 text-xs font-bold leading-5 text-slate-700">
+              <span className="font-black text-slate-900">التوصية الآن:</span> {insight.recommendation}
+            </div>
+          )}
         </div>
       </div>
 
