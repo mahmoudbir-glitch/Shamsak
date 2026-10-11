@@ -24,11 +24,10 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .sun-twinkle { display: inline-block; animation: sun-spin 12s linear infinite, sun-twinkle 2.6s ease-in-out infinite; transform-origin: center; }
 @media (prefers-reduced-motion: reduce) { .sun-twinkle { animation: none; } }
 
-/* Battery outline: moving trace now covers the battery body and its terminal/head. */
+/* Battery outline: animate only the external body outline. The small terminal and internal cell lines stay static. */
 @keyframes shamsak-battery-outline-charge { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -16; } }
 @keyframes shamsak-battery-outline-discharge { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 16; } }
-.energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.stroke-slate-300,
-.energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.fill-slate-300 {
+.energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.fill-white.stroke-slate-300 {
   stroke: #10b981;
   stroke-width: 3;
   stroke-linecap: round;
@@ -36,8 +35,7 @@ button:disabled { cursor: not-allowed; opacity: .6; }
   animation: shamsak-battery-outline-charge 1.35s linear infinite;
   filter: drop-shadow(0 0 2px rgba(16,185,129,.4));
 }
-.energy-card:has(.bg-amber-50.text-amber-700) svg rect.stroke-slate-300,
-.energy-card:has(.bg-amber-50.text-amber-700) svg rect.fill-slate-300 {
+.energy-card:has(.bg-amber-50.text-amber-700) svg rect.fill-white.stroke-slate-300 {
   stroke: #f59e0b;
   stroke-width: 3;
   stroke-linecap: round;
@@ -46,10 +44,8 @@ button:disabled { cursor: not-allowed; opacity: .6; }
   filter: drop-shadow(0 0 2px rgba(245,158,11,.4));
 }
 @media (prefers-reduced-motion: reduce) {
-  .energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.stroke-slate-300,
-  .energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.fill-slate-300,
-  .energy-card:has(.bg-amber-50.text-amber-700) svg rect.stroke-slate-300,
-  .energy-card:has(.bg-amber-50.text-amber-700) svg rect.fill-slate-300 { animation: none; }
+  .energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.fill-white.stroke-slate-300,
+  .energy-card:has(.bg-amber-50.text-amber-700) svg rect.fill-white.stroke-slate-300 { animation: none; }
 }
 
 @media (max-width: 1023px) {
