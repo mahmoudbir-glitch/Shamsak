@@ -43,6 +43,8 @@ button:disabled { cursor: not-allowed; opacity: .6; }
   animation: shamsak-battery-outline-discharge 1.05s linear infinite;
   filter: drop-shadow(0 0 2px rgba(245,158,11,.4));
 }
+/* Remove the small internal reserve line; animated trace remains on the outside only. */
+.energy-card svg line.stroke-rose-400 { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.fill-white.stroke-slate-300,
   .energy-card:has(.bg-amber-50.text-amber-700) svg rect.fill-white.stroke-slate-300 { animation: none; }
