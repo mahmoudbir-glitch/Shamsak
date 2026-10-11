@@ -6,6 +6,9 @@ export type DailyEnergySummary = {
   recommendation: string;
 };
 
+const recentHomePowerW: number[] = [];
+const MAX_RECENT_SAMPLES = 12;
+
 export function buildDailyEnergySummary(
   snapshot: EnergySnapshot,
   recentAverageHomePowerW?: number | null,
@@ -22,15 +25,29 @@ export function buildDailyEnergySummary(
 
   if (usage === null && production === null && soc === null) return null;
 
+  const current = Math.max(0, snapshot.homePowerW);
+  if (Number.isFinite(current)) {
+    const previous = recentHomePowerW[recentHomePowerW.length - 1];
+    if (previous === undefined || Math.abs(previous - current) >= 25) {
+      recentHomePowerW.push(current);
+      if (recentHomePowerW.length > MAX_RECENT_SAMPLES) recentHomePowerW.shift();
+    }
+  }
+
+  const measuredAverage = recentHomePowerW.length >= 4
+    ? recentHomePowerW.reduce((sum, value) => sum + value, 0) / recentHomePowerW.length
+    : null;
+  const suppliedAverage = typeof recentAverageHomePowerW === "number" && Number.isFinite(recentAverageHomePowerW) && recentAverageHomePowerW >= 100
+    ? recentAverageHomePowerW
+    : null;
+  const average = suppliedAverage ?? measuredAverage;
+  const differencePct = average !== null && average >= 100
+    ? Math.round(((current - average) / average) * 100)
+    : null;
+
   const solarCoverage = usage !== null && usage > 0 && production !== null
     ? Math.round(Math.min(100, (production / usage) * 100))
     : null;
-
-  const average = typeof recentAverageHomePowerW === "number" && Number.isFinite(recentAverageHomePowerW) && recentAverageHomePowerW >= 100
-    ? recentAverageHomePowerW
-    : null;
-  const current = Math.max(0, snapshot.homePowerW);
-  const differencePct = average !== null ? Math.round(((current - average) / average) * 100) : null;
 
   const parts: string[] = [];
   if (usage !== null) parts.push(`استهلاك اليوم ${usage.toFixed(1)} kWh`);
