@@ -6,20 +6,26 @@ export type IntelligentInsight = {
   summary: string;
   action: string;
   details: string[];
+  /** True when the user should pay attention; normal states stay quiet. */
+  alert: boolean;
 };
 
+const safeNumber = (value: number, fallback = 0) => (Number.isFinite(value) ? value : fallback);
+
 export function analyzeEnergy(snapshot: EnergySnapshot): IntelligentInsight {
-  const solarKw = Math.max(0, snapshot.solarPowerW) / 1000;
-  const homeKw = Math.max(0, snapshot.homePowerW) / 1000;
-  const soc = snapshot.batterySoc;
-  const batteryDischarging = snapshot.batteryPowerW < -50;
-  const batteryCharging = snapshot.batteryPowerW > 50;
-  const gridImport = Math.max(0, snapshot.gridPowerW) / 1000;
+  const solarKw = Math.max(0, safeNumber(snapshot.solarPowerW)) / 1000;
+  const homeKw = Math.max(0, safeNumber(snapshot.homePowerW)) / 1000;
+  const gridImport = Math.max(0, safeNumber(snapshot.gridPowerW)) / 1000;
+  const soc = Math.min(100, Math.max(0, safeNumber(snapshot.batterySoc)));
+  const batteryPowerW = safeNumber(snapshot.batteryPowerW);
+  const batteryDischarging = batteryPowerW < -50;
+  const batteryCharging = batteryPowerW > 50;
   const solarSurplus = Math.max(0, solarKw - homeKw);
 
   if (snapshot.stale) {
     return {
       tone: "amber",
+      alert: true,
       title: "القراءة تحتاج انتباه",
       summary: "آخر قراءة ليست حية؛ لا نعتمد عليها لاتخاذ قرار فوري.",
       action: "تحقق من اتصال الإنفرتر أو الـ Gateway",
@@ -30,6 +36,7 @@ export function analyzeEnergy(snapshot: EnergySnapshot): IntelligentInsight {
   if (soc <= 10) {
     return {
       tone: "red",
+      alert: true,
       title: "البطارية منخفضة جداً",
       summary: `البطارية عند ${Math.round(soc)}%${batteryDischarging ? " وتفرغ حالياً" : ""}.`,
       action: "خفّف الأحمال غير الضرورية",
@@ -40,6 +47,7 @@ export function analyzeEnergy(snapshot: EnergySnapshot): IntelligentInsight {
   if (batteryDischarging && soc <= 20 && homeKw >= 2) {
     return {
       tone: "red",
+      alert: true,
       title: "استهلاك مرتفع مع بطارية منخفضة",
       summary: `المنزل يسحب ${homeKw.toFixed(1)} kW والبطارية عند ${Math.round(soc)}%.`,
       action: "راجع الأحمال الكبيرة الآن",
@@ -47,9 +55,21 @@ export function analyzeEnergy(snapshot: EnergySnapshot): IntelligentInsight {
     };
   }
 
+  if (homeKw >= 5 && solarKw < homeKw * 0.5) {
+    return {
+      tone: "amber",
+      alert: true,
+      title: "الحمل مرتفع حالياً",
+      summary: `استهلاك المنزل ${homeKw.toFixed(1)} kW بينما الشمس تغطي جزءاً محدوداً منه.`,
+      action: "خفّف الأحمال الكبيرة إن لم تكن ضرورية",
+      details: ["الفارق بين الاستهلاك والإنتاج قد يزيد السحب من البطارية أو الشبكة.", "راقب البطارية إذا استمر هذا الحمل."],
+    };
+  }
+
   if (solarSurplus >= 0.8 && soc < 90) {
     return {
       tone: "green",
+      alert: false,
       title: "وقت جيد لاستخدام الطاقة الشمسية",
       summary: `يوجد فائض شمسي يقارب ${solarSurplus.toFixed(1)} kW والبطارية ليست ممتلئة.`,
       action: "يمكنك تشغيل حمل إضافي باعتدال",
@@ -60,6 +80,7 @@ export function analyzeEnergy(snapshot: EnergySnapshot): IntelligentInsight {
   if (batteryCharging && solarKw > homeKw && soc < 95) {
     return {
       tone: "green",
+      alert: false,
       title: "المنظومة تعمل بكفاءة جيدة",
       summary: `الشمس تغطي الاستهلاك والبطارية تشحن عند ${Math.round(soc)}%.`,
       action: "لا يوجد إجراء مطلوب",
@@ -70,6 +91,7 @@ export function analyzeEnergy(snapshot: EnergySnapshot): IntelligentInsight {
   if (gridImport >= 1 && solarKw < 0.5) {
     return {
       tone: "blue",
+      alert: false,
       title: "المنزل يعتمد على الشبكة الآن",
       summary: `السحب من الشبكة يقارب ${gridImport.toFixed(1)} kW.`,
       action: "راقب عودة الإنتاج الشمسي",
@@ -79,6 +101,7 @@ export function analyzeEnergy(snapshot: EnergySnapshot): IntelligentInsight {
 
   return {
     tone: "green",
+    alert: false,
     title: "الوضع طبيعي",
     summary: `الاستهلاك ${homeKw.toFixed(1)} kW والبطارية ${Math.round(soc)}%.`,
     action: "استمر بالمراقبة",
