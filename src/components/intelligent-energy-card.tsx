@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BatteryCharging, CheckCircle2, ChevronDown, Lightbulb, Sparkles, Sun } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
+import { forecastEnergy } from "@/lib/energy-forecast";
 import { analyzeEnergy, type IntelligentEnergyContext, type IntelligentEnergySettings } from "@/lib/intelligent-energy";
 
 const DEFAULT_SETTINGS: IntelligentEnergySettings = { batteryCapacityWh: 4800, batteryMinReservePct: 10 };
@@ -115,6 +116,7 @@ export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot |
     recentAverageSolarPowerW: recentAverageSolarW,
   }), [recentAverageW, batteryDropPerHour, recentAverageSolarW]);
   const insight = useMemo(() => (snapshot ? analyzeEnergy(snapshot, settings, context) : null), [snapshot, settings, context]);
+  const forecast = useMemo(() => (snapshot ? forecastEnergy(snapshot, context) : null), [snapshot, context]);
 
   if (!insight) return null;
 
@@ -152,6 +154,18 @@ export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot |
           )}
         </div>
       </div>
+
+      {forecast?.points.length ? (
+        <div className="mx-4 mb-3 rounded-xl bg-white/55 px-3 py-2 text-xs font-bold leading-5 text-slate-700">
+          <div className="font-black text-slate-900">توقع الساعة القادمة</div>
+          <div className="mt-1">
+            {forecast.points[1].expectedBatterySocPct === null
+              ? "لا يمكن تقدير البطارية بعد ساعة لعدم توفر اتجاه موثوق."
+              : `إذا استمر الاتجاه الحالي، قد تكون البطارية نحو ${Math.round(forecast.points[1].expectedBatterySocPct)}٪ بعد ساعة.`}
+          </div>
+          <div className="mt-1 text-[11px] text-slate-500">ثقة التوقع: {forecast.confidence === "medium" ? "متوسطة" : "منخفضة"}</div>
+        </div>
+      ) : null}
 
       <button
         type="button"
