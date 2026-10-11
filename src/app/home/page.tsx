@@ -184,16 +184,12 @@ export default function HomeConsumptionPage() {
       </CollapsibleCard>
 
       {dailySummary && (
-        <section className="overflow-hidden rounded-[24px] border border-slate-200/80 border-r-4 border-r-cyan-400 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)]">
-          <div className="border-b border-slate-100 px-3.5 py-3">
-            <div className="text-sm font-black text-slate-900">ملخص الطاقة اليوم</div>
-            <div className="mt-0.5 text-[10px] font-semibold text-slate-400">قراءة مختصرة لما حدث في المنظومة حتى الآن</div>
-          </div>
-          <div className="space-y-2.5 p-3.5 text-right">
+        <CollapsibleCard index="05" title="ملخص الطاقة اليوم" subtitle="قراءة مختصرة لما حدث في المنظومة حتى الآن" defaultOpen={false} accentClass="border-r-cyan-400">
+          <div className="space-y-2.5 text-right">
             <p className="text-sm font-bold leading-6 text-slate-700">{dailySummary.summary}</p>
             <div className="rounded-2xl bg-cyan-50 px-3 py-2.5 text-xs font-black leading-5 text-cyan-900">التوصية: {dailySummary.recommendation}</div>
           </div>
-        </section>
+        </CollapsibleCard>
       )}
 
       <div className="grid auto-rows-fr grid-cols-2 gap-3">
@@ -201,7 +197,7 @@ export default function HomeConsumptionPage() {
         <StatTile card tone="sky" label="أعلى حمل اليوم" value={history?.peak ? (history.peak.w / 1000).toFixed(2) : "—"} unit="kW" ampTone="sky" amps={history?.peak ? acAmps(history.peak.w) : null} hint={history?.peak ? <>{peakTime}{peakPct !== null && <> · <bdi dir="ltr">{peakPct}%</bdi> من الإنفرتر</>}</> : undefined} />
       </div>
 
-      <CollapsibleCard index="05" title="آخر 24 ساعة" subtitle="توزيع الحمل والاعتماد على مصادر الطاقة" defaultOpen={false} accentClass="border-r-indigo-400">
+      <CollapsibleCard index="06" title="آخر 24 ساعة" subtitle="توزيع الحمل والاعتماد على مصادر الطاقة" defaultOpen={false} accentClass="border-r-indigo-400">
         {history && history.points.length >= 2 ? (
           <>
             <HomeSourceSplit points={history.points} now={Date.now()} />
