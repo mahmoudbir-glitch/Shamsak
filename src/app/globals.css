@@ -40,6 +40,40 @@ button:disabled { cursor: not-allowed; opacity: .6; }
   .sun-twinkle { animation: none; }
 }
 
+/* Battery outline: the gray outer line becomes a live state indicator.
+ * Charging uses a green moving trace; discharging uses an amber trace moving
+ * in the opposite direction. Idle stays gray and quiet. */
+@keyframes shamsak-battery-outline-charge {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -54; }
+}
+@keyframes shamsak-battery-outline-discharge {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 54; }
+}
+.energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.stroke-slate-300 {
+  stroke: #10b981;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 34 12;
+  animation: shamsak-battery-outline-charge 1.8s linear infinite;
+  filter: drop-shadow(0 0 2px rgba(16,185,129,.45));
+}
+.energy-card:has(.bg-amber-50.text-amber-700) svg rect.stroke-slate-300 {
+  stroke: #f59e0b;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 34 12;
+  animation: shamsak-battery-outline-discharge 1.35s linear infinite;
+  filter: drop-shadow(0 0 2px rgba(245,158,11,.45));
+}
+@media (prefers-reduced-motion: reduce) {
+  .energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.stroke-slate-300,
+  .energy-card:has(.bg-amber-50.text-amber-700) svg rect.stroke-slate-300 {
+    animation: none;
+  }
+}
+
 /* Computer screens (1024px and wider): a page lays its cards out in two columns
  * instead of one phone-width column. Headers, notes, collapsible blocks and
  * anything marked .desktop-wide span both columns. Phones are not affected. */
