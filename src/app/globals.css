@@ -54,11 +54,6 @@ button:disabled { cursor: not-allowed; opacity: .6; }
   .energy-card:has(.bg-amber-50.text-amber-700) svg rect.fill-slate-300 { animation: none; }
 }
 
-@media (max-width: 1023px) {
-  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child { font-size: 0; }
-  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child::before { content: "السحب الحالي"; display: block; font-size: 9px; line-height: 1.4; font-weight: 800; color: #64748b; }
-  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child::after { content: "قدرة المنزل الآن"; display: block; margin-top: 2px; font-size: 8px; line-height: 1.4; font-weight: 700; color: #94a3b8; }
-}
 
 @media (min-width: 1024px) {
   .desktop-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; align-items: start; }
