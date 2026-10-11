@@ -178,7 +178,7 @@ export default function HomeConsumptionPage() {
       </CollapsibleCard>
 
       <CollapsibleCard index="04" title="مساعد شمسك الذكي" subtitle="اسأل عن البطارية والطاقة والتوقعات" defaultOpen={false} accentClass="border-r-violet-400">
-        <SmartEnergyAssistant snapshot={snapshot} />
+        <SmartEnergyAssistant snapshot={snapshot} embedded />
       </CollapsibleCard>
 
       <div className="grid auto-rows-fr grid-cols-2 gap-3">
