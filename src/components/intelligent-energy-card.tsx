@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, BatteryCharging, CheckCircle2, Sparkles, Sun } from "lucide-react";
+import { AlertTriangle, BatteryCharging, CheckCircle2, ChevronDown, Sparkles, Sun } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
 import { analyzeEnergy, type IntelligentEnergyContext, type IntelligentEnergySettings } from "@/lib/intelligent-energy";
 
@@ -68,6 +68,7 @@ function collectTrendContext(snapshot: EnergySnapshot | null) {
 export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot | null }) {
   const [settings, setSettings] = useState<IntelligentEnergySettings>(DEFAULT_SETTINGS);
   const [trendContext, setTrendContext] = useState<IntelligentEnergyContext>({});
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -102,9 +103,9 @@ export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot |
   const Icon = insight.tone === "green" ? CheckCircle2 : insight.tone === "red" ? AlertTriangle : insight.tone === "amber" ? BatteryCharging : Sun;
 
   return (
-    <section className={`energy-card overflow-hidden border ${tone.border} ${tone.bg}`} dir="rtl" aria-label="مراقبة شمسك الذكي">
-      <div className="flex items-start gap-3 p-3.5">
-        <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/80 ${tone.icon}`}><Sparkles size={17} /></div>
+    <section className={`overflow-hidden border ${tone.border} ${tone.bg}`} dir="rtl" aria-label="مراقبة شمسك الذكي">
+      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} className="flex w-full items-center gap-3 p-3.5 text-right transition hover:bg-white/40 active:bg-white/60">
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/80 ${tone.icon}`}><Sparkles size={17} /></div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className={`text-xs font-black ${tone.title}`}>مراقبة شمسك الذكي</span>
@@ -112,10 +113,13 @@ export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot |
             <Icon size={15} className={tone.icon} aria-hidden="true" />
           </div>
           <div className={`mt-1 text-sm font-black ${tone.title}`}>{insight.title}</div>
-          <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{insight.summary}</p>
-          {insight.alert && <p className="mt-2 text-xs font-black leading-5 text-slate-800">الإجراء: {insight.action}</p>}
         </div>
-      </div>
+        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/70 ${tone.icon} transition-transform duration-200 ${open ? "rotate-180" : ""}`} aria-hidden="true"><ChevronDown size={17} /></span>
+      </button>
+      {open && <div className="border-t border-white/70 px-3.5 pb-3.5 pt-1">
+        <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{insight.summary}</p>
+        {insight.alert && <p className="mt-2 text-xs font-black leading-5 text-slate-800">الإجراء: {insight.action}</p>}
+      </div>}
     </section>
   );
 }
