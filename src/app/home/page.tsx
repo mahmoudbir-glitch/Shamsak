@@ -19,33 +19,38 @@ const HISTORY_REFRESH_MS = 5 * 60_000;
 type History = { points: LoadPoint[]; peak: { w: number; at: string } | null; inverterRatedKw: number | null; timezone: string };
 
 type CollapsibleCardProps = {
+  index: string;
   title: string;
   subtitle?: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
   className?: string;
+  accentClass?: string;
 };
 
-function CollapsibleCard({ title, subtitle, children, defaultOpen = true, className = "" }: CollapsibleCardProps) {
+function CollapsibleCard({ index, title, subtitle, children, defaultOpen = true, className = "", accentClass = "border-r-sky-400" }: CollapsibleCardProps) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <section className={`overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)] ${className}`}>
+    <section className={`overflow-hidden rounded-[24px] border border-slate-200/80 border-r-4 ${accentClass} bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)] ${className}`}>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-right transition hover:bg-slate-50/80 active:bg-slate-100/70"
+        className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-right transition hover:bg-slate-50/80 active:bg-slate-100/70"
       >
-        <span className="min-w-0">
-          <span className="block text-sm font-black text-slate-900">{title}</span>
-          {subtitle && <span className="mt-0.5 block text-[11px] font-semibold text-slate-400">{subtitle}</span>}
+        <span className="flex min-w-0 items-center gap-3">
+          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-[10px] font-black tracking-wider text-slate-500 ring-1 ring-inset ring-slate-200/70 ${open ? "bg-slate-100" : ""}`} aria-hidden="true">{index}</span>
+          <span className="min-w-0">
+            <span className="block text-sm font-black text-slate-900">{title}</span>
+            {subtitle && <span className="mt-0.5 block truncate text-[10px] font-semibold text-slate-400">{subtitle}</span>}
+          </span>
         </span>
         <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500 transition-transform duration-200 ${open ? "rotate-180" : ""}`} aria-hidden="true">
           <ChevronDown size={17} />
         </span>
       </button>
-      {open && <div className="border-t border-slate-100 p-3">{children}</div>}
+      {open && <div className="border-t border-slate-100 p-2.5">{children}</div>}
     </section>
   );
 }
@@ -130,11 +135,11 @@ export default function HomeConsumptionPage() {
         }
       />
 
-      <CollapsibleCard title="التحليل الذكي" subtitle="قراءة شمسك لحالة المنظومة الآن">
+      <CollapsibleCard index="01" title="التحليل الذكي" subtitle="قراءة شمسك لحالة المنظومة الآن" accentClass="border-r-emerald-400">
         <IntelligentEnergyCard snapshot={snapshot} />
       </CollapsibleCard>
 
-      <CollapsibleCard title="الاستهلاك الآن" subtitle="القدرة التي يسحبها المنزل حالياً">
+      <CollapsibleCard index="02" title="الاستهلاك الآن" subtitle="القدرة التي يسحبها المنزل حالياً" accentClass="border-r-sky-400">
         <div className="rounded-[20px] bg-slate-50/80 p-5 text-center">
           <span className="block text-sm font-semibold text-slate-400">إجمالي سحب المنزل الآن</span>
           {loading && !snapshot ? (
@@ -154,7 +159,7 @@ export default function HomeConsumptionPage() {
         </div>
       </CollapsibleCard>
 
-      <CollapsibleCard title="مصادر الطاقة" subtitle="من أين يأتي استهلاك المنزل الآن">
+      <CollapsibleCard index="03" title="مصادر الطاقة" subtitle="من أين يأتي استهلاك المنزل الآن" accentClass="border-r-amber-400">
         <div className="space-y-3">
           <div className="flex h-3 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
             {sources.map((source) => source.w > 0 && <div key={source.label} className={source.bar} style={{ width: `${source.pct}%` }} />)}
@@ -172,7 +177,7 @@ export default function HomeConsumptionPage() {
         </div>
       </CollapsibleCard>
 
-      <CollapsibleCard title="مساعد شمسك الذكي" subtitle="اسأل عن البطارية والطاقة والتوقعات" defaultOpen={false}>
+      <CollapsibleCard index="04" title="مساعد شمسك الذكي" subtitle="اسأل عن البطارية والطاقة والتوقعات" defaultOpen={false} accentClass="border-r-violet-400">
         <SmartEnergyAssistant snapshot={snapshot} />
       </CollapsibleCard>
 
@@ -181,7 +186,7 @@ export default function HomeConsumptionPage() {
         <StatTile card tone="sky" label="أعلى حمل اليوم" value={history?.peak ? (history.peak.w / 1000).toFixed(2) : "—"} unit="kW" ampTone="sky" amps={history?.peak ? acAmps(history.peak.w) : null} hint={history?.peak ? <>{peakTime}{peakPct !== null && <> · <bdi dir="ltr">{peakPct}%</bdi> من الإنفرتر</>}</> : undefined} />
       </div>
 
-      <CollapsibleCard title="آخر 24 ساعة" subtitle="توزيع الحمل والاعتماد على مصادر الطاقة" defaultOpen={false}>
+      <CollapsibleCard index="05" title="آخر 24 ساعة" subtitle="توزيع الحمل والاعتماد على مصادر الطاقة" defaultOpen={false} accentClass="border-r-indigo-400">
         {history && history.points.length >= 2 ? (
           <>
             <HomeSourceSplit points={history.points} now={Date.now()} />
