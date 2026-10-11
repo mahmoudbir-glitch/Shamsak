@@ -2,7 +2,7 @@
 
 import { HomeSourceSplit } from "@/components/energy-split";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronDown, Home, Loader2, RefreshCw } from "lucide-react";
+import { Activity, BatteryCharging, CalendarDays, ChevronDown, Home, Loader2, RefreshCw, Sun, Zap } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
 import { PageHeader } from "@/components/page-header";
 import { StatTile } from "@/components/stat-tile";
@@ -45,6 +45,51 @@ function CollapsibleCard({ index, title, subtitle, children, defaultOpen = true,
         <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500 transition-transform duration-200 ${open ? "rotate-180" : ""}`} aria-hidden="true"><ChevronDown size={17} /></span>
       </button>
       {open && <div className="border-t border-slate-100 p-2.5">{children}</div>}
+    </section>
+  );
+}
+
+function ConsumptionHero({ snapshot, refreshing, onRefresh }: { snapshot: EnergySnapshot | null; refreshing: boolean; onRefresh: () => void }) {
+  const today = snapshot?.todayHomeUsageKWh;
+  const homeW = Math.max(0, snapshot?.homePowerW ?? 0);
+
+  return (
+    <section className="relative overflow-hidden rounded-[28px] border border-sky-100 bg-[radial-gradient(circle_at_15%_15%,rgba(56,189,248,0.18),transparent_32%),linear-gradient(135deg,#ffffff_0%,#f4faff_58%,#eef8ff_100%)] p-4 shadow-[0_14px_40px_rgba(14,165,233,0.10)] sm:p-5">
+      <div className="pointer-events-none absolute -left-10 -top-12 h-36 w-36 rounded-full bg-sky-200/30 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-16 right-8 h-32 w-32 rounded-full bg-cyan-200/30 blur-3xl" />
+
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/90 text-sky-600 shadow-sm ring-1 ring-sky-100">
+            <Home size={24} strokeWidth={2.2} />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="truncate text-xl font-black tracking-tight text-slate-900 sm:text-2xl">استهلاك المنزل</h1>
+              {snapshot && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-700 ring-1 ring-emerald-100"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" /> حي</span>}
+            </div>
+            <p className="mt-0.5 text-[11px] font-semibold text-slate-500 sm:text-xs">صورة سريعة لاستهلاك بيتك والطاقة المسحوبة</p>
+          </div>
+        </div>
+        <button type="button" onClick={onRefresh} disabled={refreshing} aria-label="تحديث البيانات" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/80 bg-white/80 text-slate-500 shadow-sm transition hover:bg-white active:scale-95 disabled:opacity-50">
+          <RefreshCw size={17} className={refreshing ? "animate-spin" : ""} />
+        </button>
+      </div>
+
+      <div className="relative mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        <div className="rounded-2xl border border-white/80 bg-white/75 p-3 shadow-sm backdrop-blur-sm">
+          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400"><CalendarDays size={14} className="text-sky-500" /> استهلاك اليوم</div>
+          <div className="mt-1.5 text-xl font-black tracking-tight text-slate-900"><bdi dir="ltr">{today !== undefined ? today.toFixed(1) : "—"}</bdi> <span className="text-xs font-bold text-slate-400">kWh</span></div>
+        </div>
+        <div className="rounded-2xl border border-white/80 bg-white/75 p-3 shadow-sm backdrop-blur-sm">
+          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400"><Zap size={14} className="text-amber-500" /> السحب الآن</div>
+          <div className={"mt-1.5 text-xl font-black tracking-tight " + homeText(homeW / 1000)}><bdi dir="ltr">{snapshot ? (homeW / 1000).toFixed(2) : "—"}</bdi> <span className="text-xs font-bold opacity-70">kW</span></div>
+        </div>
+        <div className="col-span-2 rounded-2xl border border-white/80 bg-white/75 p-3 shadow-sm backdrop-blur-sm sm:col-span-1">
+          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400"><Activity size={14} className="text-emerald-500" /> حالة الحمل</div>
+          <div className="mt-1.5 text-sm font-black text-slate-800">{snapshot ? (homeW > 50 ? "الحمل يعمل" : "حمل منخفض") : "بانتظار القراءة"}</div>
+        </div>
+      </div>
     </section>
   );
 }
@@ -106,23 +151,61 @@ export default function HomeConsumptionPage() {
   const batteryPct = served > 0 ? Math.min(100 - solarPct, Math.round((fromBattery / served) * 100)) : 0;
   const gridPct = served > 0 ? 100 - solarPct - batteryPct : 0;
   const sources = [
-    { label: "الشمس", w: fromSolar, pct: solarPct, bar: "bg-amber-400", text: "text-amber-700", tone: "amber" as const },
-    { label: "البطارية", w: fromBattery, pct: batteryPct, bar: "bg-emerald-500", text: "text-emerald-700", tone: "emerald" as const },
-    { label: "الشبكة", w: fromGrid, pct: gridPct, bar: "bg-violet-500", text: "text-violet-700", tone: "violet" as const },
+    { label: "الشمس", w: fromSolar, pct: solarPct, bar: "bg-amber-400", text: "text-amber-700", tone: "amber" as const, Icon: Sun },
+    { label: "البطارية", w: fromBattery, pct: batteryPct, bar: "bg-emerald-500", text: "text-emerald-700", tone: "emerald" as const, Icon: BatteryCharging },
+    { label: "الشبكة", w: fromGrid, pct: gridPct, bar: "bg-violet-500", text: "text-violet-700", tone: "violet" as const, Icon: Zap },
   ];
 
   const timeZone = history?.timezone || "Asia/Beirut";
   const peakTime = history?.peak ? new Intl.DateTimeFormat("ar-LB-u-nu-latn", { timeZone, hour: "2-digit", minute: "2-digit" }).format(new Date(history.peak.at)) : null;
   const peakPct = history?.peak && history.inverterRatedKw ? Math.round((history.peak.w / (history.inverterRatedKw * 1000)) * 100) : null;
+  const ratedKw = history?.inverterRatedKw ?? null;
+  const loadPct = ratedKw && ratedKw > 0 ? Math.min(100, Math.round((homeKw / ratedKw) * 100)) : 0;
+  const gauge = snapshot ? Math.max(5, loadPct) : 0;
 
   return (
     <div className="desktop-grid w-full space-y-3 pb-4 text-right" dir="rtl">
-      <PageHeader icon={Home} tone="sky" eyebrow="شمسك • المنزل" title="استهلاك المنزل" subtitle="كم يسحب بيتك الآن، ومن أين تأتي الطاقة." right={<button type="button" onClick={() => void load(true)} disabled={refreshing} aria-label="تحديث البيانات" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 active:scale-95 disabled:opacity-50"><RefreshCw size={18} className={refreshing ? "animate-spin" : ""} /></button>} />
+      <ConsumptionHero snapshot={snapshot} refreshing={refreshing} onRefresh={() => void load(true)} />
 
-      <CollapsibleCard index="01" title="الاستهلاك الآن" subtitle="القدرة التي يسحبها المنزل حالياً" accentClass="border-r-sky-400">
-        <div className="rounded-[20px] bg-slate-50/80 p-5 text-center">
-          <span className="block text-sm font-semibold text-slate-400">إجمالي سحب المنزل الآن</span>
-          {loading && !snapshot ? <Loader2 className="mx-auto mt-5 h-10 w-10 animate-spin text-sky-500" aria-label="جاري تحميل القراءة" /> : !snapshot ? <><span className="mt-2 block text-4xl font-black tracking-tight text-slate-300">—</span><span className="mt-2 block text-xs font-bold text-amber-700">لا توجد قراءة حية الآن. تحقق من اتصال الدنجل أو حاول التحديث.</span></> : <><span className={"mt-2 block text-4xl font-black tracking-tight sm:text-5xl " + toneText}>{homeW.toLocaleString("en-US")} واط</span><span className={"mt-1 block text-sm font-bold " + toneText}><bdi dir="ltr">{homeKw.toFixed(2)} kW</bdi></span><span className="mt-2 block"><AmpPill tone="sky" amps={acAmps(homeW)} /></span></>}
+      <CollapsibleCard index="01" title="الاستهلاك الآن" subtitle="قدرة المنزل ومصادر الطاقة في هذه اللحظة" accentClass="border-r-sky-400">
+        <div className="overflow-hidden rounded-[22px] bg-[linear-gradient(135deg,#0f2747_0%,#183d65_55%,#0f766e_140%)] p-3 text-white shadow-inner sm:p-4">
+          <div className="flex items-center justify-between gap-3 px-1 pb-3">
+            <div>
+              <span className="block text-[10px] font-bold text-sky-100/70">الاستهلاك اللحظي</span>
+              <span className="mt-0.5 block text-xs font-black text-white">كم يستهلك المنزل الآن؟</span>
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-2.5 py-1.5 text-[10px] font-black text-sky-50"><span className={`h-1.5 w-1.5 rounded-full ${snapshot ? "animate-pulse bg-emerald-400" : "bg-slate-400"}`} /> {snapshot ? "قراءة حية" : "بانتظار القراءة"}</span>
+          </div>
+
+          <div className="grid items-center gap-4 md:grid-cols-[minmax(150px,0.72fr)_minmax(0,1.28fr)]">
+            <div className="flex justify-center py-2">
+              <div className="relative grid h-40 w-40 place-items-center rounded-full p-[10px] shadow-[0_0_35px_rgba(56,189,248,0.14)]" style={{ background: `conic-gradient(from 220deg, #38bdf8 0%, #34d399 ${gauge}%, rgba(255,255,255,0.12) ${gauge}% 100%)` }}>
+                <div className="grid h-full w-full place-items-center rounded-full border border-white/10 bg-[#122d4e] text-center shadow-inner">
+                  {loading && !snapshot ? <Loader2 className="h-8 w-8 animate-spin text-sky-300" aria-label="جاري تحميل القراءة" /> : !snapshot ? <><span className="text-4xl font-black text-white/30">—</span><span className="mt-[-22px] text-[9px] font-bold text-white/50">لا توجد قراءة</span></> : <><div><span className="block text-3xl font-black tracking-tight text-white"><bdi dir="ltr">{homeKw.toFixed(2)}</bdi></span><span className="mt-0.5 block text-xs font-black text-sky-100"><bdi dir="ltr">kW</bdi></span><span className="mt-1 block text-[9px] font-bold text-white/50">{ratedKw ? `${loadPct}% من قدرة الإنفرتر` : "الحمل الحالي"}</span></div></>}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2.5">
+              {sources.map((source) => {
+                const Icon = source.Icon;
+                return <div key={source.label} className="rounded-2xl border border-white/10 bg-white/[0.07] p-2.5 backdrop-blur-sm">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10"><Icon size={17} className={source.label === "الشمس" ? "text-amber-300" : source.label === "البطارية" ? "text-emerald-300" : "text-violet-300"} /></span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2"><span className="text-xs font-black text-white">من {source.label}</span><span className="text-xs font-black text-white"><bdi dir="ltr">{snapshot ? `${source.pct}%` : "—"}</bdi></span></div>
+                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10"><div className={"h-full rounded-full transition-all duration-500 " + source.bar} style={{ width: `${snapshot ? source.pct : 0}%` }} /></div>
+                    </div>
+                    <span className="hidden min-w-[58px] text-left text-[10px] font-bold text-white/55 sm:block"><bdi dir="ltr">{snapshot ? `${Math.round(source.w)} W` : "—"}</bdi></span>
+                  </div>
+                </div>;
+              })}
+              <div className="grid grid-cols-2 gap-2 pt-0.5">
+                <div className="rounded-xl bg-white/[0.07] px-3 py-2"><span className="block text-[9px] font-bold text-white/45">التيار التقريبي</span><span className="mt-0.5 block text-xs font-black text-white"><AmpPill tone="sky" amps={snapshot ? acAmps(homeW) : null} /></span></div>
+                <div className="rounded-xl bg-white/[0.07] px-3 py-2"><span className="block text-[9px] font-bold text-white/45">اتجاه الحمل</span><span className="mt-0.5 block text-xs font-black text-emerald-300">{homeW > 50 ? "نشط الآن" : "منخفض"}</span></div>
+              </div>
+            </div>
+          </div>
         </div>
       </CollapsibleCard>
 
