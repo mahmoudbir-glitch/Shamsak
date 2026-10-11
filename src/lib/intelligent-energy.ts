@@ -7,6 +7,7 @@ export type IntelligentEnergySettings = {
 
 export type IntelligentEnergyContext = {
   recentAverageHomePowerW?: number | null;
+  batterySocDropPerHour?: number | null;
 };
 
 export type IntelligentInsight = {
@@ -71,6 +72,12 @@ export function analyzeEnergy(
       : `بالقدرة الحالية، التقدير حتى حد الاحتياطي هو ${estimate.label}.`
     : null;
   const recentAverageW = context?.recentAverageHomePowerW;
+  const batteryDropPerHour = context?.batterySocDropPerHour;
+  const rapidBatteryDrop =
+    batteryDischarging &&
+    typeof batteryDropPerHour === "number" &&
+    Number.isFinite(batteryDropPerHour) &&
+    batteryDropPerHour >= 8;
   const unusualLoad =
     typeof recentAverageW === "number" &&
     Number.isFinite(recentAverageW) &&
@@ -125,6 +132,18 @@ export function analyzeEnergy(
       action: "خفّف أو أجّل الأحمال المرنة",
       recommendation: "يفضل الحفاظ على الطاقة للأحمال الأساسية حتى تتوقف البطارية عن الهبوط أو يبدأ الشحن.",
       details: ["شمسك يعتمد هنا على حد الاحتياطي المحفوظ في إعدادات البطارية.", ...(estimateDetail ? [estimateDetail] : [])],
+    };
+  }
+
+  if (rapidBatteryDrop) {
+    return {
+      tone: "amber",
+      alert: true,
+      title: "البطارية تهبط بسرعة",
+      summary: `معدل هبوط البطارية الأخير يقارب ${Math.round(batteryDropPerHour!)}% بالساعة.`,
+      action: "خفّف الأحمال غير الضرورية",
+      recommendation: "إذا استمر هذا المعدل، أجّل الأحمال المرنة وراقب سبب ارتفاع الاستهلاك.",
+      details: ["شمسك يقارن قراءات البطارية الحية الأخيرة، وليس قراءة واحدة فقط.", ...(unusualLoadDetail ? [unusualLoadDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
     };
   }
 
