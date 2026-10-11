@@ -8,6 +8,7 @@ export type IntelligentEnergySettings = {
 export type IntelligentEnergyContext = {
   recentAverageHomePowerW?: number | null;
   batterySocDropPerHour?: number | null;
+  recentAverageSolarPowerW?: number | null;
 };
 
 export type IntelligentInsight = {
@@ -73,11 +74,21 @@ export function analyzeEnergy(
     : null;
   const recentAverageW = context?.recentAverageHomePowerW;
   const batteryDropPerHour = context?.batterySocDropPerHour;
+  const recentAverageSolarW = context?.recentAverageSolarPowerW;
   const rapidBatteryDrop =
     batteryDischarging &&
     typeof batteryDropPerHour === "number" &&
     Number.isFinite(batteryDropPerHour) &&
     batteryDropPerHour >= 8;
+  const solarDrop =
+    typeof recentAverageSolarW === "number" &&
+    Number.isFinite(recentAverageSolarW) &&
+    recentAverageSolarW >= 800 &&
+    snapshot.solarPowerW <= recentAverageSolarW * 0.55 &&
+    recentAverageSolarW - snapshot.solarPowerW >= 400;
+  const solarDropDetail = solarDrop
+    ? `الإنتاج الشمسي الحالي أقل من متوسط القراءات الأخيرة بنحو ${Math.round((1 - snapshot.solarPowerW / recentAverageSolarW) * 100)}٪.`
+    : null;
   const unusualLoad =
     typeof recentAverageW === "number" &&
     Number.isFinite(recentAverageW) &&
@@ -107,7 +118,7 @@ export function analyzeEnergy(
       summary: `البطارية عند ${Math.round(soc)}%${batteryDischarging ? " وتفرغ حالياً" : ""}.`,
       action: "خفّف الأحمال غير الضرورية",
       recommendation: "يفضل تأجيل الأحمال المرنة حتى تتحسن حالة البطارية.",
-      details: ["الأولوية الآن للحفاظ على الطاقة للأحمال الأساسية.", gridImport > 0 ? "الشبكة تساهم حالياً في تغذية المنزل." : "لا يظهر سحب من الشبكة في القراءة الحالية.", ...(unusualLoadDetail ? [unusualLoadDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
+      details: ["الأولوية الآن للحفاظ على الطاقة للأحمال الأساسية.", gridImport > 0 ? "الشبكة تساهم حالياً في تغذية المنزل." : "لا يظهر سحب من الشبكة في القراءة الحالية.", ...(unusualLoadDetail ? [unusualLoadDetail] : []), ...(solarDropDetail ? [solarDropDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
     };
   }
 
@@ -119,7 +130,7 @@ export function analyzeEnergy(
       summary: `المنزل يسحب ${homeKw.toFixed(1)} kW والبطارية عند ${Math.round(soc)}%.`,
       action: "راجع الأحمال الكبيرة الآن",
       recommendation: "يفضل تأجيل الأحمال المرنة لتقليل سرعة هبوط البطارية.",
-      details: ["تشغيل سخان أو مكيف أو حمل كبير قد يسرّع هبوط البطارية.", "إذا كان هناك حمل غير ضروري، إيقافه قد يطيل وقت التشغيل.", ...(unusualLoadDetail ? [unusualLoadDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
+      details: ["تشغيل سخان أو مكيف أو حمل كبير قد يسرّع هبوط البطارية.", "إذا كان هناك حمل غير ضروري، إيقافه قد يطيل وقت التشغيل.", ...(unusualLoadDetail ? [unusualLoadDetail] : []), ...(solarDropDetail ? [solarDropDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
     };
   }
 
@@ -131,7 +142,7 @@ export function analyzeEnergy(
       summary: `البطارية عند ${Math.round(soc)}% وتفرغ حالياً، والاحتياطي مضبوط على ${Math.round(reservePct)}%.`,
       action: "خفّف أو أجّل الأحمال المرنة",
       recommendation: "يفضل الحفاظ على الطاقة للأحمال الأساسية حتى تتوقف البطارية عن الهبوط أو يبدأ الشحن.",
-      details: ["شمسك يعتمد هنا على حد الاحتياطي المحفوظ في إعدادات البطارية.", ...(estimateDetail ? [estimateDetail] : [])],
+      details: ["شمسك يعتمد هنا على حد الاحتياطي المحفوظ في إعدادات البطارية.", ...(solarDropDetail ? [solarDropDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
     };
   }
 
@@ -143,7 +154,19 @@ export function analyzeEnergy(
       summary: `معدل هبوط البطارية الأخير يقارب ${Math.round(batteryDropPerHour!)}% بالساعة.`,
       action: "خفّف الأحمال غير الضرورية",
       recommendation: "إذا استمر هذا المعدل، أجّل الأحمال المرنة وراقب سبب ارتفاع الاستهلاك.",
-      details: ["شمسك يقارن قراءات البطارية الحية الأخيرة، وليس قراءة واحدة فقط.", ...(unusualLoadDetail ? [unusualLoadDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
+      details: ["شمسك يقارن قراءات البطارية الحية الأخيرة، وليس قراءة واحدة فقط.", ...(unusualLoadDetail ? [unusualLoadDetail] : []), ...(solarDropDetail ? [solarDropDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
+    };
+  }
+
+  if (solarDrop) {
+    return {
+      tone: "amber",
+      alert: true,
+      title: "الإنتاج الشمسي منخفض",
+      summary: `الإنتاج الحالي ${solarKw.toFixed(1)} kW أقل بوضوح من متوسط الإنتاج الشمسي الأخير.`,
+      action: "راقب الألواح والإنفرتر",
+      recommendation: "إذا كانت السماء صافية، تحقق من وجود ظل أو اتساخ أو مشكلة في اتصال الإنفرتر.",
+      details: ["شمسك يقارن الإنتاج الحالي بعدة قراءات حية سابقة، وليس قراءة واحدة.", solarDropDetail!, ...(homeKw > solarKw ? ["الاستهلاك الحالي أعلى من الإنتاج الشمسي، لذلك قد تعتمد المنظومة أكثر على البطارية أو الشبكة."] : [])],
     };
   }
 
@@ -155,7 +178,7 @@ export function analyzeEnergy(
       summary: `الاستهلاك الحالي ${homeKw.toFixed(1)} kW أعلى بوضوح من متوسطك الأخير.`,
       action: "تحقق من الأجهزة التي تعمل الآن",
       recommendation: "إذا لم يكن الحمل ضرورياً، خفّفه مؤقتاً حتى يعود الاستهلاك لمعدله المعتاد.",
-      details: [unusualLoadDetail!, "قد يكون السبب جهازاً كبيراً بدأ العمل أو عدة أحمال تعمل معاً.", ...(estimateDetail ? [estimateDetail] : [])],
+      details: [unusualLoadDetail!, "قد يكون السبب جهازاً كبيراً بدأ العمل أو عدة أحمال تعمل معاً.", ...(solarDropDetail ? [solarDropDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
     };
   }
 
@@ -167,7 +190,7 @@ export function analyzeEnergy(
       summary: `استهلاك المنزل ${homeKw.toFixed(1)} kW بينما الشمس تغطي جزءاً محدوداً منه.`,
       action: "خفّف الأحمال الكبيرة إن لم تكن ضرورية",
       recommendation: "يفضل تأجيل أي حمل مرن حتى ينخفض الاستهلاك أو يرتفع الإنتاج الشمسي.",
-      details: ["الفارق بين الاستهلاك والإنتاج قد يزيد السحب من البطارية أو الشبكة.", "راقب البطارية إذا استمر هذا الحمل.", ...(estimateDetail ? [estimateDetail] : [])],
+      details: ["الفارق بين الاستهلاك والإنتاج قد يزيد السحب من البطارية أو الشبكة.", "راقب البطارية إذا استمر هذا الحمل.", ...(solarDropDetail ? [solarDropDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
     };
   }
 
