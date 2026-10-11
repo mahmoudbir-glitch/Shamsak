@@ -107,6 +107,18 @@ export function analyzeEnergy(
   const largeLoad =
     homeKw >= 4 &&
     (unusualLoad || homeKw >= 5 || batteryDischarging || solarKw < homeKw * 0.5);
+  const hoursToReserve =
+    batteryDischarging &&
+    soc > reservePct &&
+    typeof batteryDropPerHour === "number" &&
+    Number.isFinite(batteryDropPerHour) &&
+    batteryDropPerHour > 0
+      ? (soc - reservePct) / batteryDropPerHour
+      : null;
+  const reserveSoon = hoursToReserve !== null && hoursToReserve <= 2;
+  const reservePredictionDetail = reserveSoon
+    ? `إذا استمر معدل الهبوط الحالي، قد تصل البطارية إلى حد الاحتياطي خلال نحو ${formatDuration(Math.max(1, Math.round(hoursToReserve * 60)))}.`
+    : null;
 
   if (snapshot.stale) {
     return {
@@ -147,6 +159,7 @@ export function analyzeEnergy(
         ...(solarDropDetail ? [solarDropDetail] : []),
         ...(unusualLoadDetail ? [unusualLoadDetail] : []),
         ...(rapidBatteryDrop ? [`معدل هبوط البطارية الأخير يقارب ${Math.round(batteryDropPerHour!)}% بالساعة.`] : []),
+        ...(reservePredictionDetail ? [reservePredictionDetail] : []),
         ...(estimateDetail ? [estimateDetail] : []),
       ],
     };
@@ -167,6 +180,7 @@ export function analyzeEnergy(
         ...(unusualLoadDetail ? [unusualLoadDetail] : []),
         ...(batteryDischarging ? ["البطارية تساهم حالياً في تغذية هذا الحمل."] : []),
         ...(solarKw < homeKw ? ["الإنتاج الشمسي لا يغطي كامل الحمل الحالي."] : []),
+        ...(reservePredictionDetail ? [reservePredictionDetail] : []),
         ...(estimateDetail ? [estimateDetail] : []),
       ],
     };
@@ -180,7 +194,7 @@ export function analyzeEnergy(
       summary: `المنزل يسحب ${homeKw.toFixed(1)} kW والبطارية عند ${Math.round(soc)}%.`,
       action: "راجع الأحمال الكبيرة الآن",
       recommendation: "يفضل تأجيل الأحمال المرنة لتقليل سرعة هبوط البطارية.",
-      details: ["تشغيل سخان أو مكيف أو حمل كبير قد يسرّع هبوط البطارية.", "إذا كان هناك حمل غير ضروري، إيقافه قد يطيل وقت التشغيل.", ...(unusualLoadDetail ? [unusualLoadDetail] : []), ...(solarDropDetail ? [solarDropDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
+      details: ["تشغيل سخان أو مكيف أو حمل كبير قد يسرّع هبوط البطارية.", "إذا كان هناك حمل غير ضروري، إيقافه قد يطيل وقت التشغيل.", ...(unusualLoadDetail ? [unusualLoadDetail] : []), ...(solarDropDetail ? [solarDropDetail] : []), ...(reservePredictionDetail ? [reservePredictionDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
     };
   }
 
@@ -192,7 +206,24 @@ export function analyzeEnergy(
       summary: `البطارية عند ${Math.round(soc)}% وتفرغ حالياً، والاحتياطي مضبوط على ${Math.round(reservePct)}%.`,
       action: "خفّف أو أجّل الأحمال المرنة",
       recommendation: "يفضل الحفاظ على الطاقة للأحمال الأساسية حتى تتوقف البطارية عن الهبوط أو يبدأ الشحن.",
-      details: ["شمسك يعتمد هنا على حد الاحتياطي المحفوظ في إعدادات البطارية.", ...(solarDropDetail ? [solarDropDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
+      details: ["شمسك يعتمد هنا على حد الاحتياطي المحفوظ في إعدادات البطارية.", ...(solarDropDetail ? [solarDropDetail] : []), ...(reservePredictionDetail ? [reservePredictionDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
+    };
+  }
+
+  if (reserveSoon) {
+    return {
+      tone: "red",
+      alert: true,
+      title: "البطارية قد تصل للاحتياطي قريباً",
+      summary: reservePredictionDetail!,
+      action: "خفّف الأحمال غير الضرورية الآن",
+      recommendation: "التوقع مبني على اتجاه هبوط البطارية الأخير؛ إذا انخفض الاستهلاك أو زاد الإنتاج الشمسي سيتغير التقدير تلقائياً.",
+      details: [
+        `البطارية عند ${Math.round(soc)}% والاحتياطي مضبوط على ${Math.round(reservePct)}%.`,
+        `معدل الهبوط الأخير يقارب ${Math.round(batteryDropPerHour!)}% بالساعة.`,
+        ...(solarDropDetail ? [solarDropDetail] : []),
+        ...(unusualLoadDetail ? [unusualLoadDetail] : []),
+      ],
     };
   }
 
@@ -204,7 +235,7 @@ export function analyzeEnergy(
       summary: `معدل هبوط البطارية الأخير يقارب ${Math.round(batteryDropPerHour!)}% بالساعة.`,
       action: "خفّف الأحمال غير الضرورية",
       recommendation: "إذا استمر هذا المعدل، أجّل الأحمال المرنة وراقب سبب ارتفاع الاستهلاك.",
-      details: ["شمسك يقارن قراءات البطارية الحية الأخيرة، وليس قراءة واحدة فقط.", ...(unusualLoadDetail ? [unusualLoadDetail] : []), ...(solarDropDetail ? [solarDropDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
+      details: ["شمسك يقارن قراءات البطارية الحية الأخيرة، وليس قراءة واحدة فقط.", ...(unusualLoadDetail ? [unusualLoadDetail] : []), ...(solarDropDetail ? [solarDropDetail] : []), ...(reservePredictionDetail ? [reservePredictionDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
     };
   }
 
@@ -286,6 +317,6 @@ export function analyzeEnergy(
     title: "الوضع طبيعي",
     summary: `الاستهلاك ${homeKw.toFixed(1)} kW والبطارية ${Math.round(soc)}%.`,
     action: "استمر بالمراقبة",
-    details: ["لا توجد إشارة واضحة لحالة حرجة في القراءة الحالية.", ...(estimateDetail ? [estimateDetail] : []), "سيغيّر شمسك هذه البطاقة تلقائياً إذا تغيرت حالة المنظومة."],
+    details: ["لا توجد إشارة واضحة لحالة حرجة في القراءة الحالية.", ...(estimateDetail ? [estimateDetail] : []), ...(reservePredictionDetail ? [reservePredictionDetail] : []), "سيغيّر شمسك هذه البطاقة تلقائياً إذا تغيرت حالة المنظومة."],
   };
 }
