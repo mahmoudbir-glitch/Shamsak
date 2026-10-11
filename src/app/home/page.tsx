@@ -9,6 +9,7 @@ import { StatTile } from "@/components/stat-tile";
 import { LoadChart, type LoadPoint } from "@/components/load-chart";
 import { homeText, acAmps, acAmpHours } from "@/lib/energy";
 import { AmpPill } from "@/components/amp-pill";
+import { IntelligentEnergyCard } from "@/components/intelligent-energy-card";
 import { startVisiblePolling } from "@/lib/visible-polling";
 
 const REFRESH_MS = 15_000;
@@ -101,13 +102,14 @@ export default function HomeConsumptionPage() {
         }
       />
 
+      <IntelligentEnergyCard snapshot={snapshot} />
+
       {/* إجمالي السحب الحالي */}
       <section className="energy-card p-6 text-center">
         <span className="block text-sm font-semibold text-slate-400">إجمالي سحب المنزل الآن</span>
         {loading && !snapshot ? (
           <Loader2 className="mx-auto mt-5 h-10 w-10 animate-spin text-sky-500" aria-label="جاري تحميل القراءة" />
         ) : !snapshot ? (
-          // No reading is not "your house uses nothing": say so instead of 0 W.
           <>
             <span className="mt-2 block text-4xl font-black tracking-tight text-slate-300">—</span>
             <span className="mt-2 block text-xs font-bold text-amber-700">لا توجد قراءة حية الآن. تحقق من اتصال الدنجل أو حاول التحديث.</span>
