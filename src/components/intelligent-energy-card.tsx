@@ -118,6 +118,16 @@ export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot |
   const insight = useMemo(() => (snapshot ? analyzeEnergy(snapshot, settings, context) : null), [snapshot, settings, context]);
   const forecast = useMemo(() => (snapshot ? forecastEnergy(snapshot, context) : null), [snapshot, context]);
 
+  const consumptionComparison = useMemo(() => {
+    if (!snapshot || !Number.isFinite(snapshot.homePowerW) || recentAverageW === null || recentAverageW < 100) return null;
+    const current = Math.max(0, snapshot.homePowerW);
+    const differencePct = Math.round(((current - recentAverageW) / recentAverageW) * 100);
+    if (Math.abs(differencePct) < 10) return "الاستهلاك قريب من متوسطك الأخير.";
+    return differencePct > 0
+      ? `الاستهلاك الحالي أعلى من متوسطك الأخير بنحو ${differencePct}٪.`
+      : `الاستهلاك الحالي أقل من متوسطك الأخير بنحو ${Math.abs(differencePct)}٪.`;
+  }, [snapshot, recentAverageW]);
+
   if (!insight) return null;
 
   const tone = {
@@ -154,6 +164,12 @@ export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot |
           )}
         </div>
       </div>
+
+      {consumptionComparison && (
+        <div className="mx-4 mb-3 rounded-xl border border-sky-200 bg-white/65 px-3 py-2 text-xs font-bold leading-5 text-slate-700">
+          <span className="font-black text-sky-900">مقارنة الاستهلاك:</span> {consumptionComparison}
+        </div>
+      )}
 
       {forecast?.points.length ? (
         <div className="mx-4 mb-3 rounded-xl bg-white/55 px-3 py-2 text-xs font-bold leading-5 text-slate-700">
