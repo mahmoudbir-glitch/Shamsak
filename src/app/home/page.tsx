@@ -2,12 +2,10 @@
 
 import { HomeSourceSplit } from "@/components/energy-split";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { BatteryCharging, CalendarDays, ChevronDown, Home, Loader2, RefreshCw, Sun, Zap } from "lucide-react";
+import { BatteryCharging, ChevronDown, Home, Loader2, RefreshCw, Sun, Zap } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
-import { PageHeader } from "@/components/page-header";
-import { StatTile } from "@/components/stat-tile";
 import { LoadChart, type LoadPoint } from "@/components/load-chart";
-import { homeText, acAmps, acAmpHours } from "@/lib/energy";
+import { homeText, acAmps } from "@/lib/energy";
 import { AmpPill } from "@/components/amp-pill";
 import { IntelligentEnergyCard } from "@/components/intelligent-energy-card";
 import { SmartEnergyAssistant } from "@/components/smart-energy-assistant";
@@ -18,7 +16,6 @@ const REFRESH_MS = 15_000;
 const HISTORY_REFRESH_MS = 5 * 60_000;
 
 type History = { points: LoadPoint[]; peak: { w: number; at: string } | null; inverterRatedKw: number | null; timezone: string };
-
 type CollapsibleCardProps = { index: string; title: string; subtitle?: string; children: React.ReactNode; defaultOpen?: boolean; className?: string; accentClass?: string };
 
 function CollapsibleCard({ index, title, subtitle, children, defaultOpen = true, className = "", accentClass = "border-r-sky-400" }: CollapsibleCardProps) {
@@ -35,13 +32,14 @@ function CollapsibleCard({ index, title, subtitle, children, defaultOpen = true,
 }
 
 function ConsumptionHero({ snapshot, refreshing, onRefresh }: { snapshot: EnergySnapshot | null; refreshing: boolean; onRefresh: () => void }) {
-  const today = snapshot?.todayHomeUsageKWh;
   const homeW = Math.max(0, snapshot?.homePowerW ?? 0);
   return (
     <section className="relative overflow-hidden rounded-[28px] border border-sky-100 bg-[radial-gradient(circle_at_15%_15%,rgba(56,189,248,0.18),transparent_32%),linear-gradient(135deg,#ffffff_0%,#f4faff_58%,#eef8ff_100%)] p-4 shadow-[0_14px_40px_rgba(14,165,233,0.10)] sm:p-5">
       <div className="pointer-events-none absolute -left-10 -top-12 h-36 w-36 rounded-full bg-sky-200/30 blur-3xl" /><div className="pointer-events-none absolute -bottom-16 right-8 h-32 w-32 rounded-full bg-cyan-200/30 blur-3xl" />
       <div className="relative flex items-start justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/90 text-sky-600 shadow-sm ring-1 ring-sky-100"><Home size={24} strokeWidth={2.2} /></div><div className="min-w-0"><div className="flex items-center gap-2"><h1 className="truncate text-xl font-black tracking-tight text-slate-900 sm:text-2xl">استهلاك المنزل</h1>{snapshot && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-700 ring-1 ring-emerald-100"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" /> حي</span>}</div><p className="mt-0.5 text-[11px] font-semibold text-slate-500 sm:text-xs">صورة سريعة لاستهلاك بيتك والطاقة المسحوبة</p></div></div><button type="button" onClick={onRefresh} disabled={refreshing} aria-label="تحديث البيانات" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/80 bg-white/80 text-slate-500 shadow-sm transition hover:bg-white active:scale-95 disabled:opacity-50"><RefreshCw size={17} className={refreshing ? "animate-spin" : ""} /></button></div>
-      <div className="relative mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3"><div className="rounded-2xl border border-white/80 bg-white/75 p-3 shadow-sm backdrop-blur-sm"><div className="flex items-center gap-2 text-[10px] font-bold text-slate-400"><CalendarDays size={14} className="text-sky-500" /> استهلاك اليوم</div><div className="mt-1.5 text-xl font-black tracking-tight text-slate-900"><bdi dir="ltr">{today !== undefined ? today.toFixed(1) : "—"}</bdi> <span className="text-xs font-bold text-slate-400">kWh</span></div></div><div className="rounded-2xl border border-white/80 bg-white/75 p-3 shadow-sm backdrop-blur-sm"><div className="flex items-center gap-2 text-[10px] font-bold text-slate-400"><Zap size={14} className="text-amber-500" /> السحب الآن</div><div className={"mt-1.5 text-xl font-black tracking-tight " + homeText(homeW / 1000)}><bdi dir="ltr">{snapshot ? (homeW / 1000).toFixed(2) : "—"}</bdi> <span className="text-xs font-bold opacity-70">kW</span><span className="mt-1 block"><AmpPill tone="sky" amps={snapshot ? acAmps(homeW) : null} /></span></div></div></div>
+      <div className="relative mt-4">
+        <div className="rounded-2xl border border-white/80 bg-white/75 p-3 shadow-sm backdrop-blur-sm"><div className="flex items-center gap-2 text-[10px] font-bold text-slate-400"><Zap size={14} className="text-amber-500" /> السحب الآن</div><div className={"mt-1.5 text-xl font-black tracking-tight " + homeText(homeW / 1000)}><bdi dir="ltr">{snapshot ? (homeW / 1000).toFixed(2) : "—"}</bdi> <span className="text-xs font-bold opacity-70">kW</span><span className="mt-1 block"><AmpPill tone="sky" amps={snapshot ? acAmps(homeW) : null} /></span></div></div>
+      </div>
     </section>
   );
 }
@@ -52,7 +50,7 @@ export default function HomeConsumptionPage() {
   const load = useCallback(async (manual = false) => { if (manual) { setRefreshing(true); void loadHistory(); } try { const response = await fetch("/api/telemetry", { cache: "no-store" }); if (!response.ok) throw new Error("telemetry_unavailable"); const data = (await response.json()) as EnergySnapshot; if (data.source !== "live") throw new Error("not_live"); setSnapshot(data); } catch { /* إبقاء آخر قراءة صالحة */ } finally { setLoading(false); if (manual) setRefreshing(false); } }, [loadHistory]);
   useEffect(() => { void loadHistory(); return startVisiblePolling(() => void loadHistory(), HISTORY_REFRESH_MS); }, [loadHistory]);
   useEffect(() => { void load(); return startVisiblePolling(() => void load(), REFRESH_MS); }, [load]);
-  const homeW = Math.max(0, snapshot?.homePowerW ?? 0); const homeKw = homeW / 1000; const toneText = homeText(homeKw); const dailySummary = useMemo(() => snapshot ? buildDailyEnergySummary(snapshot) : null, [snapshot]);
+  const homeW = Math.max(0, snapshot?.homePowerW ?? 0); const homeKw = homeW / 1000; const dailySummary = useMemo(() => snapshot ? buildDailyEnergySummary(snapshot) : null, [snapshot]);
   const fromSolar = Math.min(homeW, Math.max(0, snapshot?.solarPowerW ?? 0)); const fromBattery = Math.min(homeW - fromSolar, Math.max(0, -(snapshot?.batteryPowerW ?? 0))); const fromGrid = Math.min(Math.max(0, homeW - fromSolar - fromBattery), Math.max(0, snapshot?.gridPowerW ?? 0)); const served = fromSolar + fromBattery + fromGrid; const solarPct = served > 0 ? Math.round((fromSolar / served) * 100) : 0; const batteryPct = served > 0 ? Math.min(100 - solarPct, Math.round((fromBattery / served) * 100)) : 0; const gridPct = served > 0 ? 100 - solarPct - batteryPct : 0;
   const sources = [{ label: "الشمس", w: fromSolar, pct: solarPct, bar: "bg-amber-400", text: "text-amber-700", tone: "amber" as const, Icon: Sun }, { label: "البطارية", w: fromBattery, pct: batteryPct, bar: "bg-emerald-500", text: "text-emerald-700", tone: "emerald" as const, Icon: BatteryCharging }, { label: "الشبكة", w: fromGrid, pct: gridPct, bar: "bg-violet-500", text: "text-violet-700", tone: "violet" as const, Icon: Zap }];
   const timeZone = history?.timezone || "Asia/Beirut"; const peakTime = history?.peak ? new Intl.DateTimeFormat("ar-LB-u-nu-latn", { timeZone, hour: "2-digit", minute: "2-digit" }).format(new Date(history.peak.at)) : null; const peakPct = history?.peak && history.inverterRatedKw ? Math.round((history.peak.w / (history.inverterRatedKw * 1000)) * 100) : null; const ratedKw = history?.inverterRatedKw ?? null; const loadPct = ratedKw && ratedKw > 0 ? Math.min(100, Math.round((homeKw / ratedKw) * 100)) : 0; const gauge = snapshot ? Math.max(5, loadPct) : 0;
@@ -72,7 +70,6 @@ export default function HomeConsumptionPage() {
     <CollapsibleCard index="03" title="التحليل الذكي" subtitle="حالة المنظومة الآن" accentClass="border-r-emerald-400"><IntelligentEnergyCard snapshot={snapshot} /></CollapsibleCard>
     <CollapsibleCard index="04" title="مساعد شمسك الذكي" subtitle="الإجراء المطلوب عند الحاجة" defaultOpen={false} accentClass="border-r-violet-400"><SmartEnergyAssistant snapshot={snapshot} embedded /></CollapsibleCard>
     {dailySummary && <CollapsibleCard index="05" title="ملخص الطاقة اليوم" subtitle="أرقام اليوم فقط" defaultOpen={false} accentClass="border-r-cyan-400"><div className="text-right"><p className="text-sm font-bold leading-6 text-slate-700">{dailySummary.summary}</p></div></CollapsibleCard>}
-    <div className="grid auto-rows-fr grid-cols-2 gap-3"><StatTile card tone="sky" label="استهلاك اليوم" value={snapshot?.todayHomeUsageKWh !== undefined ? snapshot.todayHomeUsageKWh.toFixed(1) : "—"} unit="kWh" ampTone="sky" ampUnit="Ah" amps={acAmpHours(snapshot?.todayHomeUsageKWh)} hint="منذ منتصف الليل" /><StatTile card tone="sky" label="أعلى حمل اليوم" value={history?.peak ? (history.peak.w / 1000).toFixed(2) : "—"} unit="kW" ampTone="sky" amps={history?.peak ? acAmps(history.peak.w) : null} hint={history?.peak ? <>{peakTime}{peakPct !== null && <> · <bdi dir="ltr">{peakPct}%</bdi> من الإنفرتر</>}</> : undefined} /></div>
     <CollapsibleCard index="06" title="آخر 24 ساعة" subtitle="توزيع الحمل والاعتماد على مصادر الطاقة" defaultOpen={false} accentClass="border-r-indigo-400">{history && history.points.length >= 2 ? <><HomeSourceSplit points={history.points} now={Date.now()} /><div className="mt-3 border-t border-slate-100 pt-3"><LoadChart points={history.points} timeZone={timeZone} now={Date.now()} /></div></> : <p className="py-6 text-center text-xs font-semibold text-slate-400">يظهر المنحنى بعد تجمّع قراءات كافية (نحو ساعة من الاستخدام).</p>}</CollapsibleCard>
   </div>);
 }
