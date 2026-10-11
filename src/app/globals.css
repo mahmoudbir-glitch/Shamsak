@@ -7,9 +7,6 @@ html { min-height: 100%; background: #f8fafc; }
 body { margin: 0; min-height: 100vh; background: #f8fafc; color: #172033; }
 .animate-dynamic-bg { background: linear-gradient(180deg, #ffffff 0%, #f1f6fa 100%); }
 * { box-sizing: border-box; }
-/* Keep the top header and bottom tab bar pinned while scrolling: stop the
- * phone's pull-to-refresh and overscroll stretch, which drag the whole page
- * (bars included) up or down at either end of a page. */
 html, body { overscroll-behavior-y: none; }
 :focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 button,a,input,select { -webkit-tap-highlight-color: transparent; }
@@ -22,36 +19,16 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 }
 .energy-card { border: 1px solid rgba(226,232,240,.88); border-radius: 1.5rem; background: rgba(255,255,255,.97); box-shadow: 0 10px 32px rgba(37,99,235,.055); }
 .page-title { font-size: 1.5rem; line-height: 2rem; font-weight: 900; color: #0f172a; }
-/* The ☀️ logo spins slowly while it pulses and glows. Two animations on separate properties (rotate vs scale/filter) so neither overrides the other. */
-@keyframes sun-spin {
-  from { rotate: 0deg; }
-  to { rotate: 360deg; }
-}
-@keyframes sun-twinkle {
-  0%, 100% { scale: 1; filter: drop-shadow(0 0 0 rgba(251, 191, 36, 0)) brightness(1); }
-  50% { scale: 1.12; filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.85)) brightness(1.12); }
-}
-.sun-twinkle {
-  display: inline-block;
-  animation: sun-spin 12s linear infinite, sun-twinkle 2.6s ease-in-out infinite;
-  transform-origin: center;
-}
-@media (prefers-reduced-motion: reduce) {
-  .sun-twinkle { animation: none; }
-}
+@keyframes sun-spin { from { rotate: 0deg; } to { rotate: 360deg; } }
+@keyframes sun-twinkle { 0%, 100% { scale: 1; filter: drop-shadow(0 0 0 rgba(251, 191, 36, 0)) brightness(1); } 50% { scale: 1.12; filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.85)) brightness(1.12); } }
+.sun-twinkle { display: inline-block; animation: sun-spin 12s linear infinite, sun-twinkle 2.6s ease-in-out infinite; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) { .sun-twinkle { animation: none; } }
 
-/* Battery outline: the gray outer line becomes a live state indicator.
- * Charging uses a green short moving trace; discharging uses an amber short
- * trace moving in the opposite direction. Idle stays gray and quiet. */
-@keyframes shamsak-battery-outline-charge {
-  from { stroke-dashoffset: 0; }
-  to { stroke-dashoffset: -16; }
-}
-@keyframes shamsak-battery-outline-discharge {
-  from { stroke-dashoffset: 0; }
-  to { stroke-dashoffset: 16; }
-}
-.energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.stroke-slate-300 {
+/* Battery outline: moving trace now covers the battery body and its terminal/head. */
+@keyframes shamsak-battery-outline-charge { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -16; } }
+@keyframes shamsak-battery-outline-discharge { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 16; } }
+.energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.stroke-slate-300,
+.energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.fill-slate-300 {
   stroke: #10b981;
   stroke-width: 3;
   stroke-linecap: round;
@@ -59,7 +36,8 @@ button:disabled { cursor: not-allowed; opacity: .6; }
   animation: shamsak-battery-outline-charge 1.35s linear infinite;
   filter: drop-shadow(0 0 2px rgba(16,185,129,.4));
 }
-.energy-card:has(.bg-amber-50.text-amber-700) svg rect.stroke-slate-300 {
+.energy-card:has(.bg-amber-50.text-amber-700) svg rect.stroke-slate-300,
+.energy-card:has(.bg-amber-50.text-amber-700) svg rect.fill-slate-300 {
   stroke: #f59e0b;
   stroke-width: 3;
   stroke-linecap: round;
@@ -69,42 +47,19 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 }
 @media (prefers-reduced-motion: reduce) {
   .energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.stroke-slate-300,
-  .energy-card:has(.bg-amber-50.text-amber-700) svg rect.stroke-slate-300 {
-    animation: none;
-  }
+  .energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.fill-slate-300,
+  .energy-card:has(.bg-amber-50.text-amber-700) svg rect.stroke-slate-300,
+  .energy-card:has(.bg-amber-50.text-amber-700) svg rect.fill-slate-300 { animation: none; }
 }
 
-/* Keep the original card wording, but make the gauge itself explain exactly
- * what the displayed kW value represents. */
 @media (max-width: 1023px) {
-  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child {
-    font-size: 0;
-  }
-  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child::before {
-    content: "السحب الحالي";
-    display: block;
-    font-size: 9px;
-    line-height: 1.4;
-    font-weight: 800;
-    color: #64748b;
-  }
-  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child::after {
-    content: "قدرة المنزل الآن";
-    display: block;
-    margin-top: 2px;
-    font-size: 8px;
-    line-height: 1.4;
-    font-weight: 700;
-    color: #94a3b8;
-  }
+  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child { font-size: 0; }
+  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child::before { content: "السحب الحالي"; display: block; font-size: 9px; line-height: 1.4; font-weight: 800; color: #64748b; }
+  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child::after { content: "قدرة المنزل الآن"; display: block; margin-top: 2px; font-size: 8px; line-height: 1.4; font-weight: 700; color: #94a3b8; }
 }
 
-/* Computer screens (1024px and wider): a page lays its cards out in two columns
- * instead of one phone-width column. Headers, notes, collapsible blocks and
- * anything marked .desktop-wide span both columns. Phones are not affected. */
 @media (min-width: 1024px) {
   .desktop-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; align-items: start; }
   .desktop-grid > * { margin-top: 0 !important; margin-bottom: 0 !important; }
-  .desktop-grid > header, .desktop-grid > p, .desktop-grid > details, .desktop-grid > button,
-  .desktop-grid > [role="status"], .desktop-grid > [role="alert"], .desktop-grid > .desktop-wide { grid-column: 1 / -1; }
+  .desktop-grid > header, .desktop-grid > p, .desktop-grid > details, .desktop-grid > button, .desktop-grid > [role="status"], .desktop-grid > [role="alert"], .desktop-grid > .desktop-wide { grid-column: 1 / -1; }
 }
