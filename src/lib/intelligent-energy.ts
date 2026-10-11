@@ -104,6 +104,9 @@ export function analyzeEnergy(
     homeKw >= 1.5 &&
     solarKw < homeKw * 0.6 &&
     (solarDrop || unusualLoad || rapidBatteryDrop || homeKw >= 2.5);
+  const largeLoad =
+    homeKw >= 4 &&
+    (unusualLoad || homeKw >= 5 || batteryDischarging || solarKw < homeKw * 0.5);
 
   if (snapshot.stale) {
     return {
@@ -144,6 +147,26 @@ export function analyzeEnergy(
         ...(solarDropDetail ? [solarDropDetail] : []),
         ...(unusualLoadDetail ? [unusualLoadDetail] : []),
         ...(rapidBatteryDrop ? [`معدل هبوط البطارية الأخير يقارب ${Math.round(batteryDropPerHour!)}% بالساعة.`] : []),
+        ...(estimateDetail ? [estimateDetail] : []),
+      ],
+    };
+  }
+
+  if (largeLoad) {
+    return {
+      tone: batteryDischarging ? "red" : "amber",
+      alert: true,
+      title: "حمل كبير يعمل الآن",
+      summary: `استهلاك المنزل وصل إلى ${homeKw.toFixed(1)} kW، وهو حمل كبير على المنظومة حالياً.`,
+      action: "تحقق من الأجهزة الكبيرة التي تعمل الآن",
+      recommendation: batteryDischarging
+        ? "إذا لم يكن الحمل ضرورياً، خفّفه لتقليل سرعة هبوط البطارية."
+        : "إذا كان الحمل غير ضروري، يفضل تشغيله عندما تكون الطاقة الشمسية أعلى.",
+      details: [
+        `الاستهلاك الحالي ${homeKw.toFixed(1)} kW مقابل إنتاج شمسي ${solarKw.toFixed(1)} kW.`,
+        ...(unusualLoadDetail ? [unusualLoadDetail] : []),
+        ...(batteryDischarging ? ["البطارية تساهم حالياً في تغذية هذا الحمل."] : []),
+        ...(solarKw < homeKw ? ["الإنتاج الشمسي لا يغطي كامل الحمل الحالي."] : []),
         ...(estimateDetail ? [estimateDetail] : []),
       ],
     };
