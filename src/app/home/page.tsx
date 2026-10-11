@@ -1,13 +1,14 @@
 "use client";
 
 import { HomeSourceSplit } from "@/components/energy-split";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { BatteryCharging, ChevronDown, Home, Loader2, RefreshCw, Sun, Zap } from "lucide-react";
 import type { EnergySnapshot } from "@/lib/energy";
 import { LoadChart, type LoadPoint } from "@/components/load-chart";
 import { homeText, acAmps } from "@/lib/energy";
 import { AmpPill } from "@/components/amp-pill";
 import { startVisiblePolling } from "@/lib/visible-polling";
+import { IntelligentEnergyCard } from "@/components/intelligent-energy-card";
 
 const REFRESH_MS = 15_000;
 const HISTORY_REFRESH_MS = 5 * 60_000;
@@ -54,6 +55,7 @@ export default function HomeConsumptionPage() {
 
   return (<div className="desktop-grid w-full space-y-3 pb-4 text-right" dir="rtl">
     <ConsumptionHero snapshot={snapshot} refreshing={refreshing} onRefresh={() => void load(true)} />
+    {snapshot && <IntelligentEnergyCard snapshot={snapshot} />}
     <CollapsibleCard index="01" title="الاستهلاك الآن" subtitle="قدرة المنزل ومصادر الطاقة في هذه اللحظة" accentClass="border-r-sky-400">
       <div className="overflow-hidden rounded-[22px] bg-slate-50/80 p-3 text-slate-800 shadow-inner ring-1 ring-inset ring-slate-100 sm:p-4">
         <div className="flex items-center justify-between gap-3 px-1 pb-3"><div><span className="block text-[10px] font-bold text-slate-400">الاستهلاك اللحظي</span><span className="mt-0.5 block text-xs font-black text-slate-800">كم يستهلك المنزل الآن؟</span></div><span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-black text-slate-600 shadow-sm"><span className={`h-1.5 w-1.5 rounded-full ${snapshot ? "animate-pulse bg-emerald-500" : "bg-slate-300"}`} /> {snapshot ? "قراءة حية" : "بانتظار القراءة"}</span></div>
