@@ -24,6 +24,8 @@ interface EnergyFlowProps {
   isLive?: boolean;
   /** Battery current in amps (measured when available). */
   batteryAmps?: number | null;
+  /** Hide the built-in "today" strip when the page shows it as its own section. */
+  showTodaySummary?: boolean;
 }
 
 const FLOW_THRESHOLD = 0.05;
@@ -43,6 +45,7 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
   savingsCurrency = '$',
   isLive = false,
   batteryAmps = null,
+  showTodaySummary = true,
 }) => {
   const [activeNode, setActiveNode] = useState<'solar' | 'battery' | 'home' | 'grid' | 'inverter' | null>(null);
   const flowId = useId().replace(/:/g, '');
@@ -335,14 +338,15 @@ export const EnergyFlow: React.FC<EnergyFlowProps> = ({
 
       {!liveFlowActive && <div className="relative mx-4 mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-center text-xs font-bold text-amber-800 sm:mx-6">⚠️ لا توجد قراءة حية متاحة حاليًا. تحقّق من اتصال الإنفرتر وإرسال بيانات القياس.</div>}
 
-      <div className="relative border-t border-slate-100 bg-slate-50/70 px-3 py-4 sm:px-5">
+      {showTodaySummary && <div className="relative border-t border-slate-100 bg-slate-50/70 px-3 py-4 sm:px-5">
         <div className="grid grid-cols-3 divide-x divide-x-reverse divide-slate-200 text-center">
           <div className="px-2"><div className="text-[11px] font-bold text-slate-500">إنتاج اليوم</div><div className="mt-1 text-base font-black text-amber-600 sm:text-lg">{formatKwh(todayProductionKWh)}</div><div className="mt-1.5"><AmpPill tone="amber" unit="Ah" amps={acAmpHours(todayProductionKWh)} /></div></div>
           <div className="px-2"><div className="text-[11px] font-bold text-slate-500">استهلاك اليوم</div><div className="mt-1 text-base font-black text-sky-700 sm:text-lg">{formatKwh(todayHomeUsageKWh)}</div><div className="mt-1.5"><AmpPill tone="sky" unit="Ah" amps={acAmpHours(todayHomeUsageKWh)} /></div></div>
           <div className="px-2"><div className="text-[11px] font-bold text-slate-500">وفر اليوم</div><div className={"mt-1 text-base font-black sm:text-lg " + ((todayGridSavings ?? 0) < 0 ? "text-rose-600" : "text-emerald-600")}>{formatSavings(todayGridSavings)}</div></div>
         </div>
         {todayProductionKWh === undefined && todayHomeUsageKWh === undefined && <p className="mt-2 text-center text-[10px] font-semibold text-slate-400">تُحسب أرقام اليوم تلقائياً مع تجمّع القراءات.</p>}
-      </div>
+      </div>}
+      {!showTodaySummary && <div className="h-2" aria-hidden="true" />}
     </section>
   );
 };

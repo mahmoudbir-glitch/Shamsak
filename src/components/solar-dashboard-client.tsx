@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { ChevronLeft, Cpu, Moon } from "lucide-react";
 import { EnergyFlow } from "@/components/energy-flow";
+import { SectionHeading } from "@/components/dashboard/section-heading";
+import { TodaySummary } from "@/components/dashboard/today-summary";
+import { NightCard } from "@/components/dashboard/night-card";
+import { InverterStatusCard } from "@/components/dashboard/inverter-status-card";
 import type { EnergySnapshot } from "@/lib/energy";
-import { chargerPriorityLabel, inverterModeLabel, outputPriorityLabel, batteryAmps, AC_VOLTS } from "@/lib/energy";
+import { batteryAmps, AC_VOLTS } from "@/lib/energy";
 import { startVisiblePolling } from "@/lib/visible-polling";
 
 const REFRESH_MS = 15_000;
@@ -55,76 +57,54 @@ export default function SolarDashboardClient() {
     return `بالحمل الحالي (${Math.round(load)} واط ≈ ${(load / AC_VOLTS).toFixed(1)} أمبير) تكفي ${shown} حتى حد الاحتياطي ${battery.reservePct}%.`;
   })();
 
+  const hasInverterStatus = Boolean(snapshot && (snapshot.operatingMode || snapshot.inverterTemperature !== undefined));
+
   return (
-    <div className="desktop-grid w-full space-y-3 text-right" dir="rtl">
-      <EnergyFlow
-        solarKw={(snapshot?.solarPowerW ?? 0) / 1000}
-        homeKw={(snapshot?.homePowerW ?? 0) / 1000}
-        gridKw={(snapshot?.gridPowerW ?? 0) / 1000}
-        batteryKw={(snapshot?.batteryPowerW ?? 0) / 1000}
-        batteryPercentage={snapshot?.batterySoc ?? Number.NaN}
-        gridConnected={snapshot?.gridConnected ?? null}
-        gridVoltage={snapshot?.gridVoltage}
-        inverterMode={snapshot?.operatingMode}
-        todayProductionKWh={snapshot?.todayProductionKWh}
-        todayHomeUsageKWh={snapshot?.todayHomeUsageKWh}
-        todayGridSavings={snapshot?.todayGridSavings}
-        isLive={isLive}
-        batteryAmps={batteryAmps(snapshot, battery?.nominal)}
-        savingsCurrency={snapshot?.currency ? `${snapshot.currency} ` : undefined}
-      />
+    <div className="grid w-full grid-cols-1 gap-5 text-right lg:grid-cols-12 lg:gap-6" dir="rtl">
+      <section className="lg:col-span-12" aria-labelledby="home-today">
+        <SectionHeading index="01" title="ملخص اليوم" hint="منذ منتصف الليل" id="home-today" />
+        <TodaySummary
+          productionKWh={snapshot?.todayProductionKWh}
+          homeUsageKWh={snapshot?.todayHomeUsageKWh}
+          savings={snapshot?.todayGridSavings}
+          currencyPrefix={snapshot?.currency ? `${snapshot.currency} ` : undefined}
+        />
+      </section>
 
-      {/* On a computer these cards sit beside the flow diagram. */}
-      <div className="space-y-3 lg:space-y-4">
-      {/* الليلة: جواب مباشر من القراءة الحالية، والتفاصيل في قسم الليل بصفحة الطاقة */}
-      <Link href="/energy#night" className="energy-card flex items-center gap-3 p-4 transition hover:border-indigo-200 hover:shadow-md">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500"><Moon className="h-5 w-5" aria-hidden="true" /></span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-black text-slate-900">الليلة: هل تكفي البطارية؟</span>
-          <span className="block text-xs font-semibold leading-5 text-slate-500">{nightText}</span>
-        </span>
-        <ChevronLeft className="h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
-      </Link>
+      <section className="lg:col-span-7" aria-labelledby="home-flow">
+        <SectionHeading index="02" title="تدفق الطاقة" hint="مباشر" id="home-flow" />
+        <EnergyFlow
+          showTodaySummary={false}
+          solarKw={(snapshot?.solarPowerW ?? 0) / 1000}
+          homeKw={(snapshot?.homePowerW ?? 0) / 1000}
+          gridKw={(snapshot?.gridPowerW ?? 0) / 1000}
+          batteryKw={(snapshot?.batteryPowerW ?? 0) / 1000}
+          batteryPercentage={snapshot?.batterySoc ?? Number.NaN}
+          gridConnected={snapshot?.gridConnected ?? null}
+          gridVoltage={snapshot?.gridVoltage}
+          inverterMode={snapshot?.operatingMode}
+          todayProductionKWh={snapshot?.todayProductionKWh}
+          todayHomeUsageKWh={snapshot?.todayHomeUsageKWh}
+          todayGridSavings={snapshot?.todayGridSavings}
+          isLive={isLive}
+          batteryAmps={batteryAmps(snapshot, battery?.nominal)}
+          savingsCurrency={snapshot?.currency ? `${snapshot.currency} ` : undefined}
+        />
+      </section>
 
-      {/* حالة الإنفرتر كما يرسلها بنفسه */}
-      {snapshot && (snapshot.operatingMode || snapshot.inverterTemperature !== undefined) && (
-        <section className="energy-card p-4">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 ring-1 ring-sky-100"><Cpu className="h-5 w-5" aria-hidden="true" /></span>
-            <div className="min-w-0">
-              <h2 className="text-sm font-black text-slate-900">حالة الإنفرتر</h2>
-              <p className="truncate text-[11px] font-bold text-slate-500">{inverterModeLabel(snapshot.operatingMode)}</p>
-            </div>
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-2.5">
-            <div className="rounded-2xl bg-slate-50 p-3">
-              <span className="text-[11px] font-bold text-slate-500">الحمل من قدرته</span>
-              <strong className="mt-0.5 block text-lg font-black text-slate-900"><bdi dir="ltr">{snapshot.loadPercent !== undefined ? `${Math.round(snapshot.loadPercent)}%` : "—"}</bdi></strong>
-              {snapshot.loadPercent !== undefined && (
-                <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-slate-200"><span className="block h-full rounded-full bg-sky-500" style={{ width: `${Math.min(100, Math.max(2, snapshot.loadPercent))}%` }} /></span>
-              )}
-            </div>
-            <div className={"rounded-2xl p-3 " + ((snapshot.inverterTemperature ?? 0) >= 60 ? "bg-rose-50" : "bg-slate-50")}>
-              <span className="text-[11px] font-bold text-slate-500">الحرارة</span>
-              <strong className={"mt-0.5 block text-lg font-black " + ((snapshot.inverterTemperature ?? 0) >= 60 ? "text-rose-600" : "text-slate-900")}><bdi dir="ltr">{snapshot.inverterTemperature !== undefined ? `${Math.round(snapshot.inverterTemperature)} °C` : "—"}</bdi></strong>
-            </div>
-          </div>
-
-          <dl className="mt-3 divide-y divide-slate-100 text-[13px]">
-            {[
-              ["أولوية المصدر", outputPriorityLabel(snapshot.outputPriority)],
-              ["شحن البطارية", chargerPriorityLabel(snapshot.chargerPriority)],
-              ["جهد مدخل الشبكة", /off.?grid|battery/i.test(snapshot.operatingMode ?? "") ? "غير مُقاس (منفصل)" : snapshot.gridVoltage !== undefined ? `${Math.round(snapshot.gridVoltage)} V` : "—"],
-            ].map(([label, value]) => (
-              <div key={label} className="flex items-start justify-between gap-3 py-2">
-                <dt className="shrink-0 font-bold text-slate-500">{label}</dt>
-                <dd className="text-left font-black text-slate-800"><bdi>{value}</bdi></dd>
-              </div>
-            ))}
-          </dl>
+      {/* On a computer these sections sit beside the flow diagram. */}
+      <div className="flex flex-col gap-5 lg:col-span-5 lg:gap-6">
+        <section aria-labelledby="home-night">
+          <SectionHeading index="03" title="الليلة" hint="تقدير البطارية" id="home-night" />
+          <NightCard text={nightText} />
         </section>
-      )}
+
+        {snapshot && hasInverterStatus && (
+          <section aria-labelledby="home-inverter">
+            <SectionHeading index="04" title="الإنفرتر" hint="كما يرسله الجهاز" id="home-inverter" />
+            <InverterStatusCard snapshot={snapshot} />
+          </section>
+        )}
       </div>
     </div>
   );
