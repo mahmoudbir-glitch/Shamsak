@@ -1,5 +1,10 @@
 import type { EnergySnapshot } from "@/lib/energy";
 
+export type IntelligentEnergySettings = {
+  batteryCapacityWh: number;
+  batteryMinReservePct: number;
+};
+
 export type IntelligentInsight = {
   tone: "green" | "amber" | "red" | "blue";
   title: string;
@@ -12,7 +17,34 @@ export type IntelligentInsight = {
 
 const safeNumber = (value: number, fallback = 0) => (Number.isFinite(value) ? value : fallback);
 
-export function analyzeEnergy(snapshot: EnergySnapshot): IntelligentInsight {
+function formatDuration(minutes: number) {
+  if (minutes < 1) return "أقل من دقيقة";
+  if (minutes < 60) return `${minutes} دقيقة تقريباً`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (hours >= 48) return "أكثر من 48 ساعة";
+  return rest ? `${hours} ساعة و${rest} دقيقة تقريباً` : `${hours} ساعة تقريباً`;
+}
+
+function batteryEstimate(snapshot: EnergySnapshot, settings: IntelligentEnergySettings) {
+  const soc = Math.min(100, Math.max(0, safeNumber(snapshot.batterySoc)));
+  const powerW = safeNumber(snapshot.batteryPowerW);
+  const capacityWh = safeNumber(settings.batteryCapacityWh);
+  const reservePct = Math.min(99, Math.max(0, safeNumber(settings.batteryMinReservePct, 10)));
+  if (capacityWh <= 0 || Math.abs(powerW) < 50) return null;
+
+  const charging = powerW > 0;
+  const usableWh = charging
+    ? ((100 - soc) / 100) * capacityWh
+    : (Math.max(0, soc - reservePct) / 100) * capacityWh;
+  if (!charging && usableWh <= 0) return { charging, label: "عند حد الاحتياطي" };
+
+  const hours = usableWh / Math.abs(powerW);
+  if (!Number.isFinite(hours) || hours <= 0) return null;
+  return { charging, label: formatDuration(Math.round(hours * 60)) };
+}
+
+export function analyzeEnergy(snapshot: EnergySnapshot, settings?: IntelligentEnergySettings): IntelligentInsight {
   const solarKw = Math.max(0, safeNumber(snapshot.solarPowerW)) / 1000;
   const homeKw = Math.max(0, safeNumber(snapshot.homePowerW)) / 1000;
   const gridImport = Math.max(0, safeNumber(snapshot.gridPowerW)) / 1000;
@@ -21,6 +53,12 @@ export function analyzeEnergy(snapshot: EnergySnapshot): IntelligentInsight {
   const batteryDischarging = batteryPowerW < -50;
   const batteryCharging = batteryPowerW > 50;
   const solarSurplus = Math.max(0, solarKw - homeKw);
+  const estimate = settings ? batteryEstimate(snapshot, settings) : null;
+  const estimateDetail = estimate
+    ? estimate.charging
+      ? `بالقدرة الحالية، قد تحتاج البطارية ${estimate.label} للوصول إلى 100٪.`
+      : `بالقدرة الحالية، التقدير حتى حد الاحتياطي هو ${estimate.label}.`
+    : null;
 
   if (snapshot.stale) {
     return {
@@ -40,7 +78,7 @@ export function analyzeEnergy(snapshot: EnergySnapshot): IntelligentInsight {
       title: "البطارية منخفضة جداً",
       summary: `البطارية عند ${Math.round(soc)}%${batteryDischarging ? " وتفرغ حالياً" : ""}.`,
       action: "خفّف الأحمال غير الضرورية",
-      details: ["الأولوية الآن للحفاظ على الطاقة للأحمال الأساسية.", gridImport > 0 ? "الشبكة تساهم حالياً في تغذية المنزل." : "لا يظهر سحب من الشبكة في القراءة الحالية."],
+      details: ["الأولوية الآن للحفاظ على الطاقة للأحمال الأساسية.", gridImport > 0 ? "الشبكة تساهم حالياً في تغذية المنزل." : "لا يظهر سحب من الشبكة في القراءة الحالية.", ...(estimateDetail ? [estimateDetail] : [])],
     };
   }
 
@@ -51,7 +89,7 @@ export function analyzeEnergy(snapshot: EnergySnapshot): IntelligentInsight {
       title: "استهلاك مرتفع مع بطارية منخفضة",
       summary: `المنزل يسحب ${homeKw.toFixed(1)} kW والبطارية عند ${Math.round(soc)}%.`,
       action: "راجع الأحمال الكبيرة الآن",
-      details: ["تشغيل سخان أو مكيف أو حمل كبير قد يسرّع هبوط البطارية.", "إذا كان هناك حمل غير ضروري، إيقافه قد يطيل وقت التشغيل."],
+      details: ["تشغيل سخان أو مكيف أو حمل كبير قد يسرّع هبوط البطارية.", "إذا كان هناك حمل غير ضروري، إيقافه قد يطيل وقت التشغيل.", ...(estimateDetail ? [estimateDetail] : [])],
     };
   }
 
@@ -62,7 +100,7 @@ export function analyzeEnergy(snapshot: EnergySnapshot): IntelligentInsight {
       title: "الحمل مرتفع حالياً",
       summary: `استهلاك المنزل ${homeKw.toFixed(1)} kW بينما الشمس تغطي جزءاً محدوداً منه.`,
       action: "خفّف الأحمال الكبيرة إن لم تكن ضرورية",
-      details: ["الفارق بين الاستهلاك والإنتاج قد يزيد السحب من البطارية أو الشبكة.", "راقب البطارية إذا استمر هذا الحمل."],
+      details: ["الفارق بين الاستهلاك والإنتاج قد يزيد السحب من البطارية أو الشبكة.", "راقب البطارية إذا استمر هذا الحمل.", ...(estimateDetail ? [estimateDetail] : [])],
     };
   }
 
@@ -73,7 +111,7 @@ export function analyzeEnergy(snapshot: EnergySnapshot): IntelligentInsight {
       title: "وقت جيد لاستخدام الطاقة الشمسية",
       summary: `يوجد فائض شمسي يقارب ${solarSurplus.toFixed(1)} kW والبطارية ليست ممتلئة.`,
       action: "يمكنك تشغيل حمل إضافي باعتدال",
-      details: ["الفائض الحالي أعلى من استهلاك المنزل.", "يفضل الاستفادة من الأحمال المرنة أثناء وجود الشمس."],
+      details: ["الفائض الحالي أعلى من استهلاك المنزل.", "يفضل الاستفادة من الأحمال المرنة أثناء وجود الشمس.", ...(estimateDetail ? [estimateDetail] : [])],
     };
   }
 
@@ -84,7 +122,7 @@ export function analyzeEnergy(snapshot: EnergySnapshot): IntelligentInsight {
       title: "المنظومة تعمل بكفاءة جيدة",
       summary: `الشمس تغطي الاستهلاك والبطارية تشحن عند ${Math.round(soc)}%.`,
       action: "لا يوجد إجراء مطلوب",
-      details: ["الإنتاج الشمسي أعلى من حمل المنزل حالياً.", "جزء من الطاقة يذهب لشحن البطارية."],
+      details: ["الإنتاج الشمسي أعلى من حمل المنزل حالياً.", "جزء من الطاقة يذهب لشحن البطارية.", ...(estimateDetail ? [estimateDetail] : [])],
     };
   }
 
@@ -95,7 +133,7 @@ export function analyzeEnergy(snapshot: EnergySnapshot): IntelligentInsight {
       title: "المنزل يعتمد على الشبكة الآن",
       summary: `السحب من الشبكة يقارب ${gridImport.toFixed(1)} kW.`,
       action: "راقب عودة الإنتاج الشمسي",
-      details: ["الإنتاج الشمسي منخفض في هذه اللحظة.", "لا يعني ذلك وجود عطل بحد ذاته؛ يعتمد التفسير على وقت اليوم وحالة الإنفرتر."],
+      details: ["الإنتاج الشمسي منخفض في هذه اللحظة.", "لا يعني ذلك وجود عطل بحد ذاته؛ يعتمد التفسير على وقت اليوم وحالة الإنفرتر.", ...(estimateDetail ? [estimateDetail] : [])],
     };
   }
 
@@ -105,6 +143,6 @@ export function analyzeEnergy(snapshot: EnergySnapshot): IntelligentInsight {
     title: "الوضع طبيعي",
     summary: `الاستهلاك ${homeKw.toFixed(1)} kW والبطارية ${Math.round(soc)}%.`,
     action: "استمر بالمراقبة",
-    details: ["لا توجد إشارة واضحة لحالة حرجة في القراءة الحالية.", "سيغيّر شمسك هذه البطاقة تلقائياً إذا تغيرت حالة المنظومة."],
+    details: ["لا توجد إشارة واضحة لحالة حرجة في القراءة الحالية.", ...(estimateDetail ? [estimateDetail] : []), "سيغيّر شمسك هذه البطاقة تلقائياً إذا تغيرت حالة المنظومة."],
   };
 }
