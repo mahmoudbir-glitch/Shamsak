@@ -18,7 +18,6 @@ export type IntelligentInsight = {
   action: string;
   recommendation?: string;
   details: string[];
-  /** True when the user should pay attention; normal states stay quiet. */
   alert: boolean;
 };
 
@@ -98,6 +97,13 @@ export function analyzeEnergy(
   const unusualLoadDetail = unusualLoad
     ? `الاستهلاك الحالي أعلى من متوسط القراءات الأخيرة بنحو ${Math.round((snapshot.homePowerW / recentAverageW - 1) * 100)}٪.`
     : null;
+  const combinedEnergyStress =
+    batteryDischarging &&
+    soc > 10 &&
+    soc <= 35 &&
+    homeKw >= 1.5 &&
+    solarKw < homeKw * 0.6 &&
+    (solarDrop || unusualLoad || rapidBatteryDrop || homeKw >= 2.5);
 
   if (snapshot.stale) {
     return {
@@ -119,6 +125,27 @@ export function analyzeEnergy(
       action: "خفّف الأحمال غير الضرورية",
       recommendation: "يفضل تأجيل الأحمال المرنة حتى تتحسن حالة البطارية.",
       details: ["الأولوية الآن للحفاظ على الطاقة للأحمال الأساسية.", gridImport > 0 ? "الشبكة تساهم حالياً في تغذية المنزل." : "لا يظهر سحب من الشبكة في القراءة الحالية.", ...(unusualLoadDetail ? [unusualLoadDetail] : []), ...(solarDropDetail ? [solarDropDetail] : []), ...(estimateDetail ? [estimateDetail] : [])],
+    };
+  }
+
+  if (combinedEnergyStress) {
+    const solarCoverage = Math.max(0, Math.min(100, Math.round((solarKw / homeKw) * 100)));
+    return {
+      tone: soc <= 20 || rapidBatteryDrop ? "red" : "amber",
+      alert: true,
+      title: "البطارية تحت ضغط",
+      summary: `الشمس تغطي نحو ${solarCoverage}% من استهلاك المنزل والبطارية عند ${Math.round(soc)}% وتفرغ حالياً.`,
+      action: "خفّف الأحمال غير الضرورية الآن",
+      recommendation: rapidBatteryDrop
+        ? "استمرار الوضع قد يقرّب البطارية من الاحتياطي بسرعة."
+        : "يفضل تأجيل الأحمال المرنة حتى يتحسن الإنتاج أو ينخفض الاستهلاك.",
+      details: [
+        `الإنتاج الشمسي ${solarKw.toFixed(1)} kW مقابل استهلاك ${homeKw.toFixed(1)} kW.`,
+        ...(solarDropDetail ? [solarDropDetail] : []),
+        ...(unusualLoadDetail ? [unusualLoadDetail] : []),
+        ...(rapidBatteryDrop ? [`معدل هبوط البطارية الأخير يقارب ${Math.round(batteryDropPerHour!)}% بالساعة.`] : []),
+        ...(estimateDetail ? [estimateDetail] : []),
+      ],
     };
   }
 
