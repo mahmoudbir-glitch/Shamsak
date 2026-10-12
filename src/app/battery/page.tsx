@@ -37,24 +37,19 @@ function BatteryGauge({ soc, reservePct, tone, charging }: { soc: number; reserv
   const cell = (BODY.width - BODY.gap * (CELLS - 1)) / CELLS;
   const right = BODY.x + BODY.width;
   const reserveX = right - (reservePct / 100) * BODY.width;
-  const flowTone = charging ? "text-emerald-500" : soc <= reservePct ? "text-rose-500" : "text-amber-500";
+  const headTone = charging ? "text-emerald-500" : soc <= reservePct ? "text-rose-500" : "text-amber-500";
   return (
     <svg viewBox="0 0 300 120" className="h-auto w-full" role="img" aria-label={`البطارية مشحونة ${Math.round(soc)}٪، والاحتياطي ${reservePct}٪`}>
-      {/* خط ديناميكي خارجي فقط: يتبع محيط البطارية من الخارج ولا يدخل بين الخانات. */}
-      <path
-        d="M20 6 H290 A6 6 0 0 1 296 12 V108 A6 6 0 0 1 290 114 H20 A6 6 0 0 1 14 108 V84 H8 A6 6 0 0 1 2 78 V42 A6 6 0 0 1 8 36 H14 V12 A6 6 0 0 1 20 6 Z"
-        fill="none"
-        className={"stroke-current " + flowTone}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeDasharray="8 7"
-        opacity={charging ? 0.95 : 0.3}
-      >
-        {charging && <animate attributeName="stroke-dashoffset" from="0" to="-60" dur="1.8s" repeatCount="indefinite" />}
-      </path>
-
-      {/* جسم البطارية ورأسها — بدون أي خط زخرفي داخل الخانات. */}
+      {/* رأس البطارية: خطوط ديناميكية خارجية فقط، تدور حول الرأس عند وجود شحن. */}
+      <g className={"fill-none stroke-current " + headTone} opacity={charging ? 0.95 : 0.35}>
+        <path d="M10 42 A18 18 0 0 1 28 60" strokeWidth="2" strokeLinecap="round" strokeDasharray="5 5">
+          {charging && <animateTransform attributeName="transform" type="rotate" from="0 10 60" to="360 10 60" dur="2.2s" repeatCount="indefinite" />}
+        </path>
+        <path d="M10 78 A18 18 0 0 1 28 60" strokeWidth="2" strokeLinecap="round" strokeDasharray="5 5">
+          {charging && <animateTransform attributeName="transform" type="rotate" from="0 10 60" to="360 10 60" dur="2.2s" repeatCount="indefinite" />}
+        </path>
+      </g>
+      {/* رأس البطارية نفسه — بدون أي خط زخرفي داخلي. */}
       <rect x="4" y="42" width="14" height="36" rx="4" className="fill-slate-300" />
       <rect x="20" y="10" width="270" height="100" rx="16" className="fill-white stroke-slate-300" strokeWidth="3" />
       {Array.from({ length: CELLS }, (_, i) => {
@@ -113,3 +108,127 @@ export default function BatteryPage() {
     void fetch("/api/settings", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d?.batteryCapacityWh) setSettings({ batteryCapacityWh: d.batteryCapacityWh, batteryMinReservePct: d.batteryMinReservePct ?? 20, batteryChemistry: d.batteryChemistry, batteryNominalVoltage: d.batteryNominalVoltage }); }).catch(() => {});
     const loadHistory = () => void fetch("/api/telemetry/history", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d) setHistory(d as History); }).catch(() => {});
     loadHistory();
+    const stopHistory = startVisiblePolling(loadHistory, 5 * 60_000);
+    const stopLive = startVisiblePolling(() => void load(), REFRESH_MS);
+    return () => {
+      stopLive();
+      stopHistory();
+    };
+  }, [load]);
+
+  const soc = Math.min(100, Math.max(0, snapshot?.batterySoc ?? 0));
+  const powerW = snapshot?.batteryPowerW ?? 0;
+  const state = batteryState(powerW);
+  const toneText = batteryText(soc);
+  const eta = snapshot ? estimate(soc, powerW, settings) : null;
+  const amps = snapshot ? batteryAmps(snapshot, settings?.batteryNominalVoltage) : null;
+  const reservePct = settings?.batteryMinReservePct ?? 20;
+  const capacityKWh = (settings?.batteryCapacityWh ?? 0) / 1000;
+  const storedKWh = (soc / 100) * capacityKWh;
+  const usableKWh = (Math.max(0, soc - reservePct) / 100) * capacityKWh;
+  const reserveLeftPct = ((280 - (reservePct / 100) * 250) / 300) * 100;
+
+  return (
+    <div className="desktop-grid w-full space-y-3 pb-4 text-right" dir="rtl">
+      <PageHeader icon={BatteryCharging} tone="emerald" eyebrow="شمسك • البطارية" title="حالة البطارية" subtitle="الشحن والجهد والحرارة والوقت المتوقع." />
+
+      <section className="energy-card p-5">
+        {loading && !snapshot ? (
+          <div className="flex justify-center py-10"><Loader2 className="h-10 w-10 animate-spin text-emerald-500" aria-label="جاري تحميل القراءة" /></div>
+        ) : (
+          <>
+            <BatteryGauge soc={soc} reservePct={reservePct} tone={toneText} charging={state === "charging"} />
+            <div className="relative mt-1 h-4 text-[10px] font-bold text-slate-400">
+              <span className="absolute right-[3%]">0%</span>
+              <span className="absolute -translate-x-1/2 whitespace-nowrap text-rose-500" style={{ left: `${reserveLeftPct}%` }}>الاحتياطي {reservePct}%</span>
+              <span className="absolute left-[7%]">100%</span>
+            </div>
+
+            <div className="mt-4 flex items-end justify-between gap-3">
+              <div>
+                <div className={"text-5xl font-black leading-none " + toneText}><bdi dir="ltr">{snapshot ? Math.round(soc) + "%" : "—"}</bdi></div>
+                <div className="mt-2 text-xs font-bold text-slate-500">{!snapshot ? "لا توجد قراءة" : eta ? (eta.label === "عند حد الاحتياطي" ? eta.label : (eta.charging ? "تمتلئ بعد " : "تصل للاحتياطي بعد ") + eta.label) : state === "idle" ? "لا شحن ولا تفريغ الآن" : ""}</div>
+              </div>
+              {snapshot && (
+                <div className="flex flex-col items-end gap-1.5">
+                  <span className={"inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black ring-1 " + (state === "charging" ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : state === "discharging" ? "bg-amber-50 text-amber-700 ring-amber-200" : "bg-slate-50 text-slate-500 ring-slate-200")}>
+                    {state === "charging" && <Zap className="h-3.5 w-3.5" />}{batteryStateLabel(state)}
+                  </span>
+                  <span className="text-sm font-black text-slate-700"><bdi dir="ltr">{(Math.abs(powerW) / 1000).toFixed(2)}<small className="text-xs text-slate-500"> kW</small></bdi></span>
+                  <AmpPill tone="emerald" amps={amps} muted={Math.abs(powerW) < 50} />
+                </div>
+              )}
+            </div>
+
+            {settings && snapshot && (
+              <dl className="mt-4 grid grid-cols-2 divide-x divide-x-reverse divide-slate-100 border-t border-slate-100 pt-4">
+                <div className="pl-3">
+                  <dt className="text-[11px] font-bold text-slate-500">المخزّن الآن</dt>
+                  <dd className="mt-1 flex flex-wrap items-center gap-1.5"><span className="text-lg font-black text-slate-900"><bdi dir="ltr">{storedKWh.toFixed(2)}<small className="text-xs text-slate-500"> kWh</small></bdi></span><AmpPill tone="emerald" unit="Ah" amps={batteryAmpHours(storedKWh, settings.batteryNominalVoltage)} /></dd>
+                </div>
+                <div className="pr-3">
+                  <dt className="text-[11px] font-bold text-slate-500">المتاح قبل الاحتياطي</dt>
+                  <dd className="mt-1 flex flex-wrap items-center gap-1.5"><span className={"text-lg font-black " + (usableKWh > 0 ? "text-slate-900" : "text-rose-600")}><bdi dir="ltr">{usableKWh.toFixed(2)}<small className="text-xs text-slate-500"> kWh</small></bdi></span><AmpPill tone="emerald" unit="Ah" amps={batteryAmpHours(usableKWh, settings.batteryNominalVoltage)} /></dd>
+                </div>
+              </dl>
+            )}
+          </>
+        )}
+      </section>
+
+      <section className="energy-card p-4">
+        <div className="grid grid-cols-3 divide-x divide-x-reverse divide-slate-100">
+          <Reading label="الجهد" value={snapshot?.batteryVoltage != null ? snapshot.batteryVoltage.toFixed(1) : "—"} unit={snapshot?.batteryVoltage != null ? "V" : undefined} muted={snapshot?.batteryVoltage == null} note={settings?.batteryNominalVoltage ? `الاسمي ${settings.batteryNominalVoltage} V` : undefined} />
+          <Reading label="التيار" value={amps != null ? amps.toFixed(1) : "—"} unit={amps != null ? "A" : undefined} muted={amps == null} note={snapshot && state !== "idle" ? (state === "charging" ? "داخل للبطارية" : "خارج منها") : "لا تيار الآن"} />
+          {snapshot?.batteryTemperature != null
+            ? <Reading label="الحرارة" value={snapshot.batteryTemperature.toFixed(1)} unit="°C" note={snapshot.batteryTemperature >= 45 ? "مرتفعة" : "طبيعية"} />
+            : <Reading label="الحرارة" value="—" muted note="تحتاج BMS" />}
+        </div>
+      </section>
+      {eta && <p className="px-1 text-[11px] font-semibold text-slate-400">الوقت تقديري: يُحسب من السعة المحفوظة في الإعدادات والقدرة الحالية، ويتغير مع تغيّر الحمل.</p>}
+      {snapshot && snapshot.batteryTemperature == null && (
+        <p className="rounded-2xl bg-amber-50 p-3 text-[11px] font-bold leading-5 text-amber-800">الحرارة والنسبة الدقيقة يرسلهما جهاز إدارة البطارية (BMS). تظهران بعد توصيل كابل الاتصال من منفذ CAN في البطارية إلى الإنفرتر.</p>
+      )}
+
+      <section className="energy-card p-4">
+        <h2 className="text-sm font-black text-slate-900">البطارية اليوم</h2>
+        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+          <div><div className="text-[11px] font-bold text-slate-500">شحن</div><div className="text-base font-black text-emerald-600"><bdi dir="ltr">{history?.batteryToday ? history.batteryToday.chargeKWh.toFixed(1) : "—"}<span className="text-[10px]"> kWh</span></bdi></div><div className="mt-1.5"><AmpPill tone="emerald" unit="Ah" amps={history?.batteryToday ? batteryAmpHours(history.batteryToday.chargeKWh, settings?.batteryNominalVoltage) : null} /></div></div>
+          <div><div className="text-[11px] font-bold text-slate-500">تفريغ</div><div className="text-base font-black text-amber-600"><bdi dir="ltr">{history?.batteryToday ? history.batteryToday.dischargeKWh.toFixed(1) : "—"}<span className="text-[10px]"> kWh</span></bdi></div><div className="mt-1.5"><AmpPill tone="amber" unit="Ah" amps={history?.batteryToday ? batteryAmpHours(history.batteryToday.dischargeKWh, settings?.batteryNominalVoltage) : null} /></div></div>
+          <div><div className="text-[11px] font-bold text-slate-500">أدنى / أعلى</div><div className="text-base font-black text-slate-800"><bdi dir="ltr">{history?.socToday ? `${Math.round(history.socToday.min)}–${Math.round(history.socToday.max)}%` : "—"}</bdi></div></div>
+        </div>
+      </section>
+
+      <section className="energy-card space-y-2 p-4">
+        <h2 className="text-sm font-black text-slate-900">نسبة الشحن خلال آخر 24 ساعة</h2>
+        {history && history.points.filter((p) => typeof p.soc === "number").length >= 2 ? (
+          <>
+            <BatteryFlowSplit points={history.points} now={Date.now()} />
+            <div className="border-t border-slate-100 pt-3">
+              <SocChart points={history.points} timeZone={history.timezone || "Asia/Beirut"} now={Date.now()} reservePct={settings?.batteryMinReservePct ?? 20} />
+            </div>
+          </>
+        ) : (
+          <p className="py-6 text-center text-xs font-semibold text-slate-400">يظهر المنحنى بعد تجمّع قراءات كافية (نحو ساعة من الاستخدام).</p>
+        )}
+      </section>
+
+      {settings && (
+        <section className="energy-card desktop-wide p-4">
+          <h2 className="text-sm font-black text-slate-900">مواصفات البطارية</h2>
+          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <dt className="text-slate-500">النوع</dt><dd className="text-left font-black text-emerald-700" dir="ltr">{settings.batteryChemistry || "—"}</dd>
+            <dt className="text-slate-500">السعة</dt><dd className="text-left font-black text-emerald-700" dir="ltr">{(settings.batteryCapacityWh / 1000).toFixed(2)} kWh <AmpPill tone="emerald" unit="Ah" amps={batteryAmpHours(settings.batteryCapacityWh / 1000, settings.batteryNominalVoltage)} className="ml-1 align-middle" /></dd>
+            <dt className="text-slate-500">الجهد الاسمي</dt><dd className="text-left font-black text-emerald-700" dir="ltr">{settings.batteryNominalVoltage ? `${settings.batteryNominalVoltage} V` : "—"}</dd>
+            <dt className="text-slate-500">حد الاحتياطي</dt><dd className="text-left font-black text-emerald-700" dir="ltr">{settings.batteryMinReservePct}%</dd>
+          </dl>
+          <p className="mt-2 text-[11px] font-semibold text-slate-400">تُعدَّل من الإعدادات ← مواصفات العتاد.</p>
+        </section>
+      )}
+
+      {!snapshot && !loading && (
+        <div className="desktop-wide rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">لا توجد قراءة حية متاحة حاليًا.</div>
+      )}
+    </div>
+  );
+}
