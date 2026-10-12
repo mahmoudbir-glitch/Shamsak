@@ -37,19 +37,9 @@ function BatteryGauge({ soc, reservePct, tone, charging }: { soc: number; reserv
   const cell = (BODY.width - BODY.gap * (CELLS - 1)) / CELLS;
   const right = BODY.x + BODY.width;
   const reserveX = right - (reservePct / 100) * BODY.width;
-  const headTone = charging ? "text-emerald-500" : soc <= reservePct ? "text-rose-500" : "text-amber-500";
   return (
     <svg viewBox="0 0 300 120" className="h-auto w-full" role="img" aria-label={`البطارية مشحونة ${Math.round(soc)}٪، والاحتياطي ${reservePct}٪`}>
-      {/* رأس البطارية: خطوط ديناميكية خارجية فقط، تدور حول الرأس عند وجود شحن. */}
-      <g className={"fill-none stroke-current " + headTone} opacity={charging ? 0.95 : 0.35}>
-        <path d="M10 42 A18 18 0 0 1 28 60" strokeWidth="2" strokeLinecap="round" strokeDasharray="5 5">
-          {charging && <animateTransform attributeName="transform" type="rotate" from="0 10 60" to="360 10 60" dur="2.2s" repeatCount="indefinite" />}
-        </path>
-        <path d="M10 78 A18 18 0 0 1 28 60" strokeWidth="2" strokeLinecap="round" strokeDasharray="5 5">
-          {charging && <animateTransform attributeName="transform" type="rotate" from="0 10 60" to="360 10 60" dur="2.2s" repeatCount="indefinite" />}
-        </path>
-      </g>
-      {/* رأس البطارية نفسه — بدون أي خط زخرفي داخلي. */}
+      {/* جسم البطارية ورأسها — بدون أي خط ديناميكي على الرأس. */}
       <rect x="4" y="42" width="14" height="36" rx="4" className="fill-slate-300" />
       <rect x="20" y="10" width="270" height="100" rx="16" className="fill-white stroke-slate-300" strokeWidth="3" />
       {Array.from({ length: CELLS }, (_, i) => {
