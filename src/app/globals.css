@@ -13,6 +13,10 @@ button,a,input,select { -webkit-tap-highlight-color: transparent; }
 button:disabled { cursor: not-allowed; opacity: .6; }
 .safe-bottom { padding-bottom: calc(6.5rem + env(safe-area-inset-bottom)); }
 
+/* Improve readability: darken the two lightest neutral text levels used throughout the app. */
+.text-slate-500 { color: #334155 !important; }
+.text-slate-400 { color: #475569 !important; }
+
 @keyframes energy-node-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.055); }
