@@ -6,13 +6,17 @@ import type { EnergySnapshot } from "@/lib/energy";
 import { acAmps } from "@/lib/energy";
 import { AmpPill } from "@/components/amp-pill";
 import { analyzeEnergy, type IntelligentEnergyContext, type IntelligentEnergySettings } from "@/lib/intelligent-energy";
+import { sunTimes } from "@/lib/solar-core";
 
 const DEFAULT_SETTINGS: IntelligentEnergySettings = { batteryCapacityWh: 4800, batteryMinReservePct: 10 };
+const DEFAULT_LOCATION = { latitude: 33.8938, longitude: 35.5018 };
 const HISTORY_KEY = "shamsak_intelligent_energy_history_v2";
 const MAX_HISTORY_AGE_MS = 24 * 60 * 60 * 1000;
 const MAX_HISTORY_SAMPLES = 120;
+const NIGHT_SOLAR_TOLERANCE_W = 100;
 
 type TrendSample = { timestamp: string; batterySoc: number; homePowerW: number; solarPowerW: number };
+type SolarLocation = { latitude: number; longitude: number };
 
 function readTrendHistory(): TrendSample[] {
   if (typeof window === "undefined") return [];
@@ -53,6 +57,7 @@ function collectTrendContext(snapshot: EnergySnapshot | null) {
 
 export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot | null }) {
   const [settings, setSettings] = useState<IntelligentEnergySettings>(DEFAULT_SETTINGS);
+  const [solarLocation, setSolarLocation] = useState<SolarLocation>(DEFAULT_LOCATION);
   const [trendContext, setTrendContext] = useState<IntelligentEnergyContext>({});
   const [open, setOpen] = useState(false);
 
@@ -64,17 +69,69 @@ export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot |
         if (!active || !data) return;
         const capacity = typeof data.batteryCapacityWh === "number" && Number.isFinite(data.batteryCapacityWh) && data.batteryCapacityWh > 0 ? data.batteryCapacityWh : DEFAULT_SETTINGS.batteryCapacityWh;
         const reserve = typeof data.batteryMinReservePct === "number" && Number.isFinite(data.batteryMinReservePct) && data.batteryMinReservePct >= 0 && data.batteryMinReservePct < 100 ? data.batteryMinReservePct : DEFAULT_SETTINGS.batteryMinReservePct;
+        const latitude = typeof data.latitude === "number" && Number.isFinite(data.latitude) && data.latitude >= -90 && data.latitude <= 90 ? data.latitude : DEFAULT_LOCATION.latitude;
+        const longitude = typeof data.longitude === "number" && Number.isFinite(data.longitude) && data.longitude >= -180 && data.longitude <= 180 ? data.longitude : DEFAULT_LOCATION.longitude;
         setSettings({ batteryCapacityWh: capacity, batteryMinReservePct: reserve });
+        setSolarLocation({ latitude, longitude });
       }).catch(() => {});
     return () => { active = false; };
   }, []);
 
   useEffect(() => { setTrendContext(collectTrendContext(snapshot)); }, [snapshot]);
 
-  const insight = useMemo(() => (snapshot ? analyzeEnergy(snapshot, settings, trendContext) : null), [snapshot, settings, trendContext]);
-  if (!insight) return null;
+  const solarState = useMemo(() => {
+    if (!snapshot) return { isNight: false, suspicious: false };
+    const instant = new Date(snapshot.timestamp);
+    if (!Number.isFinite(instant.getTime())) return { isNight: false, suspicious: false };
+    const { sunrise, sunset } = sunTimes(instant, solarLocation.latitude, solarLocation.longitude);
+    const isNight = instant < sunrise || instant > sunset;
+    const solarPowerW = Math.max(0, Number.isFinite(snapshot.solarPowerW) ? snapshot.solarPowerW : 0);
+    return { isNight, suspicious: isNight && solarPowerW > NIGHT_SOLAR_TOLERANCE_W };
+  }, [snapshot, solarLocation]);
 
-  const homeW = Math.max(0, snapshot.homePowerW);
+  const analysisSnapshot = useMemo(() => {
+    if (!snapshot || !solarState.isNight) return snapshot;
+    return { ...snapshot, solarPowerW: 0 };
+  }, [snapshot, solarState.isNight]);
+
+  const analysisContext = useMemo<IntelligentEnergyContext>(() => {
+    if (!solarState.isNight) return trendContext;
+    return { ...trendContext, recentAverageSolarPowerW: null };
+  }, [trendContext, solarState.isNight]);
+
+  const insight = useMemo(() => (analysisSnapshot ? analyzeEnergy(analysisSnapshot, settings, analysisContext) : null), [analysisSnapshot, settings, analysisContext]);
+
+  const displayInsight = useMemo(() => {
+    if (!insight || !snapshot || !solarState.isNight) return insight;
+    const solarPowerW = Math.max(0, Number.isFinite(snapshot.solarPowerW) ? snapshot.solarPowerW : 0);
+    if (solarState.suspicious) {
+      return {
+        tone: "amber" as const,
+        alert: true,
+        title: "قراءة الإنتاج الشمسي غير منطقية",
+        summary: `الوقت الحالي بعد غروب الشمس، لكن الإنفرتر يرسل ${(solarPowerW / 1000).toFixed(1)} kW كإنتاج شمسي.`,
+        action: "تحقق من قراءة الإنفرتر أو SmartESS/Gateway",
+        recommendation: "شمسك لن يعتبر هذه القراءة إنتاجاً شمسياً ليلاً ولن يرسل تنبيه انخفاض إنتاج بسببها.",
+        details: ["تم التعرف على الليل اعتماداً على موقع المنظومة ووقت الشروق والغروب المحسوبين.", "إذا استمرت القراءة غير الطبيعية بعد عدة قراءات، راجع مصدر pv_power أو اتصال الداتالوجر."],
+      };
+    }
+    if (!insight.alert) {
+      return {
+        ...insight,
+        tone: "blue" as const,
+        title: "وضع الليل",
+        summary: `الشمس غائبة الآن. الإنتاج الشمسي المتوقع 0 kW، واستهلاك المنزل ${Math.max(0, snapshot.homePowerW / 1000).toFixed(1)} kW.`,
+        action: "لا يوجد إجراء متعلق بالألواح الآن",
+        recommendation: "تتم مراقبة البطارية والشبكة خلال الليل بدلاً من مقارنة الإنتاج بمتوسط النهار.",
+        details: ["لا يتم احتساب الليل كحالة انخفاض إنتاج شمسي.", ...insight.details],
+      };
+    }
+    return insight;
+  }, [insight, snapshot, solarState]);
+
+  if (!displayInsight) return null;
+
+  const homeW = Math.max(0, snapshot?.homePowerW ?? 0);
   const homeKw = homeW / 1000;
   const homeAmps = acAmps(homeW);
 
@@ -83,14 +140,14 @@ export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot |
     amber: { bg: "bg-amber-50", border: "border-amber-300", ring: "ring-1 ring-amber-200/70", shadow: "shadow-[0_8px_24px_rgba(245,158,11,0.14)]", icon: "text-amber-600", title: "text-amber-900" },
     red: { bg: "bg-rose-50", border: "border-rose-300", ring: "ring-1 ring-rose-200/70", shadow: "shadow-[0_8px_24px_rgba(244,63,94,0.16)]", icon: "text-rose-600", title: "text-rose-900" },
     blue: { bg: "bg-sky-50", border: "border-sky-300", ring: "ring-1 ring-sky-200/70", shadow: "shadow-[0_8px_24px_rgba(14,165,233,0.10)]", icon: "text-sky-600", title: "text-sky-900" },
-  }[insight.tone];
-  const Icon = insight.tone === "green" ? CheckCircle2 : insight.tone === "red" ? AlertTriangle : insight.tone === "amber" ? BatteryCharging : Sun;
+  }[displayInsight.tone];
+  const Icon = displayInsight.tone === "green" ? CheckCircle2 : displayInsight.tone === "red" ? AlertTriangle : displayInsight.tone === "amber" ? BatteryCharging : Sun;
 
   return (
     <section className={`overflow-hidden rounded-2xl border ${tone.border} ${tone.bg} ${tone.ring} ${tone.shadow} transition-colors duration-500`} dir="rtl" aria-label="مراقبة شمسك الذكي">
       <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} className="flex w-full items-center gap-3 p-3.5 text-right transition hover:bg-white/40 active:bg-white/60">
         <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/80 ${tone.icon}`}><Sparkles size={17} /></div>
-        <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className={`text-xs font-black ${tone.title}`}>مراقبة شمسك الذكي</span>{insight.alert && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-black text-rose-700">تنبيه</span>}<Icon size={15} className={tone.icon} aria-hidden="true" /></div><div className={`mt-1 text-sm font-black ${tone.title}`}>{insight.title}</div></div>
+        <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className={`text-xs font-black ${tone.title}`}>مراقبة شمسك الذكي</span>{displayInsight.alert && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-black text-rose-700">تنبيه</span>}<Icon size={15} className={tone.icon} aria-hidden="true" /></div><div className={`mt-1 text-sm font-black ${tone.title}`}>{displayInsight.title}</div></div>
         <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/70 ${tone.icon} transition-transform duration-200 ${open ? "rotate-180" : ""}`} aria-hidden="true"><ChevronDown size={17} /></span>
       </button>
       {open && <div className="border-t border-white/70 px-3.5 pb-3.5 pt-1">
@@ -98,8 +155,8 @@ export function IntelligentEnergyCard({ snapshot }: { snapshot: EnergySnapshot |
           <span className="text-[10px] font-bold text-slate-500">الاستهلاك</span>
           <div className="flex items-center gap-2"><span className="text-xs font-black text-slate-800"><bdi dir="ltr">{homeKw.toFixed(2)} kW</bdi></span><AmpPill tone="sky" amps={homeAmps} /></div>
         </div>
-        <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">{insight.summary}</p>
-        {insight.alert && <p className="mt-2 text-xs font-black leading-5 text-slate-800">الإجراء: {insight.action}</p>}
+        <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">{displayInsight.summary}</p>
+        {displayInsight.alert && <p className="mt-2 text-xs font-black leading-5 text-slate-800">الإجراء: {displayInsight.action}</p>}
       </div>}
     </section>
   );
