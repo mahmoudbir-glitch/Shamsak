@@ -13,9 +13,11 @@ button,a,input,select { -webkit-tap-highlight-color: transparent; }
 button:disabled { cursor: not-allowed; opacity: .6; }
 .safe-bottom { padding-bottom: calc(6.5rem + env(safe-area-inset-bottom)); }
 
-/* Improve readability: darken the two lightest neutral text levels used throughout the app. */
-.text-slate-500 { color: #334155 !important; }
+/* Improve readability: darken all neutral gray text levels by roughly two Tailwind steps. */
+.text-slate-300 { color: #64748b !important; }
 .text-slate-400 { color: #475569 !important; }
+.text-slate-500 { color: #334155 !important; }
+.text-slate-600 { color: #1e293b !important; }
 
 @keyframes energy-node-pulse {
   0%, 100% { transform: scale(1); }
@@ -60,8 +62,8 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 
 @media (max-width: 1023px) {
   .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child { font-size: 0; }
-  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child::before { content: "السحب الحالي"; display: block; font-size: 9px; line-height: 1.4; font-weight: 800; color: #64748b; }
-  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child::after { content: "قدرة المنزل الآن"; display: block; margin-top: 2px; font-size: 8px; line-height: 1.4; font-weight: 700; color: #94a3b8; }
+  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child::before { content: "السحب الحالي"; display: block; font-size: 9px; line-height: 1.4; font-weight: 800; color: #334155; }
+  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child::after { content: "قدرة المنزل الآن"; display: block; margin-top: 2px; font-size: 8px; line-height: 1.4; font-weight: 700; color: #475569; }
 }
 
 @media (min-width: 1024px) {
