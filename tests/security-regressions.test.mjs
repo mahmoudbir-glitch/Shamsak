@@ -867,10 +867,13 @@ test("the forecast's big kWh number says what it is", () => {
   assert.ok(source.indexOf("إنتاج الألواح المتوقع حسب الطقس") < source.indexOf("{selected.productionKWh}<small"));
 });
 
-test("battery page draws the battery with its reserve line and shows stored and usable energy", () => {
+test("battery page draws the battery, marks the reserve on its scale and shows stored and usable energy", () => {
   const page = read("src/app/battery/page.tsx");
   assert.match(page, /function BatteryGauge\(/);
-  assert.match(page, /strokeDasharray="5 4"/);
+  // The reserve is a label on the scale under the cells; the outline animation belongs to the gauge, not to CSS that matches its markup.
+  assert.match(page, /الاحتياطي <bdi dir="ltr">\{reservePct\}%/);
+  assert.match(page, /battery-outline-charge/);
+  assert.doesNotMatch(read("src/app/globals.css"), /:has\(/);
   assert.match(page, /المخزّن الآن/);
   assert.match(page, /المتاح قبل الاحتياطي/);
   assert.match(page, /const usableKWh = \(Math\.max\(0, soc - reservePct\) \/ 100\) \* capacityKWh;/);

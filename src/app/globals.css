@@ -30,40 +30,14 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .sun-twinkle { display: inline-block; animation: sun-spin 12s linear infinite, sun-twinkle 2.6s ease-in-out infinite; transform-origin: center; }
 @media (prefers-reduced-motion: reduce) { .sun-twinkle { animation: none; } }
 
-/* Battery outline: moving trace follows the complete outside silhouette, including the head/terminal. */
+/* Battery outline (set by BatteryGauge): a moving trace around the whole silhouette, terminal included; green while charging, amber while discharging. */
 @keyframes shamsak-battery-outline-charge { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -16; } }
 @keyframes shamsak-battery-outline-discharge { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 16; } }
-.energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.fill-white.stroke-slate-300,
-.energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.fill-slate-300 {
-  stroke: #10b981;
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-dasharray: 9 8;
-  animation: shamsak-battery-outline-charge 1.35s linear infinite;
-  filter: drop-shadow(0 0 2px rgba(16,185,129,.4));
-}
-.energy-card:has(.bg-amber-50.text-amber-700) svg rect.fill-white.stroke-slate-300,
-.energy-card:has(.bg-amber-50.text-amber-700) svg rect.fill-slate-300 {
-  stroke: #f59e0b;
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-dasharray: 9 8;
-  animation: shamsak-battery-outline-discharge 1.05s linear infinite;
-  filter: drop-shadow(0 0 2px rgba(245,158,11,.4));
-}
-/* Hide the internal reserve marker completely. */
-.energy-card svg line.stroke-rose-400 { display: none; }
+.battery-outline-charge, .battery-outline-discharge { stroke-width: 3; stroke-linecap: round; stroke-dasharray: 9 8; }
+.battery-outline-charge { stroke: #10b981; animation: shamsak-battery-outline-charge 1.35s linear infinite; filter: drop-shadow(0 0 2px rgba(16,185,129,.4)); }
+.battery-outline-discharge { stroke: #f59e0b; animation: shamsak-battery-outline-discharge 1.05s linear infinite; filter: drop-shadow(0 0 2px rgba(245,158,11,.4)); }
 @media (prefers-reduced-motion: reduce) {
-  .energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.fill-white.stroke-slate-300,
-  .energy-card:has(svg path[d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z"]) svg rect.fill-slate-300,
-  .energy-card:has(.bg-amber-50.text-amber-700) svg rect.fill-white.stroke-slate-300,
-  .energy-card:has(.bg-amber-50.text-amber-700) svg rect.fill-slate-300 { animation: none; }
-}
-
-@media (max-width: 1023px) {
-  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child { font-size: 0; }
-  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child::before { content: "السحب الحالي"; display: block; font-size: 9px; line-height: 1.4; font-weight: 800; color: #334155; }
-  .desktop-grid > section:nth-of-type(2) > div > div:nth-child(2) > div:first-child > div.relative > div.grid.h-full.w-full > div > span:last-child::after { content: "قدرة المنزل الآن"; display: block; margin-top: 2px; font-size: 8px; line-height: 1.4; font-weight: 700; color: #475569; }
+  .battery-outline-charge, .battery-outline-discharge { animation: none; }
 }
 
 @media (min-width: 1024px) {
