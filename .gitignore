@@ -11,3 +11,6 @@ build
 __pycache__/
 *.pyc
 tsconfig.tsbuildinfo
+
+# Local Continue configs, which can hold API keys
+.continue/
