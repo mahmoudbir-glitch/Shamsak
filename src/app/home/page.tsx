@@ -51,7 +51,7 @@ export default function HomeConsumptionPage() {
 
   return (<div className="desktop-grid w-full space-y-3 pb-4 text-right" dir="rtl">
     <ConsumptionHero refreshing={refreshing} onRefresh={() => void load(true)} />
-    {snapshot && <IntelligentEnergyCard snapshot={snapshot} />}
+    {snapshot && <IntelligentEnergyCard snapshot={snapshot} history={history?.points} />}
     <CollapsibleCard index="01" title="الاستهلاك الآن" subtitle="قدرة المنزل وتياره في هذه اللحظة" accentClass="border-r-sky-400">
       <div className="flex justify-center py-3"><div className="relative grid h-40 w-40 place-items-center rounded-full p-[10px] shadow-[0_0_35px_rgba(56,189,248,0.12)]" style={{ background: `conic-gradient(from 220deg, #38bdf8 0%, #34d399 ${gauge}%, #e2e8f0 ${gauge}% 100%)` }}><div className="grid h-full w-full place-items-center rounded-full border border-slate-200 bg-white text-center shadow-inner">{loading && !snapshot ? <Loader2 className="h-8 w-8 animate-spin text-sky-500" aria-label="جاري تحميل القراءة" /> : !snapshot ? <><span className="text-4xl font-black text-slate-300">—</span><span className="mt-[-22px] text-[9px] font-bold text-slate-400">لا توجد قراءة</span></> : <div><span className="block text-3xl font-black tracking-tight text-slate-900"><bdi dir="ltr">{homeKw.toFixed(2)}</bdi></span><span className="mt-0.5 block text-xs font-black text-sky-600"><bdi dir="ltr">kW</bdi></span><span className="mt-1.5 block"><AmpPill tone="sky" amps={acAmps(homeW)} /></span><span className="mt-1 block text-[9px] font-bold text-slate-400">{ratedKw ? `${loadPct}% من قدرة الإنفرتر` : "الحمل الحالي"}</span></div>}</div></div></div>
     </CollapsibleCard>
