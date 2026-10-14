@@ -922,3 +922,14 @@ test("smart monitor: equipment and reserve alerts, night, a full battery and the
   assert.match(card, /insight\.details\.map/);
   assert.ok(read("src/app/home/page.tsx").includes("<IntelligentEnergyCard snapshot={snapshot} history={history?.points} />"));
 });
+
+test("battery bolt blinks while charging and takes the battery's colour on both pages", () => {
+  const mode = fs.readFileSync(new URL("../src/lib/bolt-mode.ts", import.meta.url), "utf8");
+  const battery = fs.readFileSync(new URL("../src/app/battery/page.tsx", import.meta.url), "utf8");
+  const flow = fs.readFileSync(new URL("../src/components/energy-flow.tsx", import.meta.url), "utf8");
+  const css = fs.readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+  assert.match(mode, /export const boltBlinks = \(mode: BoltMode\) => mode === "solar" \|\| mode === "grid";/);
+  assert.match(battery, /className=\{boltBlinks\(bolt\) \? "bolt-blink" : undefined\}/);
+  assert.match(flow, /<InverterIcon active=\{liveFlowActive\} mode=\{bolt\} \/>/);
+  assert.match(css, /\.bolt-blink \{ animation: bolt-blink/);
+});
