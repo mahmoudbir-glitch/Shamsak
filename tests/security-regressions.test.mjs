@@ -554,10 +554,10 @@ test("polling pauses while the app is hidden", () => {
   }
 });
 
-test("forecast day card shows the battery at sunrise/sunset and the full-charge time", () => {
-  const source = read("src/components/smart-forecast.tsx");
-  assert.match(source, /selected\.chargeAtSunsetPct/);
-  assert.match(source, /selected\.fullChargeTime/);
+test("battery-by-day card shows the battery at sunset and the full-charge time", () => {
+  const source = read("src/components/battery-timeline.tsx");
+  assert.match(source, /chargeAtSunsetPct/);
+  assert.match(source, /fullChargeTime/);
 });
 
 test("panel power uses the largest PV figure (Mains mode reports it only as PV Charge Power)", () => {
@@ -932,4 +932,9 @@ test("battery bolt blinks while charging and takes the battery's colour on both 
   assert.match(battery, /className=\{boltBlinks\(bolt\) \? "bolt-blink" : undefined\}/);
   assert.match(flow, /<InverterIcon active=\{liveFlowActive\} mode=\{bolt\} \/>/);
   assert.match(css, /\.bolt-blink \{ animation: bolt-blink/);
+});
+
+test("calibration accepts panels giving half the theoretical output or more", () => {
+  const core = fs.readFileSync(new URL("../src/lib/solar-core.ts", import.meta.url), "utf8");
+  assert.match(core, /export const CALIBRATION_PLAUSIBLE_MIN = 0\.5;/);
 });
