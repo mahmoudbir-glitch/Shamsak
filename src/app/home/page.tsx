@@ -2,7 +2,8 @@
 
 import { HomeSourceSplit } from "@/components/energy-split";
 import React, { useCallback, useEffect, useState } from "react";
-import { Home, Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 import type { EnergySnapshot } from "@/lib/energy";
 import { LoadChart, type LoadPoint } from "@/components/load-chart";
 import { homeText, acAmps } from "@/lib/energy";
@@ -13,15 +14,6 @@ const REFRESH_MS = 15_000;
 const HISTORY_REFRESH_MS = 5 * 60_000;
 
 type History = { points: LoadPoint[]; peak: { w: number; at: string } | null; inverterRatedKw: number | null; timezone: string };
-
-function ConsumptionHero({ refreshing, onRefresh }: { refreshing: boolean; onRefresh: () => void }) {
-  return (
-    <section className="relative overflow-hidden rounded-[28px] border border-sky-100 bg-[radial-gradient(circle_at_15%_15%,rgba(56,189,248,0.18),transparent_32%),linear-gradient(135deg,#ffffff_0%,#f4faff_58%,#eef8ff_100%)] p-4 shadow-[0_14px_40px_rgba(14,165,233,0.10)] sm:p-5">
-      <div className="pointer-events-none absolute -left-10 -top-12 h-36 w-36 rounded-full bg-sky-200/30 blur-3xl" /><div className="pointer-events-none absolute -bottom-16 right-8 h-32 w-32 rounded-full bg-cyan-200/30 blur-3xl" />
-      <div className="relative flex items-start justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/90 text-sky-600 shadow-sm ring-1 ring-sky-100"><Home size={24} strokeWidth={2.2} /></div><div className="min-w-0"><h1 className="text-xl font-black tracking-tight text-slate-900 sm:text-2xl">استهلاك المنزل</h1><p className="mt-0.5 text-[11px] font-semibold text-slate-500 sm:text-xs">صورة سريعة لاستهلاك بيتك والطاقة المسحوبة</p></div></div><button type="button" onClick={onRefresh} disabled={refreshing} aria-label="تحديث البيانات" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/80 bg-white/80 text-slate-500 shadow-sm transition hover:bg-white active:scale-95 disabled:opacity-50"><RefreshCw size={17} className={refreshing ? "animate-spin" : ""} /></button></div>
-    </section>
-  );
-}
 
 export default function HomeConsumptionPage() {
   const [snapshot, setSnapshot] = useState<EnergySnapshot | null>(null);
@@ -95,7 +87,15 @@ export default function HomeConsumptionPage() {
 
   return (
     <div className="desktop-grid w-full space-y-3 pb-4 text-right" dir="rtl">
-      <ConsumptionHero refreshing={refreshing} onRefresh={() => void load(true)} />
+      <PageHeader
+        title="استهلاك المنزل"
+        subtitle="كم يسحب بيتك الآن، ومن أين تأتي الطاقة."
+        right={
+          <button type="button" onClick={() => void load(true)} disabled={refreshing} aria-label="تحديث البيانات" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 active:scale-95 disabled:opacity-50">
+            <RefreshCw size={17} className={refreshing ? "animate-spin" : ""} />
+          </button>
+        }
+      />
 
       {/* الآن: كم يسحب البيت، ومن أين تأتي هذه الطاقة */}
       <section className="energy-card p-4">
