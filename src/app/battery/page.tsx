@@ -29,7 +29,7 @@ function estimate(soc: number, powerW: number, settings: BatterySettings | null)
   return { charging, label };
 }
 
-/** Ten cells, filled from the right (RTL) up to the charge. The outline runs green while charging, amber while discharging. */
+/** Ten cells, filled from the right (RTL) up to the charge; the reserve is a dashed line. The outline runs green while charging, amber while discharging. */
 const CELLS = 10;
 const BODY = { x: 30, width: 250, gap: 4 } as const;
 
@@ -37,6 +37,7 @@ function BatteryGauge({ soc, reservePct, tone, state }: { soc: number; reservePc
   const cell = (BODY.width - BODY.gap * (CELLS - 1)) / CELLS;
   const right = BODY.x + BODY.width;
   const outline = state === "charging" ? " battery-outline-charge" : state === "discharging" ? " battery-outline-discharge" : "";
+  const reserveX = right - (reservePct / 100) * BODY.width;
   return (
     <svg viewBox="0 0 300 120" className="h-auto w-full" role="img" aria-label={`البطارية مشحونة ${Math.round(soc)}٪، والاحتياطي ${reservePct}٪`}>
       {/* جسم البطارية ورأسها */}
@@ -53,6 +54,8 @@ function BatteryGauge({ soc, reservePct, tone, state }: { soc: number; reservePc
           </g>
         );
       })}
+      {/* Reserve limit */}
+      <line x1={reserveX} x2={reserveX} y1="14" y2="106" className="stroke-rose-400" strokeWidth="2" strokeDasharray="5 4" />
       {state === "charging" && <path d="M159 30 L141 64 H154 L148 92 L169 54 H156 Z" className="fill-amber-400 stroke-white" strokeWidth="3" strokeLinejoin="round" />}
     </svg>
   );
@@ -169,7 +172,7 @@ export default function BatteryPage() {
           <Reading label="الجهد" value={snapshot?.batteryVoltage != null ? snapshot.batteryVoltage.toFixed(1) : "—"} unit={snapshot?.batteryVoltage != null ? "V" : undefined} muted={snapshot?.batteryVoltage == null} note={settings?.batteryNominalVoltage ? `الاسمي ${settings.batteryNominalVoltage} V` : undefined} />
           <Reading label="التيار" value={amps != null ? amps.toFixed(1) : "—"} unit={amps != null ? "A" : undefined} muted={amps == null} note={snapshot && state !== "idle" ? (state === "charging" ? "داخل للبطارية" : "خارج منها") : "لا تيار الآن"} />
           {snapshot?.batteryTemperature != null
-            ? <Reading label="الحرارة" value={snapshot.batteryTemperature.toFixed(1)} unit="°C" note={snapshot.batteryTemperature >= 45 ? "مرتفعة" : "طبيعية"} />
+            ? <Reading label="الحرارة" value={snapshot.batteryTemperature.toFixed(1)} unit="°C" note={snapshot.batteryTemperature >= 45 ? "مرتفعة" : snapshot.batteryTemperature < 5 ? "منخفضة، تجنّب الشحن" : "طبيعية"} />
             : <Reading label="الحرارة" value="—" muted note="تحتاج BMS" />}
         </div>
       </section>

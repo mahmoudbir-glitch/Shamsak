@@ -267,7 +267,7 @@ export default function MoneyDashboard() {
                       <span className={"h-2.5 w-2.5 rounded-full " + row.color} />
                       <span className={"text-xs font-black " + row.text}>{row.name}</span>
                     </div>
-                    <strong className="text-sm font-black text-slate-900">{row.pct}%</strong>
+                    <strong className={"text-sm font-black " + row.text}>{row.pct}%</strong>
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-[11px] font-bold text-slate-500"><bdi dir="ltr">{formatNumber(row.kwh)} kWh</bdi> <AmpPill tone={row.key === "solar" ? "amber" : row.key === "battery" ? "emerald" : "violet"} unit="Ah" amps={acAmpHours(row.kwh)} /></div>
                 </div>
@@ -357,6 +357,8 @@ export default function MoneyDashboard() {
                 <option value="USD">دولار أمريكي ($)</option>
                 <option value="LBP">ليرة لبنانية (LBP)</option>
                 <option value="SYP">ليرة سورية (SYP)</option>
+                {/* A currency saved elsewhere stays selectable instead of silently showing USD. */}
+                {!["USD", "LBP", "SYP"].includes(currency) && <option value={currency}>{currency}</option>}
               </select>
             </label>
 
