@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { BottomNav, DesktopNav, navGradient } from '@/components/bottom-nav';
+import { BottomNav, DesktopNav } from '@/components/bottom-nav';
 import LogoutButton from '@/components/logout-button';
 import { StatusBar } from '@/components/status-bar';
 
@@ -66,16 +66,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen w-full bg-[linear-gradient(180deg,#f8fafc_0%,#f1f5f9_48%,#f8fafc_100%)]">
       {/* One bar in the open page's colour: brand (with the connection dot beside the name) and tagline, logout. */}
-      <header className={"sticky top-0 z-50 rounded-b-[1.5rem] bg-gradient-to-l pt-[env(safe-area-inset-top)] text-white shadow-[0_8px_24px_rgba(15,23,42,0.14)] transition-colors " + navGradient(pathname || '/')}>
+      <header className={"sticky top-0 z-50 rounded-b-[1.25rem] border-b border-slate-200/80 bg-white/95 pt-[env(safe-area-inset-top)] text-slate-900 shadow-[0_6px_24px_rgba(15,23,42,0.08)] backdrop-blur-xl"}>
         <div className="mx-auto flex min-h-[4.5rem] max-w-5xl items-center justify-between gap-3 px-3 py-2.5 sm:px-6 lg:max-w-6xl">
           <div className="flex min-w-0 items-center gap-2.5" aria-label="شمسك">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/90 shadow-sm" aria-hidden="true"><span className="sun-twinkle text-[1.6rem] leading-none">☀️</span></span>
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-50 ring-1 ring-slate-200/80" aria-hidden="true"><span className="sun-twinkle text-[1.6rem] leading-none">☀️</span></span>
             <div className="min-w-0">
               <div className="flex items-center gap-2"><span className="truncate text-xl font-black leading-tight">شمسك</span><StatusBar compact /></div>
-              <div className="truncate text-xs font-extrabold text-white/90">الشمس تعمل من أجلك</div>
+              <div className="truncate text-xs font-extrabold text-slate-500">الشمس تعمل من أجلك</div>
             </div>
           </div>
-          <LogoutButton onColor />
+          <LogoutButton />
         </div>
       </header>
       <div className="mx-auto hidden max-w-5xl px-4 pt-3 sm:px-6 md:block lg:max-w-6xl">
