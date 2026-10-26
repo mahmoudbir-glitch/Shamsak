@@ -960,3 +960,33 @@ test("house source splits put the measured grid first and never call inverter lo
   assert.match(house, /const fromGrid = Math\.min\(homeW, Math\.max\(0, snapshot\?\.gridPowerW \?\? 0\)\);/);
   assert.match(history, /gridW: Math\.round\(b\.grid \/ b\.n\)/);
 });
+
+test("failed sign-ins only store a user name that belongs to a real account", () => {
+  const source = read("src/app/api/auth/login/route.ts");
+  assert.match(source, /username:\s*knownName \? username : null/);
+  assert.doesNotMatch(source, /username:\s*username \|\| null/);
+});
+
+test("Arabic counts use the right plural forms (no '5 ساعة', '1 أيام' or '7 يوماً')", () => {
+  const home = read("src/components/solar-dashboard-client.tsx");
+  assert.ok(home.includes("arabicDuration("));
+  const money = read("src/app/money/page.tsx");
+  assert.ok(money.includes("daysCount(data.periodDays)"));
+  assert.doesNotMatch(money, /\{PERIOD_DAYS\[period\]\} يوماً كاملة/);
+  const forecast = read("src/components/smart-forecast.tsx");
+  assert.ok(forecast.includes("daysWord(calibration.days)"));
+});
+
+test("the money page can edit the export tariff it already prices", () => {
+  const money = read("src/app/money/page.tsx");
+  assert.ok(money.includes("setExportTariff(Number(e.target.value))"));
+});
+
+test("the inverter model list keeps a saved model that is not in the presets", () => {
+  const page = read("src/app/settings/page.tsx");
+  assert.ok(page.includes("includes(draft.inverterModel)"));
+});
+
+test("device times follow the viewer's clock, not a fixed Beirut zone", () => {
+  assert.doesNotMatch(read("src/components/devices-list.tsx"), /Asia\/Beirut/);
+});
