@@ -1,5 +1,6 @@
 "use client";
 
+import { toneText } from "@/lib/battery-tone";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, MoonStar, RefreshCw } from "lucide-react";
 import { useSharedSmartEnergy } from "@/components/smart-energy-provider";
@@ -15,6 +16,13 @@ function formatDate(iso: string) {
     day: "numeric",
     month: "short",
   }).format(new Date(iso + "T12:00:00Z"));
+}
+
+/** "يوم" / "يومين" / "5 أيام" / "12 يوماً": Arabic count of days. */
+function daysWord(n: number) {
+  if (n === 1) return "يوم";
+  if (n === 2) return "يومين";
+  return `${n} ${n >= 3 && n <= 10 ? "أيام" : "يوماً"}`;
 }
 
 const confidenceTone = {
@@ -54,6 +62,13 @@ function TonightCard({
     amber: "from-amber-50 text-amber-700",
     rose: "from-rose-50 text-rose-700",
   }[tone];
+  const toneRing = {
+    slate: "ring-slate-200/70",
+    emerald: "ring-emerald-300/70",
+    amber: "ring-amber-300/70",
+    rose: "ring-rose-300/70",
+  }[tone];
+  const valueText = tone === "slate" ? "text-slate-400" : toneText[tone];
   const verdict = !hasEnoughSamples
     ? "تقدير أولي"
     : result.sufficient
@@ -63,7 +78,7 @@ function TonightCard({
         : "قد لا تكفي حتى الصباح";
 
   return (
-    <section id="night" className={"energy-card scroll-mt-24 overflow-hidden bg-gradient-to-b to-white p-4 ring-2 ring-amber-300/70 " + toneClass}>
+    <section id="night" className={"energy-card scroll-mt-24 overflow-hidden bg-gradient-to-b to-white p-4 ring-2 " + toneRing + " " + toneClass}>
       <div className="flex items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-xs font-black text-slate-500">
           <MoonStar size={15} aria-hidden="true" /> الليلة الجارية · حتى الشروق <bdi dir="ltr">{siteClock(until)}</bdi>
@@ -80,11 +95,11 @@ function TonightCard({
         </div>
         <div className="rounded-xl bg-white/80 px-1 py-2 ring-1 ring-slate-200/60">
           <span className="block text-[10px] font-bold text-slate-500">عند الشروق</span>
-          <strong className="block text-lg font-black text-indigo-700">{hasEnoughSamples ? <bdi dir="ltr">{result.expectedSocAtSunrise}%</bdi> : "—"}</strong>
+          <strong className={"block text-lg font-black " + valueText}>{hasEnoughSamples ? <bdi dir="ltr">{result.expectedSocAtSunrise}%</bdi> : "—"}</strong>
         </div>
         <div className="rounded-xl bg-white/80 px-1 py-2 ring-1 ring-slate-200/60">
           <span className="block text-[10px] font-bold text-slate-500">تغطية</span>
-          <strong className="block text-lg font-black">{hasEnoughSamples ? <bdi dir="ltr">{result.probability}%</bdi> : "—"}</strong>
+          <strong className={"block text-lg font-black " + valueText}>{hasEnoughSamples ? <bdi dir="ltr">{result.probability}%</bdi> : "—"}</strong>
         </div>
       </div>
       {!hasEnoughSamples && <p className="mt-2 text-[11px] font-bold text-slate-500">تظهر النسب بعد تجمّع قراءات ليلية كافية.</p>}
@@ -232,9 +247,9 @@ export function SmartForecast({ afterDay }: { afterDay?: React.ReactNode } = {})
                     : <>⏳ يتعلّم من ألواحك</>}
                 <InfoTip label="معايرة التوقع" title="معايرة التوقع">
                   {calibration.status === "calibrated"
-                    ? <>في آخر {calibration.days} أيام أعطت ألواحك <bdi dir="ltr">{Math.round(calibration.factor * 100)}%</bdi> من التقدير النظري، فعُدّل التوقع على ذلك.</>
+                    ? <>في آخر {daysWord(calibration.days)} أعطت ألواحك <bdi dir="ltr">{Math.round(calibration.factor * 100)}%</bdi> من التقدير النظري، فعُدّل التوقع على ذلك.</>
                     : calibration.status === "suspect"
-                      ? <>أعطت ألواحك في آخر {calibration.days} أيام <bdi dir="ltr">{Math.round(calibration.ratio * 100)}%</bdi> فقط من التقدير النظري، وهذا أقل بكثير من المعتاد، فلم نعدّل التوقع عليه. افحص الألواح: ظل أو غبار عليها، أو قاطع مفصول، أو قدرة الألواح في الإعدادات غير دقيقة.</>
+                      ? <>أعطت ألواحك في آخر {daysWord(calibration.days)} <bdi dir="ltr">{Math.round(calibration.ratio * 100)}%</bdi> فقط من التقدير النظري، وهذا أقل بكثير من المعتاد، فلم نعدّل التوقع عليه. افحص الألواح: ظل أو غبار عليها، أو قاطع مفصول، أو قدرة الألواح في الإعدادات غير دقيقة.</>
                       : <>يبدأ تعديل التوقع على إنتاج ألواحك الفعلي بعد حوالي أسبوع من القراءات.</>}
                 </InfoTip>
               </span>
@@ -292,7 +307,6 @@ export function SmartForecast({ afterDay }: { afterDay?: React.ReactNode } = {})
             <div className="border-t border-slate-100 pt-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  {/* From the fourth day on the label is already the weekday, so it is not repeated. */}
                   <p className="text-xs font-bold text-slate-500">{selectedIndex < 3 ? <>{selected.label} · </> : null}{formatDate(selected.date)}</p>
                   <h2 className="mt-0.5 text-lg font-black text-slate-950">{weatherIcon(selected.weatherCode)} {weatherLabel(selected.weatherCode)}</h2>
                   <p className="mt-0.5 text-[11px] font-bold text-slate-500">
