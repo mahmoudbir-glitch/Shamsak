@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { BottomNav, DesktopNav } from '@/components/bottom-nav';
+import { BottomNav, DesktopNav, navGlow } from '@/components/bottom-nav';
 import LogoutButton from '@/components/logout-button';
 import { StatusBar } from '@/components/status-bar';
 
@@ -64,9 +64,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (isLogin) return <>{children}</>;
 
   return (
-    <div className="min-h-screen w-full bg-[linear-gradient(180deg,#f8fafc_0%,#f1f5f9_48%,#f8fafc_100%)]">
-      {/* One bar in the open page's colour: brand (with the connection dot beside the name) and tagline, logout. */}
-      <header className={"sticky top-0 z-50 rounded-b-[1.25rem] border-b border-slate-200/80 bg-white pt-[env(safe-area-inset-top)] text-slate-900 shadow-[0_6px_24px_rgba(15,23,42,0.08)]"}>
+    <div className={"min-h-screen w-full bg-gradient-to-b via-slate-50 via-40% to-slate-50 " + navGlow(pathname || '/')}>
+      {/* One frosted bar (the page scrolls on beneath it, tinted in the open page's colour): brand (with the connection dot beside the name) and tagline, logout. */}
+      <header className="sticky top-0 z-50 border-b border-white/70 bg-white/90 pt-[env(safe-area-inset-top)] text-slate-900 shadow-[0_6px_24px_rgba(15,23,42,0.04)] backdrop-blur-xl supports-[backdrop-filter]:bg-white/70">
         <div className="mx-auto flex min-h-[4.5rem] max-w-5xl items-center justify-between gap-3 px-3 py-2.5 sm:px-6 lg:max-w-6xl">
           <div className="flex min-w-0 items-center gap-2.5" aria-label="شمسك">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-50 ring-1 ring-slate-200/80" aria-hidden="true"><span className="sun-twinkle text-[1.6rem] leading-none">☀️</span></span>
