@@ -65,32 +65,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen w-full bg-[linear-gradient(180deg,#f8fafc_0%,#f1f5f9_48%,#f8fafc_100%)]">
-      <header className="sticky top-[calc(env(safe-area-inset-top)+0.5rem)] z-50 mx-2 mt-2 overflow-hidden rounded-[1.75rem] border border-slate-200/70 bg-white/90 shadow-[0_8px_28px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:mx-auto sm:max-w-5xl lg:max-w-6xl">
-        <div className="mx-auto flex max-w-5xl items-center lg:max-w-6xl justify-between gap-4 px-4 py-3 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3" aria-label="شمسك">
+      {/* One bar in the open page's colour: brand (with the connection dot beside the name) and tagline, logout. */}
+      <header className={"sticky top-0 z-50 rounded-b-[1.25rem] border-b border-slate-200/80 bg-white pt-[env(safe-area-inset-top)] text-slate-900 shadow-[0_6px_24px_rgba(15,23,42,0.08)]"}>
+        <div className="mx-auto flex min-h-[4.5rem] max-w-5xl items-center justify-between gap-3 px-3 py-2.5 sm:px-6 lg:max-w-6xl">
+          <div className="flex min-w-0 items-center gap-2.5" aria-label="شمسك">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-50 ring-1 ring-slate-200/80" aria-hidden="true"><span className="sun-twinkle text-[1.6rem] leading-none">☀️</span></span>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="sun-twinkle text-[1.7rem] leading-none" aria-hidden="true">☀️</span>
-                <div className="truncate text-xl font-black tracking-tight text-slate-950 sm:text-2xl">شمسك</div>
-                <span className="hidden rounded-full bg-emerald-50 px-2 py-1 text-[9px] font-black text-emerald-700 sm:inline-flex">
-                  طاقة ذكية
-                </span>
-              </div>
-              <div className="mt-0.5 truncate text-[11px] font-black text-black sm:text-xs">
-                الشمس تعمل من أجلك
-              </div>
+              <div className="flex items-center gap-2"><span className="truncate text-xl font-black leading-tight">شمسك</span><StatusBar compact /></div>
+              <div className="truncate text-xs font-extrabold text-slate-500">الشمس تعمل من أجلك</div>
             </div>
           </div>
           <LogoutButton />
         </div>
-        <div className="mx-auto max-w-5xl px-4 pb-2 sm:px-6 lg:max-w-6xl">
-          <StatusBar />
-        </div>
-        <div className="mx-auto max-w-5xl px-4 pb-3 sm:px-6 lg:max-w-6xl">
-          <DesktopNav />
-        </div>
       </header>
-      <main className="mx-auto min-h-[calc(100vh-120px)] w-full max-w-3xl px-3 py-4 pb-28 sm:px-5 sm:py-6 md:pb-8 lg:max-w-6xl">
+      <div className="mx-auto hidden max-w-5xl px-4 pt-3 sm:px-6 md:block lg:max-w-6xl">
+        <DesktopNav />
+      </div>
+      <main className="mx-auto min-h-[calc(100vh-120px)] w-full max-w-3xl px-3 py-3 pb-28 sm:px-5 sm:py-6 md:pb-8 lg:max-w-6xl">
         {children}
       </main>
       <BottomNav />
